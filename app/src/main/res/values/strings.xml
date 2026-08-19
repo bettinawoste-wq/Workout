@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Workout</string>
+    <string name="workout_builder">Workout Builder</string>
+    <string name="workouts">Workouts</string>
+    <string name="exercises">Übungen</string>
+    <string name="no_exercises">Keine Übungen vorhanden</string>
+    <string name="neue_uebung">Neue Übung</string>
+    <string name="titel">Titel</string>
+    <string name="description">Beschreibung</string>
+    <string name="speichern">Speichern</string>
+    <string name="keine_uebungen_vorhanden">Keine Übungen vorhanden</string>
+    <string name="uebungen">Übungen</string>
+</resources>
