@@ -2,6 +2,9 @@ package com.wob.workout.data.repository;
 
 import android.content.Context;
 
+import androidx.annotation.VisibleForTesting;
+
+import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.ExerciseSession;
 import com.wob.workout.data.entity.WorkoutSession;
@@ -12,10 +15,18 @@ import java.util.List;
 
 public class WorkoutHistoryRepository {
 
-    private final Context context;
+    private final AppDatabase database;
 
     public WorkoutHistoryRepository(Context context) {
-        this.context = context.getApplicationContext();
+        this(DatabaseProvider.get(context.getApplicationContext()));
+    }
+
+    /** Talks to a given database directly, bypassing the DatabaseProvider singleton.
+     *  Production code must go through {@link #WorkoutHistoryRepository(Context)} so every
+     *  repository shares the same database instance and invalidation tracker. */
+    @VisibleForTesting
+    public WorkoutHistoryRepository(AppDatabase database) {
+        this.database = database;
     }
 
     public long startSession(long workoutId, String workoutName) {
@@ -25,9 +36,7 @@ public class WorkoutHistoryRepository {
         session.startedAt = System.currentTimeMillis();
         session.completed = false;
 
-        return DatabaseProvider.get(context)
-                .workoutSessionDao()
-                .insert(session);
+        return database.workoutSessionDao().insert(session);
     }
 
     public long recordExercise(
@@ -50,41 +59,29 @@ public class WorkoutHistoryRepository {
         exerciseSession.startedAt = startedAt;
         exerciseSession.finishedAt = finishedAt;
 
-        return DatabaseProvider.get(context)
-                .exerciseSessionDao()
-                .insert(exerciseSession);
+        return database.exerciseSessionDao().insert(exerciseSession);
     }
 
     public void finishSession(long sessionId, boolean completed) {
-        WorkoutSession session =
-                DatabaseProvider.get(context)
-                        .workoutSessionDao()
-                        .getById(sessionId);
+        WorkoutSession session = database.workoutSessionDao().getById(sessionId);
 
         if (session == null) return;
 
         session.finishedAt = System.currentTimeMillis();
         session.completed = completed;
         session.activeDurationSeconds =
-                DatabaseProvider.get(context)
-                        .exerciseSessionDao()
-                        .getTotalActiveSeconds(sessionId);
+                database.exerciseSessionDao().getTotalActiveSeconds(sessionId);
 
-        DatabaseProvider.get(context)
-                .workoutSessionDao()
-                .update(session);
+        database.workoutSessionDao().update(session);
     }
 
     public List<WorkoutSessionSummary> getHistory() {
         List<WorkoutSessionSummary> result = new ArrayList<>();
 
-        for (WorkoutSession session :
-                DatabaseProvider.get(context).workoutSessionDao().getAllOrderByStartedAtDesc()) {
+        for (WorkoutSession session : database.workoutSessionDao().getAllOrderByStartedAtDesc()) {
 
             int exerciseCount =
-                    DatabaseProvider.get(context)
-                            .exerciseSessionDao()
-                            .countBySession(session.id);
+                    database.exerciseSessionDao().countBySession(session.id);
 
             // Sessions ohne aufgezeichnete Uebung und ohne Abschluss sind nur ein
             // sofortiger Rueckzug aus dem Player, keine echten Verlaufseintraege.
@@ -97,20 +94,14 @@ public class WorkoutHistoryRepository {
     }
 
     public WorkoutSession getSession(long sessionId) {
-        return DatabaseProvider.get(context)
-                .workoutSessionDao()
-                .getById(sessionId);
+        return database.workoutSessionDao().getById(sessionId);
     }
 
     public List<ExerciseSession> getExercises(long sessionId) {
-        return DatabaseProvider.get(context)
-                .exerciseSessionDao()
-                .getBySession(sessionId);
+        return database.exerciseSessionDao().getBySession(sessionId);
     }
 
     public void delete(WorkoutSession session) {
-        DatabaseProvider.get(context)
-                .workoutSessionDao()
-                .delete(session);
+        database.workoutSessionDao().delete(session);
     }
 }
