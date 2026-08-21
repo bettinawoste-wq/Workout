@@ -1,7 +1,5 @@
 package com.wob.workout.player;
 
-import android.content.Context;
-
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.WorkoutExercise;
 import com.wob.workout.data.repository.ExerciseRepository;
@@ -15,9 +13,11 @@ public class PlayerRepository {
     private final ExerciseRepository exerciseRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
 
-    public PlayerRepository(Context context) {
-        exerciseRepository = new ExerciseRepository(context);
-        workoutExerciseRepository = new WorkoutExerciseRepository(context);
+    public PlayerRepository(
+            ExerciseRepository exerciseRepository,
+            WorkoutExerciseRepository workoutExerciseRepository) {
+        this.exerciseRepository = exerciseRepository;
+        this.workoutExerciseRepository = workoutExerciseRepository;
     }
 
     public List<PlayerExercise> getExercises(long workoutId) {
