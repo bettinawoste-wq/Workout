@@ -86,9 +86,31 @@ public class WorkoutHistoryRepository {
                             .exerciseSessionDao()
                             .countBySession(session.id);
 
+            // Sessions ohne aufgezeichnete Uebung und ohne Abschluss sind nur ein
+            // sofortiger Rueckzug aus dem Player, keine echten Verlaufseintraege.
+            if (exerciseCount == 0 && !session.completed) continue;
+
             result.add(new WorkoutSessionSummary(session, exerciseCount));
         }
 
         return result;
+    }
+
+    public WorkoutSession getSession(long sessionId) {
+        return DatabaseProvider.get(context)
+                .workoutSessionDao()
+                .getById(sessionId);
+    }
+
+    public List<ExerciseSession> getExercises(long sessionId) {
+        return DatabaseProvider.get(context)
+                .exerciseSessionDao()
+                .getBySession(sessionId);
+    }
+
+    public void delete(WorkoutSession session) {
+        DatabaseProvider.get(context)
+                .workoutSessionDao()
+                .delete(session);
     }
 }

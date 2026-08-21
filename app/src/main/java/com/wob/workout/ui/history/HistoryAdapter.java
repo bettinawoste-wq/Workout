@@ -15,14 +15,32 @@ import java.util.Locale;
 
 public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
 
+    public interface Listener {
+        void onItemClicked(WorkoutSessionSummary item);
+    }
+
     private final List<WorkoutSessionSummary> sessions = new ArrayList<>();
     private final SimpleDateFormat dateFormat =
             new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+    private final Listener listener;
+
+    public HistoryAdapter(Listener listener) {
+        this.listener = listener;
+    }
 
     public void setData(List<WorkoutSessionSummary> data) {
         sessions.clear();
         sessions.addAll(data);
         notifyDataSetChanged();
+    }
+
+    public WorkoutSessionSummary getItem(int position) {
+        return sessions.get(position);
+    }
+
+    public void removeItem(int position) {
+        sessions.remove(position);
+        notifyItemRemoved(position);
     }
 
     @NonNull
@@ -50,6 +68,8 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
                 dateFormat.format(new Date(item.session.startedAt))
                         + " • " + item.exerciseCount + " Übungen"
                         + " • " + formatDuration(item.session.activeDurationSeconds));
+
+        holder.itemView.setOnClickListener(v -> listener.onItemClicked(item));
     }
 
     @Override
