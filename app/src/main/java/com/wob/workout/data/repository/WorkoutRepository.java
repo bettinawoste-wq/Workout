@@ -27,6 +27,13 @@ public class WorkoutRepository {
                 .update(workout);
     }
 
+    /** @return true if a row was actually updated (false if {@code id} no longer exists). */
+    public boolean updateName(long id, String name) {
+        return DatabaseProvider.get(context)
+                .workoutDao()
+                .updateName(id, name) > 0;
+    }
+
     public void delete(Workout workout) {
         DatabaseProvider.get(context)
                 .workoutDao()

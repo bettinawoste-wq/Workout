@@ -20,7 +20,11 @@ import java.util.List;
  * solving — and a fresh reactive emission racing a drag gesture's own optimistic reorder
  * would be a real interaction wrinkle for no benefit. Instead, {@link #exercises} is a
  * plain one-shot-per-write LiveData: each mutating method performs its write, then re-runs
- * the same load composition to refresh it. See wayfinder ticket #5.
+ * the same load composition to refresh it. The Fragment also calls {@link #refreshExercises()}
+ * on every view creation (not just the first), since this Fragment instance can survive on
+ * the back stack while the user edits or deletes an {@code Exercise} from the catalog on a
+ * different screen — a real external staleness source the original "self-contained" framing
+ * missed. See wayfinder ticket #5.
  */
 public class WorkoutEditViewModel extends ViewModel {
 
@@ -39,7 +43,7 @@ public class WorkoutEditViewModel extends ViewModel {
             LiveDataExecutor.runOnExecutorOnce(
                     container.ioExecutor, () -> container.workoutRepository.getById(workoutId),
                     workout::setValue);
-            loadExercises();
+            refreshExercises();
         }
     }
 
@@ -55,27 +59,31 @@ public class WorkoutEditViewModel extends ViewModel {
         return exercises;
     }
 
-    public LiveData<Boolean> save(String name) {
-        Workout target = workout.getValue() != null ? workout.getValue() : new Workout();
-        target.id = isNew() ? 0 : workoutId;
-        target.name = name;
-        boolean isInsert = target.id == 0;
+    /** Safe to call every time the Fragment's view is (re)created, not just once — this is
+     *  how a change made on another screen (e.g. deleting the Exercise this workout uses)
+     *  while this Fragment sat on the back stack gets picked up on return. */
+    public void refreshExercises() {
+        if (isNew()) return;
+        writeThenReload(() -> { });
+    }
 
-        return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
-            if (isInsert) {
-                container.workoutRepository.save(target);
-            } else {
-                container.workoutRepository.update(target);
-            }
-            return true;
-        });
+    public LiveData<Boolean> save(String name) {
+        if (isNew()) {
+            return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
+                Workout created = new Workout();
+                created.name = name;
+                container.workoutRepository.save(created);
+                return true;
+            });
+        }
+        return LiveDataExecutor.runOnExecutor(
+                container.ioExecutor, () -> container.workoutRepository.updateName(workoutId, name));
     }
 
     public LiveData<Boolean> delete() {
-        Workout target = workout.getValue() != null ? workout.getValue() : new Workout();
-        target.id = workoutId;
-
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
+            Workout target = new Workout();
+            target.id = workoutId;
             container.workoutRepository.delete(target);
             return true;
         });
@@ -99,10 +107,11 @@ public class WorkoutEditViewModel extends ViewModel {
     }
 
     public void changeDuration(WorkoutExerciseAdapter.ExerciseItem item, int durationSeconds) {
-        writeThenReload(() -> {
-            item.workoutExercise.durationSeconds = durationSeconds;
-            container.workoutExerciseRepository.update(item.workoutExercise);
-        });
+        // Mutate on the caller's (main) thread — item.workoutExercise is the same object the
+        // adapter's ViewHolder may be reading right now; only the DB write itself belongs
+        // on the background executor.
+        item.workoutExercise.durationSeconds = durationSeconds;
+        writeThenReload(() -> container.workoutExerciseRepository.update(item.workoutExercise));
     }
 
     public void removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
@@ -110,19 +119,23 @@ public class WorkoutEditViewModel extends ViewModel {
     }
 
     public void reorder(List<WorkoutExerciseAdapter.ExerciseItem> newOrder) {
+        // Renumber synchronously here, on the caller's (main) thread, for the same reason as
+        // changeDuration() above — these WorkoutExercise objects are adapter-owned, and
+        // newOrder is the adapter's own live list, not a snapshot.
+        List<WorkoutExercise> toUpdate = new ArrayList<>();
+        for (int i = 0; i < newOrder.size(); i++) {
+            WorkoutExercise workoutExercise = newOrder.get(i).workoutExercise;
+            if (workoutExercise.position != i) {
+                workoutExercise.position = i;
+                toUpdate.add(workoutExercise);
+            }
+        }
+
         writeThenReload(() -> {
-            for (int i = 0; i < newOrder.size(); i++) {
-                WorkoutExercise workoutExercise = newOrder.get(i).workoutExercise;
-                if (workoutExercise.position != i) {
-                    workoutExercise.position = i;
-                    container.workoutExerciseRepository.update(workoutExercise);
-                }
+            for (WorkoutExercise workoutExercise : toUpdate) {
+                container.workoutExerciseRepository.update(workoutExercise);
             }
         });
-    }
-
-    private void loadExercises() {
-        LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, this::loadExerciseItems, exercises::setValue);
     }
 
     private void writeThenReload(Runnable write) {
