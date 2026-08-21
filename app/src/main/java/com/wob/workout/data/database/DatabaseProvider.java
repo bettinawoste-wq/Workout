@@ -15,7 +15,7 @@ public class DatabaseProvider {
                                     context,
                                     AppDatabase.class,
                                     "workout.db")
-                            .fallbackToDestructiveMigration()
+                            .addMigrations(AppDatabase.MIGRATION_2_3)
                             // TODO später entfernen
                             .allowMainThreadQueries()
                             .build();
