@@ -36,7 +36,6 @@ public class PlayerFragment extends Fragment {
     private long lastBeepSecond = -1;
     private AudioManager audioManager;
     private MediaController mediaController;
-    // TODO  private WorkoutTimer timer;
 
     private WorkoutHistoryRepository historyRepository;
     private long sessionId = -1;

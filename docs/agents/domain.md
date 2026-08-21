@@ -4,8 +4,8 @@
 
 This repo is a single Android application module (no monorepo/workspace signals found), so domain knowledge lives in one place at the repo root:
 
-- `CONTEXT.md` — living description of the domain/architecture. Does not exist yet; create it when there's enough settled context worth writing down.
-- `docs/adr/` — Architecture Decision Records, one file per significant decision. Does not exist yet; create the directory when the first ADR is written.
+- `CONTEXT.md` — living description of the domain/architecture.
+- `docs/adr/` — Architecture Decision Records, one file per significant decision.
 
 ## Consumer rules
 
