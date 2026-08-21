@@ -2,8 +2,14 @@ package com.wob.workout.data.repository;
 
 import android.content.Context;
 
-import com.wob.workout.data.entity.Workout;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Transformations;
+
+import com.wob.workout.data.database.AppDatabase;
+import com.wob.workout.data.database.DatabaseProvider;
+import com.wob.workout.data.dao.WorkoutDao;
 import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.relation.WorkoutWithExercises;
 import com.wob.workout.ui.workout.WorkoutListItem;
 
 import java.util.ArrayList;
@@ -11,28 +17,32 @@ import java.util.List;
 
 public class WorkoutSummaryRepository {
 
-    private final WorkoutRepository workoutRepository;
-    private final WorkoutExerciseRepository workoutExerciseRepository;
+    private final WorkoutDao workoutDao;
 
     public WorkoutSummaryRepository(Context context) {
-        workoutRepository = new WorkoutRepository(context);
-        workoutExerciseRepository = new WorkoutExerciseRepository(context);
+        this(DatabaseProvider.get(context.getApplicationContext()));
     }
 
-    public List<WorkoutListItem> getAll() {
-        List<WorkoutListItem> result = new ArrayList<>();
-        for (Workout workout : workoutRepository.getAll()) {
-            List<WorkoutExercise> exercises =
-                    workoutExerciseRepository.getByWorkout(workout.id);
+    /** For tests: talk to a given database directly, bypassing the DatabaseProvider singleton. */
+    public WorkoutSummaryRepository(AppDatabase database) {
+        this.workoutDao = database.workoutDao();
+    }
 
+    public LiveData<List<WorkoutListItem>> observeAll() {
+        return Transformations.map(
+                workoutDao.getAllWithExercises(),
+                WorkoutSummaryRepository::toListItems);
+    }
+
+    private static List<WorkoutListItem> toListItems(List<WorkoutWithExercises> rows) {
+        List<WorkoutListItem> result = new ArrayList<>();
+
+        for (WorkoutWithExercises row : rows) {
             int duration = 0;
-            for (WorkoutExercise exercise : exercises)
+            for (WorkoutExercise exercise : row.exercises) {
                 duration += exercise.durationSeconds;
-            result.add(
-                    new WorkoutListItem(
-                            workout,
-                            exercises.size(),
-                            duration));
+            }
+            result.add(new WorkoutListItem(row.workout, row.exercises.size(), duration));
         }
 
         return result;

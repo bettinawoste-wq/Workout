@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.firebase.inappmessaging)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+    androidTestImplementation(libs.arch.core.testing)
     annotationProcessor(libs.room.compiler)
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)
