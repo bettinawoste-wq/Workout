@@ -6,6 +6,8 @@ import androidx.room.Relation;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExercise;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -18,6 +20,15 @@ public class WorkoutWithExercises {
     @Embedded
     public Workout workout;
 
+    /** Not ordered — Room's @Relation batched fetch doesn't preserve any particular
+     *  order. Use {@link #exercisesInOrder()} wherever the workout's configured
+     *  exercise order matters. */
     @Relation(parentColumn = "id", entityColumn = "workoutId")
     public List<WorkoutExercise> exercises;
+
+    public List<WorkoutExercise> exercisesInOrder() {
+        List<WorkoutExercise> sorted = new ArrayList<>(exercises);
+        sorted.sort(Comparator.comparingInt(exercise -> exercise.position));
+        return sorted;
+    }
 }
