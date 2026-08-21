@@ -12,12 +12,16 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.wob.workout.data.entity.MediaType;
 import com.wob.workout.databinding.FragmentExerciseEditBinding;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.repository.ExerciseRepository;
 import com.wob.workout.media.MediaStorageManager;
+import com.wob.workout.media.MediaThumbnailLoader;
+
+import java.io.File;
 
 public class ExerciseEditFragment extends Fragment {
 
@@ -76,9 +80,34 @@ public class ExerciseEditFragment extends Fragment {
         binding.edtDescription.setText(exercise.description);
         selectedMediaFile = exercise.mediaFile;
         selectedMediaType = exercise.mediaType;
-        if (selectedMediaFile != null) {
-            binding.txtMedia.setText(selectedMediaFile);
+        updatePreview();
+    }
+
+    private void updatePreview() {
+        if (selectedMediaFile == null || selectedMediaType == null) {
+            binding.imgMediaPreview.setVisibility(View.GONE);
+            binding.txtMedia.setVisibility(View.VISIBLE);
+            binding.txtMedia.setText("Kein Medium ausgewählt");
+            return;
         }
+
+        File file = new File(
+                MediaStorageManager.getFullPath(requireContext(), selectedMediaFile));
+
+        android.graphics.Bitmap preview = selectedMediaType == MediaType.VIDEO
+                ? MediaThumbnailLoader.loadVideoFrame(file)
+                : MediaThumbnailLoader.loadRotatedImage(file);
+
+        if (preview == null) {
+            binding.imgMediaPreview.setVisibility(View.GONE);
+            binding.txtMedia.setVisibility(View.VISIBLE);
+            binding.txtMedia.setText(selectedMediaFile);
+            return;
+        }
+
+        binding.imgMediaPreview.setImageBitmap(preview);
+        binding.imgMediaPreview.setVisibility(View.VISIBLE);
+        binding.txtMedia.setVisibility(View.GONE);
     }
 
     private void save() {
@@ -111,8 +140,16 @@ public class ExerciseEditFragment extends Fragment {
         if (exercise == null) {
             return;
         }
-        repository.delete(exercise);
-        requireActivity().getSupportFragmentManager().popBackStack();
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Übung löschen?")
+                .setMessage("\"" + exercise.title + "\" wird endgültig gelöscht.")
+                .setNegativeButton("Abbrechen", null)
+                .setPositiveButton("Löschen", (dialog, which) -> {
+                    repository.delete(exercise);
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                })
+                .show();
     }
 
     private void onMediaSelected(Uri uri) {
@@ -132,7 +169,7 @@ public class ExerciseEditFragment extends Fragment {
                 return;
             }
 
-            binding.txtMedia.setText(selectedMediaFile);
+            updatePreview();
 
         } catch (Exception e) {
             Snackbar.make(binding.getRoot(), "Medium konnte nicht gespeichert werden", Snackbar.LENGTH_SHORT).show();

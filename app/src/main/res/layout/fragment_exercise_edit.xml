@@ -39,6 +39,14 @@
             android:layout_marginTop="16dp"
             android:text="Medium auswählen"/>
 
+        <ImageView
+            android:id="@+id/imgMediaPreview"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:layout_marginTop="8dp"
+            android:scaleType="centerCrop"
+            android:visibility="gone"/>
+
         <TextView
             android:id="@+id/txtMedia"
             android:layout_width="match_parent"
