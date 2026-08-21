@@ -1,5 +1,7 @@
 package com.wob.workout.data;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -12,11 +14,18 @@ import java.util.function.Supplier;
  */
 public class LiveDataExecutor {
 
+    private static final String TAG = "LiveDataExecutor";
+
     public static <T> LiveData<T> runOnExecutor(ExecutorService executor, Supplier<T> work) {
         MutableLiveData<T> result = new MutableLiveData<>();
         executor.execute(() -> {
-            T value = work.get();
-            result.postValue(value);
+            try {
+                result.postValue(work.get());
+            } catch (RuntimeException e) {
+                // Without this, a failing DAO/repository call would silently strand the
+                // LiveData with no value and no observer callback ever firing.
+                Log.e(TAG, "Background work failed, LiveData will not receive a value", e);
+            }
         });
         return result;
     }
