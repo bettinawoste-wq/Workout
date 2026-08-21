@@ -2,6 +2,7 @@ package com.wob.workout.data.repository;
 
 import android.content.Context;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 
@@ -23,7 +24,10 @@ public class WorkoutSummaryRepository {
         this(DatabaseProvider.get(context.getApplicationContext()));
     }
 
-    /** For tests: talk to a given database directly, bypassing the DatabaseProvider singleton. */
+    /** Talks to a given database directly, bypassing the DatabaseProvider singleton.
+     *  Production code must go through {@link #WorkoutSummaryRepository(Context)} so every
+     *  repository shares the same database instance and invalidation tracker. */
+    @VisibleForTesting
     public WorkoutSummaryRepository(AppDatabase database) {
         this.workoutDao = database.workoutDao();
     }

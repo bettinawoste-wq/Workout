@@ -1,6 +1,7 @@
 package com.wob.workout.ui.workout;
 
 import static com.wob.workout.LiveDataTestUtil.getOrAwaitValue;
+import static com.wob.workout.LiveDataTestUtil.observeValues;
 import static org.junit.Assert.assertEquals;
 
 import android.content.Context;
@@ -23,6 +24,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Establishes the ViewModel-migration testing pattern (in-memory Room database,
@@ -38,6 +41,7 @@ public class WorkoutListViewModelTest {
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
     private AppDatabase database;
+    private WorkoutSummaryRepository repository;
 
     @Before
     public void createDatabase() {
@@ -45,6 +49,7 @@ public class WorkoutListViewModelTest {
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class)
                 .allowMainThreadQueries()
                 .build();
+        repository = new WorkoutSummaryRepository(database);
     }
 
     @After
@@ -52,24 +57,32 @@ public class WorkoutListViewModelTest {
         database.close();
     }
 
+    private long insertWorkout(String name) {
+        Workout workout = new Workout();
+        workout.name = name;
+        return database.workoutDao().insert(workout);
+    }
+
+    private long insertExercise(String title) {
+        Exercise exercise = new Exercise();
+        exercise.title = title;
+        return database.exerciseDao().insert(exercise);
+    }
+
+    private void insertWorkoutExercise(long workoutId, long exerciseId, int durationSeconds) {
+        WorkoutExercise workoutExercise = new WorkoutExercise();
+        workoutExercise.workoutId = workoutId;
+        workoutExercise.exerciseId = exerciseId;
+        workoutExercise.position = 0;
+        workoutExercise.durationSeconds = durationSeconds;
+        database.workoutExerciseDao().insert(workoutExercise);
+    }
+
     @Test
     public void workoutsReflectsSavedWorkoutAndItsExercises() throws InterruptedException {
-        Workout workout = new Workout();
-        workout.name = "Leg Day";
-        long workoutId = database.workoutDao().insert(workout);
-
-        Exercise squat = new Exercise();
-        squat.title = "Squat";
-        long exerciseId = database.exerciseDao().insert(squat);
-
-        WorkoutExercise exercise = new WorkoutExercise();
-        exercise.workoutId = workoutId;
-        exercise.exerciseId = exerciseId;
-        exercise.position = 0;
-        exercise.durationSeconds = 45;
-        database.workoutExerciseDao().insert(exercise);
-
-        WorkoutSummaryRepository repository = new WorkoutSummaryRepository(database);
+        long workoutId = insertWorkout("Leg Day");
+        long exerciseId = insertExercise("Squat");
+        insertWorkoutExercise(workoutId, exerciseId, 45);
 
         List<WorkoutListItem> items = getOrAwaitValue(repository.observeAll());
 
@@ -81,27 +94,21 @@ public class WorkoutListViewModelTest {
 
     @Test
     public void workoutsUpdatesWhenAnExerciseIsAdded() throws InterruptedException {
-        Workout workout = new Workout();
-        workout.name = "Push Day";
-        long workoutId = database.workoutDao().insert(workout);
+        long workoutId = insertWorkout("Push Day");
+        long exerciseId = insertExercise("Push-up");
 
-        Exercise pushup = new Exercise();
-        pushup.title = "Push-up";
-        long exerciseId = database.exerciseDao().insert(pushup);
+        // One still-active observer across the mutation below - this is what actually
+        // proves Room's invalidation tracking replaces the deleted onResume()/reload,
+        // as opposed to two independent one-shot reads that would pass even if nothing
+        // re-notified an existing observer.
+        BlockingQueue<List<WorkoutListItem>> values = observeValues(repository.observeAll());
 
-        WorkoutSummaryRepository repository = new WorkoutSummaryRepository(database);
-
-        List<WorkoutListItem> beforeAdding = getOrAwaitValue(repository.observeAll());
+        List<WorkoutListItem> beforeAdding = values.poll(2, TimeUnit.SECONDS);
         assertEquals(0, beforeAdding.get(0).exerciseCount);
 
-        WorkoutExercise exercise = new WorkoutExercise();
-        exercise.workoutId = workoutId;
-        exercise.exerciseId = exerciseId;
-        exercise.position = 0;
-        exercise.durationSeconds = 30;
-        database.workoutExerciseDao().insert(exercise);
+        insertWorkoutExercise(workoutId, exerciseId, 30);
 
-        List<WorkoutListItem> afterAdding = getOrAwaitValue(repository.observeAll());
+        List<WorkoutListItem> afterAdding = values.poll(2, TimeUnit.SECONDS);
         assertEquals(1, afterAdding.get(0).exerciseCount);
         assertEquals(30, afterAdding.get(0).totalDurationSeconds);
     }
