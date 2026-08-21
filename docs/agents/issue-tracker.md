@@ -2,14 +2,7 @@
 
 **Type:** GitHub Issues
 **Repo:** bettinawoste-wq/Workout
-**CLI:** `gh` (GitHub CLI)
-
-## Setup required
-
-The `gh` CLI is not currently installed on this machine. Install it before relying on skills that read/write issues (e.g. `to-tickets`, `triage`, `to-spec`, `wayfinder`):
-
-- Windows: `winget install --id GitHub.cli` or `scoop install gh`
-- After install, run `gh auth login` once to authenticate against github.com.
+**CLI:** `gh` (GitHub CLI), installed and authenticated as `bettinawoste-wq`
 
 ## Conventions
 
