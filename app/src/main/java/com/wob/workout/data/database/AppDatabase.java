@@ -25,7 +25,7 @@ import com.wob.workout.data.entity.WorkoutSession;
                 WorkoutSession.class,
                 ExerciseSession.class
         },
-        version = 3,
+        version = 4,
         exportSchema = false
 )
 @TypeConverters(MediaTypeConverter.class)
@@ -66,6 +66,36 @@ public abstract class AppDatabase extends RoomDatabase {
                             "FOREIGN KEY(`sessionId`) REFERENCES `WorkoutSession`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)");
             db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_ExerciseSession_sessionId` ON `ExerciseSession` (`sessionId`)");
+        }
+    };
+
+    public static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // WorkoutSession soll unabhaengig vom Workout weiterbestehen, deshalb hier die
+            // Fremdschluessel-Kaskade auf Workout entfernen (SQLite kann das nur per Neuanlage).
+            db.execSQL("ALTER TABLE `WorkoutSession` RENAME TO `WorkoutSession_old`");
+
+            db.execSQL(
+                    "CREATE TABLE `WorkoutSession` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`workoutId` INTEGER NOT NULL, " +
+                            "`workoutName` TEXT, " +
+                            "`startedAt` INTEGER NOT NULL, " +
+                            "`finishedAt` INTEGER NOT NULL, " +
+                            "`activeDurationSeconds` INTEGER NOT NULL, " +
+                            "`completed` INTEGER NOT NULL)");
+
+            db.execSQL(
+                    "INSERT INTO `WorkoutSession` " +
+                            "(`id`, `workoutId`, `workoutName`, `startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`) " +
+                            "SELECT `id`, `workoutId`, `workoutName`, `startedAt`, `finishedAt`, `activeDurationSeconds`, `completed` " +
+                            "FROM `WorkoutSession_old`");
+
+            db.execSQL("DROP TABLE `WorkoutSession_old`");
+
+            db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_WorkoutSession_workoutId` ON `WorkoutSession` (`workoutId`)");
         }
     };
 }

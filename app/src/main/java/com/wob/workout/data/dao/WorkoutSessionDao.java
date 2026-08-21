@@ -13,6 +13,9 @@ public interface WorkoutSessionDao {
     @Update
     void update(WorkoutSession session);
 
+    @Delete
+    void delete(WorkoutSession session);
+
     @Query("SELECT * FROM WorkoutSession ORDER BY startedAt DESC")
     List<WorkoutSession> getAllOrderByStartedAtDesc();
 
