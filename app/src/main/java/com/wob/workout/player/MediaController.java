@@ -1,16 +1,17 @@
 package com.wob.workout.player;
 
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.view.View;
 
 import androidx.core.content.FileProvider;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentPlayerBinding;
 import com.wob.workout.media.MediaStorageManager;
+import com.wob.workout.media.MediaThumbnailLoader;
 
 import java.io.File;
 
@@ -54,7 +55,7 @@ public class MediaController {
 
         binding.imgMedia.setVisibility(View.VISIBLE);
         binding.imgMedia.setImageBitmap(
-                BitmapFactory.decodeFile(file.getAbsolutePath()));
+                MediaThumbnailLoader.loadRotatedImage(file));
     }
 
     private void showVideo(String fileName) {
@@ -75,6 +76,7 @@ public class MediaController {
         Uri uri = Uri.fromFile(file);
 
         exoPlayer.setMediaItem(MediaItem.fromUri(uri));
+        exoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
         exoPlayer.prepare();
         exoPlayer.play();
     }
