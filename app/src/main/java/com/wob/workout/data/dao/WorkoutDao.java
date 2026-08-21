@@ -1,7 +1,9 @@
 package com.wob.workout.data.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.*;
 import com.wob.workout.data.entity.Workout;
+import com.wob.workout.data.relation.WorkoutWithExercises;
 import java.util.List;
 
 @Dao
@@ -21,4 +23,8 @@ public interface WorkoutDao {
 
     @Query("SELECT * FROM Workout ORDER BY id DESC")
     List<Workout> getAll();
+
+    @Transaction
+    @Query("SELECT * FROM Workout ORDER BY id DESC")
+    LiveData<List<WorkoutWithExercises>> getAllWithExercises();
 }
