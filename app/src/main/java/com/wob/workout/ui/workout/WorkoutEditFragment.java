@@ -87,7 +87,15 @@ public class WorkoutEditFragment extends Fragment {
                 binding.edtName.setText(workout.name);
             }
         });
-        viewModel.getExercises().observe(getViewLifecycleOwner(), adapter::setData);
+        viewModel.getExercises().observe(getViewLifecycleOwner(), items -> {
+            if (items != null) adapter.setData(items);
+        });
+
+        // Not just the first creation: this Fragment can sit on the back stack while the
+        // user edits or deletes an Exercise from the catalog on a different screen, so the
+        // list needs a fresh reload every time this view comes back, not only after this
+        // screen's own writes.
+        viewModel.refreshExercises();
 
         binding.btnSave.setOnClickListener(v -> save());
         binding.btnDelete.setOnClickListener(v -> confirmDelete());
@@ -121,9 +129,16 @@ public class WorkoutEditFragment extends Fragment {
             return;
         }
 
+        // Disable immediately so a second tap before the async write returns can't insert a
+        // duplicate workout.
+        binding.btnSave.setEnabled(false);
+
         viewModel.save(name).observe(getViewLifecycleOwner(), saved -> {
             if (saved != null && saved) {
                 requireActivity().getSupportFragmentManager().popBackStack();
+            } else if (binding != null) {
+                binding.btnSave.setEnabled(true);
+                Snackbar.make(binding.getRoot(), "Speichern fehlgeschlagen", Snackbar.LENGTH_SHORT).show();
             }
         });
     }
@@ -132,6 +147,9 @@ public class WorkoutEditFragment extends Fragment {
         if (viewModel.isNew()) return;
 
         String name = binding.edtName.getText().toString();
+        if (name.isEmpty() && viewModel.getWorkout().getValue() != null) {
+            name = viewModel.getWorkout().getValue().name;
+        }
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Workout löschen?")

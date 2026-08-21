@@ -15,6 +15,12 @@ public interface WorkoutDao {
     @Update
     void update(Workout workout);
 
+    /** Partial update touching only the name, so a caller that hasn't loaded the rest of
+     *  the row can't accidentally overwrite it. Returns the number of rows updated (0 if
+     *  {@code id} no longer exists). */
+    @Query("UPDATE Workout SET name = :name WHERE id = :id")
+    int updateName(long id, String name);
+
     @Delete
     void delete(Workout workout);
 

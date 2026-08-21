@@ -23,15 +23,19 @@ lives in an on-device Room database.
   [`docs/adr/0001-manual-di-container.md`](docs/adr/0001-manual-di-container.md)), built once in
   `WorkoutApplication` and reached via `((WorkoutApplication) context.getApplicationContext()).getAppContainer()`.
   No DI framework — deliberately the smallest mechanism that fits a single-developer app this size.
-- **MVVM migration is in progress, not finished.** `WorkoutListFragment` and `PlayerFragment`
-  have been migrated to the new pattern so far. `WorkoutListViewModel` is a thin passthrough
-  over `WorkoutSummaryRepository`'s reactive `LiveData` (built via `LiveDataExecutor` running
-  on `AppContainer.ioExecutor`); `PlayerViewModel` owns the player's state machine, a
-  consolidated `PlayerTimer`, and a standalone `PlayerHistoryTracker` for session bookkeeping.
-  The rest of the screens (`WorkoutEditFragment`, `ExerciseListFragment`, `ExerciseEditFragment`,
-  the `ui/history` screens) still construct repositories directly and call them synchronously —
-  that's known, tracked incremental debt, not an oversight. See GitHub issue #1 ("Lightweight
-  MVVM Migration") for the map of remaining screens.
+- **MVVM migration is in progress, not finished.** `WorkoutListFragment`, `PlayerFragment`, and
+  `WorkoutEditFragment` have been migrated to the new pattern so far. `WorkoutListViewModel` is a
+  thin passthrough over `WorkoutSummaryRepository`'s reactive `LiveData` (built via
+  `LiveDataExecutor` running on `AppContainer.ioExecutor`); `PlayerViewModel` owns the player's
+  state machine, a consolidated `PlayerTimer`, and a standalone `PlayerHistoryTracker` for
+  session bookkeeping; `WorkoutEditViewModel` deliberately does *not* use a reactive Room query —
+  it re-runs a manual load-and-reload after each of its own writes, plus on every view creation
+  (to pick up changes made elsewhere, e.g. an Exercise deleted from the catalog while this screen
+  sat on the back stack) — see the class doc on `WorkoutEditViewModel` for the full rationale.
+  The rest of the screens (`ExerciseListFragment`, `ExerciseEditFragment`, the `ui/history`
+  screens) still construct repositories directly and call them synchronously — that's known,
+  tracked incremental debt, not an oversight. See GitHub issue #1 ("Lightweight MVVM Migration")
+  for the map of remaining screens.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
   `fallbackToDestructiveMigration()`. `DatabaseProvider` still calls `.allowMainThreadQueries()`
   (flagged in-code with a TODO); this goes away as more screens move off synchronous
