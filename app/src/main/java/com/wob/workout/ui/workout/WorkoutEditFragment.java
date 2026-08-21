@@ -2,18 +2,24 @@ package com.wob.workout.ui.workout;
 
 import android.os.Bundle;
 import android.view.*;
-import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
+import com.wob.workout.R;
 import com.wob.workout.data.entity.*;
 import com.wob.workout.data.repository.*;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class WorkoutEditFragment extends Fragment {
 
@@ -23,21 +29,33 @@ public class WorkoutEditFragment extends Fragment {
     private Workout workout;
     private WorkoutExerciseRepository workoutExerciseRepository;
     private ExerciseRepository exerciseRepository;
-    private final List<ExerciseItem> exerciseItems = new ArrayList<>();
+    private WorkoutExerciseAdapter adapter;
 
-    private static class ExerciseItem {
-        Exercise exercise;
-        WorkoutExercise workoutExercise;
-        ExerciseItem(Exercise exercise, WorkoutExercise workoutExercise) {
-            this.exercise = exercise;
-            this.workoutExercise = workoutExercise;
-        }
-        @NonNull
-        @Override
-        public String toString() {
-            return exercise.title + " (" + workoutExercise.durationSeconds + "s)";
-        }
-    }
+    private final ItemTouchHelper itemTouchHelper = new ItemTouchHelper(
+            new ItemTouchHelper.SimpleCallback(
+                    ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView,
+                                      @NonNull RecyclerView.ViewHolder viewHolder,
+                                      @NonNull RecyclerView.ViewHolder target) {
+                    adapter.moveItem(
+                            viewHolder.getBindingAdapterPosition(),
+                            target.getBindingAdapterPosition());
+                    return true;
+                }
+
+                @Override
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                }
+
+                @Override
+                public void clearView(@NonNull RecyclerView recyclerView,
+                                      @NonNull RecyclerView.ViewHolder viewHolder) {
+                    super.clearView(recyclerView, viewHolder);
+                    persistOrder();
+                }
+            });
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -49,16 +67,17 @@ public class WorkoutEditFragment extends Fragment {
         workoutExerciseRepository = new WorkoutExerciseRepository(requireContext());
         exerciseRepository = new ExerciseRepository(requireContext());
 
+        adapter = new WorkoutExerciseAdapter(this::showExerciseMenu);
+        binding.listExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.listExercises.setAdapter(adapter);
+        itemTouchHelper.attachToRecyclerView(binding.listExercises);
+
         loadWorkout();
         loadExercises();
 
         binding.btnSave.setOnClickListener(v -> save());
-        binding.btnDelete.setOnClickListener(v -> delete());
+        binding.btnDelete.setOnClickListener(v -> confirmDelete());
         binding.btnAddExercise.setOnClickListener(v -> showExercisePicker());
-        binding.listExercises.setOnItemClickListener(
-                (parent, view, position, id) ->
-                        showExerciseMenu(
-                                exerciseItems.get(position)));
 
         return binding.getRoot();
     }
@@ -101,12 +120,18 @@ public class WorkoutEditFragment extends Fragment {
         requireActivity().getSupportFragmentManager().popBackStack();
     }
 
-    private void delete() {
+    private void confirmDelete() {
         if (workout == null) return;
 
-        repository.delete(workout);
-
-        requireActivity().getSupportFragmentManager().popBackStack();
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Workout löschen?")
+                .setMessage("\"" + workout.name + "\" wird endgültig gelöscht.")
+                .setNegativeButton("Abbrechen", null)
+                .setPositiveButton("Löschen", (dialog, which) -> {
+                    repository.delete(workout);
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                })
+                .show();
     }
 
     private void loadWorkout() {
@@ -130,29 +155,32 @@ public class WorkoutEditFragment extends Fragment {
 
         if (workout == null) return;
 
-        exerciseItems.clear();
+        List<WorkoutExerciseAdapter.ExerciseItem> items = new ArrayList<>();
 
-        List<WorkoutExercise> workoutExercises =
-                workoutExerciseRepository.getByWorkout(workout.id);
-
-        for (WorkoutExercise workoutExercise : workoutExercises) {
+        for (WorkoutExercise workoutExercise :
+                workoutExerciseRepository.getByWorkout(workout.id)) {
 
             Exercise exercise =
                     exerciseRepository.getById(workoutExercise.exerciseId);
 
             if (exercise != null) {
-                exerciseItems.add(
-                        new ExerciseItem(
-                                exercise,
-                                workoutExercise));
+                items.add(new WorkoutExerciseAdapter.ExerciseItem(exercise, workoutExercise));
             }
         }
 
-        binding.listExercises.setAdapter(
-                new ArrayAdapter<>(
-                        requireContext(),
-                        android.R.layout.simple_list_item_1,
-                        exerciseItems));
+        adapter.setData(items);
+    }
+
+    private void persistOrder() {
+        List<WorkoutExerciseAdapter.ExerciseItem> items = adapter.getItems();
+
+        for (int i = 0; i < items.size(); i++) {
+            WorkoutExercise workoutExercise = items.get(i).workoutExercise;
+            if (workoutExercise.position != i) {
+                workoutExercise.position = i;
+                workoutExerciseRepository.update(workoutExercise);
+            }
+        }
     }
 
     private void showExercisePicker() {
@@ -176,51 +204,86 @@ public class WorkoutEditFragment extends Fragment {
                 .setTitle("Übung auswählen")
                 .setItems(titles, (dialog, which) -> {
 
-                    WorkoutExercise workoutExercise =
-                            new WorkoutExercise();
+                    Exercise selected = exercises.get(which);
 
-                    workoutExercise.workoutId = workout.id;
-                    workoutExercise.exerciseId = exercises.get(which).id;
-                    workoutExercise.position =
-                            workoutExerciseRepository
-                                    .getByWorkout(workout.id)
-                                    .size();
+                    showDurationInputDialog(selected.title, 60, duration -> {
 
-                    workoutExercise.durationSeconds = 60;
+                        WorkoutExercise workoutExercise = new WorkoutExercise();
 
-                    workoutExerciseRepository.save(workoutExercise);
+                        workoutExercise.workoutId = workout.id;
+                        workoutExercise.exerciseId = selected.id;
+                        workoutExercise.position =
+                                workoutExerciseRepository
+                                        .getByWorkout(workout.id)
+                                        .size();
 
-                    loadExercises();
+                        workoutExercise.durationSeconds = duration;
+
+                        workoutExerciseRepository.save(workoutExercise);
+
+                        loadExercises();
+                    });
                 })
                 .show();
     }
 
-    private void showDurationDialog(ExerciseItem item) {
+    private void showDurationInputDialog(
+            String title, int currentValue, Consumer<Integer> onConfirm) {
 
-        String[] values = {"5","15","30","45","60","90","120","180"};
+        View view = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_duration_input, null, false);
 
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(item.exercise.title)
-                .setItems(values, (dialog, which) -> {
+        TextInputEditText edtDuration = view.findViewById(R.id.edtDuration);
+        edtDuration.setText(String.valueOf(currentValue));
 
-                    item.workoutExercise.durationSeconds =
-                            Integer.parseInt(values[which]);
-
-                    workoutExerciseRepository.update(
-                            item.workoutExercise);
-
-                    loadExercises();
-                })
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(title)
+                .setView(view)
+                .setNegativeButton("Abbrechen", null)
+                .setPositiveButton("OK", null)
                 .show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+
+            String text = edtDuration.getText() != null
+                    ? edtDuration.getText().toString().trim()
+                    : "";
+
+            int value;
+            try {
+                value = Integer.parseInt(text);
+            } catch (NumberFormatException e) {
+                value = -1;
+            }
+
+            if (value <= 0) {
+                Snackbar.make(binding.getRoot(),
+                        "Bitte eine gültige Dauer in Sekunden eingeben",
+                        Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+
+            onConfirm.accept(value);
+            dialog.dismiss();
+        });
     }
 
-    private void showExerciseMenu(ExerciseItem item) {
+    private void showDurationDialog(WorkoutExerciseAdapter.ExerciseItem item) {
+        showDurationInputDialog(
+                item.exercise.title,
+                item.workoutExercise.durationSeconds,
+                duration -> {
+                    item.workoutExercise.durationSeconds = duration;
+                    workoutExerciseRepository.update(item.workoutExercise);
+                    loadExercises();
+                });
+    }
+
+    private void showExerciseMenu(WorkoutExerciseAdapter.ExerciseItem item) {
 
         String[] actions = {
                 "Dauer ändern",
-                "Nach oben",
-                "Nach unten",
-                "Aus Workout entfernen"
+                "Entfernen"
         };
 
         new MaterialAlertDialogBuilder(requireContext())
@@ -229,81 +292,27 @@ public class WorkoutEditFragment extends Fragment {
 
                     switch (which) {
                         case 0 -> showDurationDialog(item);
-                        case 1 -> moveUp(item);
-                        case 2 -> moveDown(item);
-                        case 3 -> removeExercise(item);
+                        case 1 -> confirmRemoveExercise(item);
                     }
                 })
                 .show();
     }
 
-    private void removeExercise(ExerciseItem item) {
+    private void confirmRemoveExercise(WorkoutExerciseAdapter.ExerciseItem item) {
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Übung entfernen?")
+                .setMessage("\"" + item.exercise.title + "\" wird aus diesem Workout entfernt.")
+                .setNegativeButton("Abbrechen", null)
+                .setPositiveButton("Entfernen", (dialog, which) -> removeExercise(item))
+                .show();
+    }
+
+    private void removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
 
         workoutExerciseRepository.delete(
                 item.workoutExercise);
 
         loadExercises();
     }
-
-    private void moveUp(ExerciseItem item) {
-
-        List<WorkoutExercise> list =
-                workoutExerciseRepository.getByWorkout(workout.id);
-
-        int index = -1;
-
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).id == item.workoutExercise.id) {
-                index = i;
-                break;
-            }
-        }
-
-        if (index <= 0) return;
-
-        WorkoutExercise current = list.get(index);
-        WorkoutExercise previous = list.get(index - 1);
-
-        int position = current.position;
-
-        current.position = previous.position;
-        previous.position = position;
-
-        workoutExerciseRepository.update(current);
-        workoutExerciseRepository.update(previous);
-
-        loadExercises();
-    }
-
-    private void moveDown(ExerciseItem item) {
-
-        List<WorkoutExercise> list =
-                workoutExerciseRepository.getByWorkout(workout.id);
-
-        int index = -1;
-
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).id == item.workoutExercise.id) {
-                index = i;
-                break;
-            }
-        }
-
-        if (index == -1 || index >= list.size() - 1) return;
-
-        WorkoutExercise current = list.get(index);
-        WorkoutExercise next = list.get(index + 1);
-
-        int position = current.position;
-
-        current.position = next.position;
-        next.position = position;
-
-        workoutExerciseRepository.update(current);
-        workoutExerciseRepository.update(next);
-
-        loadExercises();
-    }
-
-
 }
