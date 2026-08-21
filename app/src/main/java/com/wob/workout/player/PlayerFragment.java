@@ -23,7 +23,12 @@ public class PlayerFragment extends Fragment {
     private PlayerViewModel viewModel;
     private AudioManager audioManager;
     private MediaController mediaController;
-    private PlayerExerciseState currentState;
+
+    // LiveData redelivers its cached value to a freshly-registered observer (e.g. after
+    // rotation, since PlayerViewModel now survives it). Without this guard, re-observing
+    // the same ACTIVE state on rotation would replay the start sound. Reference equality
+    // is enough: beginExercise() always sets a brand-new PlayerExerciseState instance.
+    private PlayerExerciseState lastPlayedStartState;
 
     public static PlayerFragment create(long workoutId) {
         PlayerFragment fragment = new PlayerFragment();
@@ -77,8 +82,6 @@ public class PlayerFragment extends Fragment {
     }
 
     private void showExerciseState(PlayerExerciseState state) {
-        currentState = state;
-
         binding.txtProgress.setText(
                 Math.min(state.index + 1, state.total) + " / " + state.total);
 
@@ -86,31 +89,37 @@ public class PlayerFragment extends Fragment {
             case READY:
                 binding.txtState.setText("BEREIT");
                 showExerciseInfo(state.exercise);
+                setTransportEnabled(false);
                 break;
             case ACTIVE:
                 binding.txtState.setText("AKTUELLE ÜBUNG");
                 showExerciseInfo(state.exercise);
-                binding.btnNext.setEnabled(true);
-                binding.btnPrevious.setEnabled(true);
-                binding.btnPause.setEnabled(true);
+                setTransportEnabled(true);
                 binding.btnPause.setText("Pause");
-                audioManager.playStart();
+                if (state != lastPlayedStartState) {
+                    audioManager.playStart();
+                    lastPlayedStartState = state;
+                }
                 break;
             case TRANSITION:
-                if (state.exercise != null) {
-                    binding.txtState.setText("NÄCHSTE ÜBUNG");
-                    showExerciseInfo(state.exercise);
-                    binding.btnNext.setEnabled(false);
-                    binding.btnPrevious.setEnabled(false);
-                    binding.btnPause.setEnabled(false);
-                } else {
-                    binding.txtState.setText("FERTIG");
-                }
+                binding.txtState.setText("NÄCHSTE ÜBUNG");
+                showExerciseInfo(state.exercise);
+                setTransportEnabled(false);
+                break;
+            case FINISHING:
+                binding.txtState.setText("FERTIG");
+                setTransportEnabled(false);
                 break;
             case FINISHED:
                 showFinished(state.total);
                 break;
         }
+    }
+
+    private void setTransportEnabled(boolean enabled) {
+        binding.btnNext.setEnabled(enabled);
+        binding.btnPrevious.setEnabled(enabled);
+        binding.btnPause.setEnabled(enabled);
     }
 
     private void showExerciseInfo(PlayerExercise exercise) {
@@ -136,14 +145,20 @@ public class PlayerFragment extends Fragment {
     private void showTick(PlayerTick tick) {
         if (tick.shouldBeep) audioManager.playBeep();
 
-        if (currentState == null) return;
-
-        if (currentState.phase == PlayerExerciseState.Phase.TRANSITION) {
-            String label = currentState.exercise != null ? "Start in " : "Ende in ";
-            binding.txtTimer.setText(label + ((tick.remainingMillis + 999) / 1000));
-        } else if (currentState.phase == PlayerExerciseState.Phase.ACTIVE) {
-            binding.txtTimer.setText(formatTime(tick.remainingMillis));
-            binding.btnPause.setText(tick.running ? "Pause" : "Weiter");
+        switch (tick.phase) {
+            case READY:
+            case TRANSITION:
+                binding.txtTimer.setText("Start in " + ((tick.remainingMillis + 999) / 1000));
+                break;
+            case FINISHING:
+                binding.txtTimer.setText("Ende in " + ((tick.remainingMillis + 999) / 1000));
+                break;
+            case ACTIVE:
+                binding.txtTimer.setText(formatTime(tick.remainingMillis));
+                binding.btnPause.setText(tick.running ? "Pause" : "Weiter");
+                break;
+            case FINISHED:
+                break;
         }
     }
 
