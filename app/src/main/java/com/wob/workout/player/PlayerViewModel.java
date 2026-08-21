@@ -2,7 +2,6 @@ package com.wob.workout.player;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
 import com.wob.workout.AppContainer;
@@ -12,12 +11,11 @@ import com.wob.workout.data.entity.Workout;
 import java.util.List;
 
 /**
- * Owns the player's state machine (README/ACTIVE/TRANSITION/FINISHED), the single
+ * Owns the player's state machine (READY/ACTIVE/TRANSITION/FINISHING/FINISHED), the single
  * {@link PlayerTimer}, and the {@link PlayerHistoryTracker}. Survives configuration
  * changes, which fixes a duplicate-session bug the old Fragment-owned version had on
  * rotation (see wayfinder ticket #4). Data loading (exercises + workout name) happens
- * once in the constructor via {@link LiveDataExecutor}; the state machine only starts
- * once that load completes.
+ * once in the constructor; the state machine only starts once that load completes.
  */
 public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
@@ -33,7 +31,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private int index;
     private long lastBeepSecond = -1;
     private PlayerExerciseState.Phase currentPhase = PlayerExerciseState.Phase.READY;
-    private boolean finishTransition;
+    private boolean cleared;
 
     public PlayerViewModel(AppContainer container, long workoutId) {
         historyTracker = new PlayerHistoryTracker(container.workoutHistoryRepository);
@@ -49,6 +47,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     }
 
     public void togglePause() {
+        if (currentPhase != PlayerExerciseState.Phase.ACTIVE) return;
+
         if (timer.isRunning()) {
             timer.pause();
             historyTracker.onExercisePause();
@@ -56,7 +56,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
             historyTracker.onExerciseResume();
             timer.resume();
         }
-        tick.setValue(new PlayerTick(timer.getMillisLeft(), timer.isRunning(), false));
+        tick.setValue(new PlayerTick(timer.getMillisLeft(), timer.isRunning(), false, currentPhase));
     }
 
     public void next() {
@@ -77,13 +77,15 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     @Override
     public void onTick(long millisUntilFinished) {
-        tick.setValue(new PlayerTick(millisUntilFinished, true, computeShouldBeep(millisUntilFinished)));
+        tick.setValue(new PlayerTick(
+                millisUntilFinished, true, computeShouldBeep(millisUntilFinished), currentPhase));
     }
 
     @Override
     public void onFinish() {
         switch (currentPhase) {
             case READY:
+            case TRANSITION:
                 beginExercise();
                 break;
             case ACTIVE:
@@ -95,12 +97,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
                     startTransition();
                 }
                 break;
-            case TRANSITION:
-                if (finishTransition) {
-                    finishWorkout();
-                } else {
-                    beginExercise();
-                }
+            case FINISHING:
+                finishWorkout();
                 break;
             case FINISHED:
                 break;
@@ -109,6 +107,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     @Override
     protected void onCleared() {
+        cleared = true;
         timer.cancel();
         if (currentPhase != PlayerExerciseState.Phase.FINISHED
                 && exercises != null && !exercises.isEmpty() && index < exercises.size()) {
@@ -119,20 +118,18 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     }
 
     private void loadExercises(AppContainer container, long workoutId) {
-        LiveData<LoadResult> loaded = LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
+        LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             List<PlayerExercise> loadedExercises = container.playerRepository.getExercises(workoutId);
             Workout workout = container.workoutRepository.getById(workoutId);
             return new LoadResult(loadedExercises, workout != null ? workout.name : null);
-        });
-
-        loaded.observeForever(new Observer<LoadResult>() {
-            @Override
-            public void onChanged(LoadResult result) {
-                loaded.removeObserver(this);
-                exercises = result.exercises;
-                historyTracker.startSession(workoutId, result.workoutName);
-                startInitialTransition();
-            }
+        }, result -> {
+            // The ViewModel can be cleared (user backs out) before this background load
+            // finishes; starting a session at that point would leave an orphaned
+            // WorkoutSession row nothing will ever close out or finish.
+            if (cleared) return;
+            exercises = result.exercises;
+            historyTracker.startSession(workoutId, result.workoutName);
+            startInitialTransition();
         });
     }
 
@@ -140,7 +137,6 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         index = 0;
         lastBeepSecond = -1;
         currentPhase = PlayerExerciseState.Phase.READY;
-        finishTransition = false;
         exerciseState.setValue(
                 new PlayerExerciseState(exercises.get(index), index, exercises.size(), currentPhase));
         timer.start(TRANSITION_MILLIS);
@@ -148,7 +144,6 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void startTransition() {
         currentPhase = PlayerExerciseState.Phase.TRANSITION;
-        finishTransition = false;
         lastBeepSecond = -1;
         exerciseState.setValue(
                 new PlayerExerciseState(exercises.get(index), index, exercises.size(), currentPhase));
@@ -156,8 +151,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     }
 
     private void startFinishTransition() {
-        currentPhase = PlayerExerciseState.Phase.TRANSITION;
-        finishTransition = true;
+        currentPhase = PlayerExerciseState.Phase.FINISHING;
         lastBeepSecond = -1;
         exerciseState.setValue(
                 new PlayerExerciseState(null, exercises.size(), exercises.size(), currentPhase));
@@ -166,7 +160,6 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void beginExercise() {
         currentPhase = PlayerExerciseState.Phase.ACTIVE;
-        finishTransition = false;
         lastBeepSecond = -1;
         PlayerExercise current = exercises.get(index);
         historyTracker.startExercise();

@@ -4,8 +4,10 @@ import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -28,5 +30,20 @@ public class LiveDataExecutor {
             }
         });
         return result;
+    }
+
+    /** For a ViewModel that needs to load once (e.g. in its constructor), populate its
+     *  initial state, and then stop observing — the one-shot-load pattern several screens'
+     *  ViewModels need alongside {@link #runOnExecutor}. */
+    public static <T> void runOnExecutorOnce(
+            ExecutorService executor, Supplier<T> work, Consumer<T> onResult) {
+        LiveData<T> result = runOnExecutor(executor, work);
+        result.observeForever(new Observer<T>() {
+            @Override
+            public void onChanged(T value) {
+                result.removeObserver(this);
+                onResult.accept(value);
+            }
+        });
     }
 }

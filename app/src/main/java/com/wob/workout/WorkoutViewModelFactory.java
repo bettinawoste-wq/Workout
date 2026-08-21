@@ -11,21 +11,23 @@ import com.wob.workout.ui.workout.WorkoutListViewModel;
  * One generic factory for the whole app: add one branch per ViewModel as screens
  * migrate, rather than a bespoke Factory class for each one. See wayfinder ticket #2.
  *
- * <p>Screens whose ViewModel needs a navigation argument (e.g. {@code workoutId}) pass it
- * to the constructor here and it's threaded through in the matching branch below.
+ * <p>Screens whose ViewModel needs a navigation argument (e.g. a workout or exercise id)
+ * pass it to the constructor here as {@code navArgId} and it's threaded through in the
+ * matching branch below. One field is enough since no screen so far needs more than one
+ * such id — revisit this shape if that stops being true.
  */
 public class WorkoutViewModelFactory implements ViewModelProvider.Factory {
 
     private final AppContainer container;
-    private final long workoutId;
+    private final long navArgId;
 
     public WorkoutViewModelFactory(AppContainer container) {
         this(container, -1);
     }
 
-    public WorkoutViewModelFactory(AppContainer container, long workoutId) {
+    public WorkoutViewModelFactory(AppContainer container, long navArgId) {
         this.container = container;
-        this.workoutId = workoutId;
+        this.navArgId = navArgId;
     }
 
     @NonNull
@@ -36,7 +38,7 @@ public class WorkoutViewModelFactory implements ViewModelProvider.Factory {
             return (T) new WorkoutListViewModel(container);
         }
         if (modelClass.isAssignableFrom(PlayerViewModel.class)) {
-            return (T) new PlayerViewModel(container, workoutId);
+            return (T) new PlayerViewModel(container, navArgId);
         }
         throw new IllegalArgumentException("Unknown ViewModel class: " + modelClass);
     }
