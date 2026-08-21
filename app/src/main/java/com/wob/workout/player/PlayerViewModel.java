@@ -16,6 +16,11 @@ import java.util.List;
  * changes, which fixes a duplicate-session bug the old Fragment-owned version had on
  * rotation (see wayfinder ticket #4). Data loading (exercises + workout name) happens
  * once in the constructor; the state machine only starts once that load completes.
+ *
+ * <p>{@link #shouldPlayStartSound} / {@link #shouldPlayBeep} live here rather than as
+ * Fragment-side fields: LiveData redelivers its last value to a freshly-registered
+ * observer (e.g. after rotation recreates the Fragment), so a dedup guard only works if
+ * it's kept on the object that survives the rotation.
  */
 public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
@@ -33,6 +38,9 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private PlayerExerciseState.Phase currentPhase = PlayerExerciseState.Phase.READY;
     private boolean cleared;
 
+    private PlayerExerciseState lastStartSoundState;
+    private PlayerTick lastConsumedTick;
+
     public PlayerViewModel(AppContainer container, long workoutId) {
         historyTracker = new PlayerHistoryTracker(container.workoutHistoryRepository);
         loadExercises(container, workoutId);
@@ -46,8 +54,23 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         return tick;
     }
 
+    /** Returns true at most once per distinct {@link PlayerExerciseState}, even across a
+     *  Fragment recreation that re-observes and receives LiveData's redelivered value. */
+    public boolean shouldPlayStartSound(PlayerExerciseState state) {
+        if (state == lastStartSoundState) return false;
+        lastStartSoundState = state;
+        return state.phase == PlayerExerciseState.Phase.ACTIVE;
+    }
+
+    /** Same idea as {@link #shouldPlayStartSound} for the per-second beep. */
+    public boolean shouldPlayBeep(PlayerTick tick) {
+        if (tick == lastConsumedTick) return false;
+        lastConsumedTick = tick;
+        return tick.shouldBeep;
+    }
+
     public void togglePause() {
-        if (currentPhase != PlayerExerciseState.Phase.ACTIVE) return;
+        if (!isActive()) return;
 
         if (timer.isRunning()) {
             timer.pause();
@@ -60,7 +83,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     }
 
     public void next() {
-        if (currentPhase != PlayerExerciseState.Phase.ACTIVE) return;
+        if (!isActive()) return;
         if (index >= exercises.size() - 1) return;
         historyTracker.closeOutCurrentExercise(index, exercises.get(index));
         index++;
@@ -68,11 +91,15 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     }
 
     public void previous() {
-        if (currentPhase != PlayerExerciseState.Phase.ACTIVE) return;
+        if (!isActive()) return;
         if (index <= 0) return;
         historyTracker.closeOutCurrentExercise(index, exercises.get(index));
         index--;
         beginExercise();
+    }
+
+    private boolean isActive() {
+        return currentPhase == PlayerExerciseState.Phase.ACTIVE;
     }
 
     @Override
@@ -100,8 +127,6 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
             case FINISHING:
                 finishWorkout();
                 break;
-            case FINISHED:
-                break;
         }
     }
 
@@ -122,11 +147,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
             List<PlayerExercise> loadedExercises = container.playerRepository.getExercises(workoutId);
             Workout workout = container.workoutRepository.getById(workoutId);
             return new LoadResult(loadedExercises, workout != null ? workout.name : null);
-        }, result -> {
-            // The ViewModel can be cleared (user backs out) before this background load
-            // finishes; starting a session at that point would leave an orphaned
-            // WorkoutSession row nothing will ever close out or finish.
-            if (cleared) return;
+        }, () -> !cleared, result -> {
+            if (result == null) return;
             exercises = result.exercises;
             historyTracker.startSession(workoutId, result.workoutName);
             startInitialTransition();
@@ -135,43 +157,34 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void startInitialTransition() {
         index = 0;
-        lastBeepSecond = -1;
-        currentPhase = PlayerExerciseState.Phase.READY;
-        exerciseState.setValue(
-                new PlayerExerciseState(exercises.get(index), index, exercises.size(), currentPhase));
-        timer.start(TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.READY, exercises.get(index), TRANSITION_MILLIS);
     }
 
     private void startTransition() {
-        currentPhase = PlayerExerciseState.Phase.TRANSITION;
-        lastBeepSecond = -1;
-        exerciseState.setValue(
-                new PlayerExerciseState(exercises.get(index), index, exercises.size(), currentPhase));
-        timer.start(TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.TRANSITION, exercises.get(index), TRANSITION_MILLIS);
     }
 
     private void startFinishTransition() {
-        currentPhase = PlayerExerciseState.Phase.FINISHING;
-        lastBeepSecond = -1;
-        exerciseState.setValue(
-                new PlayerExerciseState(null, exercises.size(), exercises.size(), currentPhase));
-        timer.start(TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.FINISHING, null, TRANSITION_MILLIS);
     }
 
     private void beginExercise() {
-        currentPhase = PlayerExerciseState.Phase.ACTIVE;
-        lastBeepSecond = -1;
-        PlayerExercise current = exercises.get(index);
         historyTracker.startExercise();
-        exerciseState.setValue(new PlayerExerciseState(current, index, exercises.size(), currentPhase));
-        timer.start(current.durationSeconds * 1000L);
+        PlayerExercise current = exercises.get(index);
+        enterPhase(PlayerExerciseState.Phase.ACTIVE, current, current.durationSeconds * 1000L);
+    }
+
+    private void enterPhase(PlayerExerciseState.Phase phase, PlayerExercise exercise, long millis) {
+        currentPhase = phase;
+        lastBeepSecond = -1;
+        exerciseState.setValue(new PlayerExerciseState(exercise, index, exercises.size(), phase));
+        timer.start(millis);
     }
 
     private void finishWorkout() {
         currentPhase = PlayerExerciseState.Phase.FINISHED;
         historyTracker.finish(true);
-        exerciseState.setValue(
-                new PlayerExerciseState(null, exercises.size(), exercises.size(), currentPhase));
+        exerciseState.setValue(new PlayerExerciseState(null, index, exercises.size(), currentPhase));
     }
 
     /** Same guard {@code lastBeepSecond} already implemented in the pre-migration Fragment,

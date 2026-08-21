@@ -39,22 +39,14 @@ public class PlayerHistoryTracker {
     }
 
     public void onExerciseResume() {
-        if (pauseStartedAt != 0) {
-            currentExercisePausedMillis += System.currentTimeMillis() - pauseStartedAt;
-            pauseStartedAt = 0;
-        }
+        flushPause(System.currentTimeMillis());
     }
 
     public void closeOutCurrentExercise(int index, PlayerExercise current) {
         if (!exerciseStarted) return;
 
         long now = System.currentTimeMillis();
-        long pausedMillis = currentExercisePausedMillis;
-        if (pauseStartedAt != 0) {
-            pausedMillis += now - pauseStartedAt;
-            pauseStartedAt = 0;
-        }
-
+        long pausedMillis = flushPause(now);
         long activeMillis = Math.max(0, now - currentExerciseStartedAt - pausedMillis);
 
         historyRepository.recordExercise(
@@ -74,5 +66,14 @@ public class PlayerHistoryTracker {
         if (sessionId < 0 || sessionClosed) return;
         historyRepository.finishSession(sessionId, completed);
         sessionClosed = true;
+    }
+
+    /** Folds any pending pause into the accumulated paused time and returns the total. */
+    private long flushPause(long now) {
+        if (pauseStartedAt != 0) {
+            currentExercisePausedMillis += now - pauseStartedAt;
+            pauseStartedAt = 0;
+        }
+        return currentExercisePausedMillis;
     }
 }

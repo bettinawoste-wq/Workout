@@ -24,12 +24,6 @@ public class PlayerFragment extends Fragment {
     private AudioManager audioManager;
     private MediaController mediaController;
 
-    // LiveData redelivers its cached value to a freshly-registered observer (e.g. after
-    // rotation, since PlayerViewModel now survives it). Without this guard, re-observing
-    // the same ACTIVE state on rotation would replay the start sound. Reference equality
-    // is enough: beginExercise() always sets a brand-new PlayerExerciseState instance.
-    private PlayerExerciseState lastPlayedStartState;
-
     public static PlayerFragment create(long workoutId) {
         PlayerFragment fragment = new PlayerFragment();
 
@@ -82,8 +76,7 @@ public class PlayerFragment extends Fragment {
     }
 
     private void showExerciseState(PlayerExerciseState state) {
-        binding.txtProgress.setText(
-                Math.min(state.index + 1, state.total) + " / " + state.total);
+        binding.txtProgress.setText((state.index + 1) + " / " + state.total);
 
         switch (state.phase) {
             case READY:
@@ -96,9 +89,8 @@ public class PlayerFragment extends Fragment {
                 showExerciseInfo(state.exercise);
                 setTransportEnabled(true);
                 binding.btnPause.setText("Pause");
-                if (state != lastPlayedStartState) {
+                if (viewModel.shouldPlayStartSound(state)) {
                     audioManager.playStart();
-                    lastPlayedStartState = state;
                 }
                 break;
             case TRANSITION:
@@ -143,7 +135,7 @@ public class PlayerFragment extends Fragment {
     }
 
     private void showTick(PlayerTick tick) {
-        if (tick.shouldBeep) audioManager.playBeep();
+        if (viewModel.shouldPlayBeep(tick)) audioManager.playBeep();
 
         switch (tick.phase) {
             case READY:
