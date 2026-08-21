@@ -12,7 +12,11 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.ExoPlayer;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.wob.workout.R;
+import com.wob.workout.data.entity.Workout;
+import com.wob.workout.data.repository.WorkoutHistoryRepository;
+import com.wob.workout.data.repository.WorkoutRepository;
 import com.wob.workout.databinding.FragmentPlayerBinding;
 
 import java.util.List;
@@ -34,6 +38,14 @@ public class PlayerFragment extends Fragment {
     private MediaController mediaController;
     // TODO  private WorkoutTimer timer;
 
+    private WorkoutHistoryRepository historyRepository;
+    private long sessionId = -1;
+    private boolean sessionClosed = false;
+    private boolean exerciseStarted = false;
+    private long currentExerciseStartedAt;
+    private long currentExercisePausedMillis;
+    private long pauseStartedAt = 0;
+
     private final android.media.ToneGenerator toneGenerator =
             new android.media.ToneGenerator(
                     android.media.AudioManager.STREAM_MUSIC,
@@ -54,6 +66,12 @@ public class PlayerFragment extends Fragment {
         repository = new PlayerRepository(requireContext());
         exercises = repository.getExercises(workoutId);
 
+        historyRepository = new WorkoutHistoryRepository(requireContext());
+        Workout workout = new WorkoutRepository(requireContext()).getById(workoutId);
+        sessionId = historyRepository.startSession(
+                workoutId,
+                workout != null ? workout.name : null);
+
         audioManager = new AudioManager(requireContext());
         mediaController = new MediaController(this, binding);
 
@@ -62,14 +80,35 @@ public class PlayerFragment extends Fragment {
         binding.btnPause.setOnClickListener(v -> toggle());
         binding.btnNext.setOnClickListener(v -> next());
         binding.btnPrevious.setOnClickListener(v -> previous());
+        binding.btnCancel.setOnClickListener(v -> confirmCancelWorkout());
 
         return binding.getRoot();
+    }
+
+    private void confirmCancelWorkout() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Workout abbrechen?")
+                .setMessage("Dein Fortschritt wird als abgebrochen im Verlauf gespeichert.")
+                .setNegativeButton("Weiter", null)
+                .setPositiveButton("Abbrechen", (dialog, which) ->
+                        requireActivity().getSupportFragmentManager().popBackStack())
+                .show();
     }
 
     @Override
     public void onDestroyView() {
         requireActivity().getWindow().clearFlags(
                 android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        if (timer != null) timer.cancel();
+        if (transitionTimer != null) transitionTimer.cancel();
+
+        if (sessionId >= 0 && !sessionClosed) {
+            closeOutCurrentExercise();
+            historyRepository.finishSession(sessionId, false);
+            sessionClosed = true;
+        }
+
         super.onDestroyView();
         binding = null;
     }
@@ -103,8 +142,39 @@ public class PlayerFragment extends Fragment {
         binding.txtTitle.setText(current.exercise.title);
         binding.txtDescription.setText(current.exercise.description);
 
+        currentExerciseStartedAt = System.currentTimeMillis();
+        currentExercisePausedMillis = 0;
+        pauseStartedAt = 0;
+        exerciseStarted = true;
+
         startTimer(current.durationSeconds);
         mediaController.show(current.exercise);
+    }
+
+    private void closeOutCurrentExercise() {
+        if (!exerciseStarted || exercises == null || exercises.isEmpty()) return;
+
+        long now = System.currentTimeMillis();
+        long pausedMillis = currentExercisePausedMillis;
+        if (pauseStartedAt != 0) {
+            pausedMillis += now - pauseStartedAt;
+            pauseStartedAt = 0;
+        }
+
+        long activeMillis = Math.max(0, now - currentExerciseStartedAt - pausedMillis);
+        PlayerExercise current = exercises.get(index);
+
+        historyRepository.recordExercise(
+                sessionId,
+                current.exercise.id,
+                current.exercise.title,
+                index,
+                current.durationSeconds,
+                (int) (activeMillis / 1000),
+                currentExerciseStartedAt,
+                now);
+
+        exerciseStarted = false;
     }
 
     private void startTimer(int seconds) {
@@ -262,6 +332,10 @@ public class PlayerFragment extends Fragment {
 
         if (timer != null) timer.cancel();
 
+        closeOutCurrentExercise();
+        historyRepository.finishSession(sessionId, true);
+        sessionClosed = true;
+
         binding.txtState.setText("FERTIG");
         binding.txtTitle.setText(exercises.size() + " Übungen. Gut gemacht 💪");
         binding.txtDescription.setText("Workout abgeschlossen");
@@ -279,6 +353,7 @@ public class PlayerFragment extends Fragment {
     }
 
     private void nextAuto() {
+        closeOutCurrentExercise();
         if (index >= exercises.size() - 1) {
             startFinishTransition();
             return;
@@ -303,8 +378,14 @@ public class PlayerFragment extends Fragment {
         if (running) {
             timer.cancel();
             running = false;
+            pauseStartedAt = System.currentTimeMillis();
             binding.btnPause.setText("Weiter");
         } else {
+
+            if (pauseStartedAt != 0) {
+                currentExercisePausedMillis += System.currentTimeMillis() - pauseStartedAt;
+                pauseStartedAt = 0;
+            }
 
             PlayerExercise current = exercises.get(index);
 
@@ -332,6 +413,7 @@ public class PlayerFragment extends Fragment {
 
     private void next() {
         if (exercises == null || index >= exercises.size() - 1) return;
+        closeOutCurrentExercise();
         index++;
         showExercise();
         playStartSound();
@@ -339,6 +421,7 @@ public class PlayerFragment extends Fragment {
 
     private void previous() {
         if (exercises == null || index <= 0) return;
+        closeOutCurrentExercise();
         index--;
         showExercise();
         playStartSound();

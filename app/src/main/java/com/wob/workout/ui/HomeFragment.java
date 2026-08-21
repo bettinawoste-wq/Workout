@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment;
 import com.wob.workout.R;
 import com.wob.workout.databinding.FragmentHomeBinding;
 import com.wob.workout.ui.exercise.ExerciseListFragment;
+import com.wob.workout.ui.history.HistoryListFragment;
 import com.wob.workout.ui.workout.WorkoutListFragment;
 
 public class HomeFragment extends Fragment {
@@ -47,6 +48,16 @@ public class HomeFragment extends Fragment {
                         .replace(
                                 R.id.main,
                                 new WorkoutListFragment())
+                        .addToBackStack(null)
+                        .commit());
+
+        binding.btnHistory.setOnClickListener(v ->
+                requireActivity()
+                        .getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(
+                                R.id.main,
+                                new HistoryListFragment())
                         .addToBackStack(null)
                         .commit());
         return binding.getRoot();
