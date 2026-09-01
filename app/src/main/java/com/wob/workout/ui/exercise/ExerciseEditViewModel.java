@@ -80,10 +80,9 @@ public class ExerciseEditViewModel extends ViewModel {
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
             if (isInsert) {
                 container.exerciseRepository.save(target);
-            } else {
-                container.exerciseRepository.update(target);
+                return true;
             }
-            return true;
+            return container.exerciseRepository.update(target);
         });
     }
 

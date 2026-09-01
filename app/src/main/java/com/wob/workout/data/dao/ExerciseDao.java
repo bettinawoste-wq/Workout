@@ -12,8 +12,9 @@ public interface ExerciseDao {
     @Insert
     long insert(Exercise exercise);
 
+    /** @return the number of rows updated (0 if the exercise's id no longer exists). */
     @Update
-    void update(Exercise exercise);
+    int update(Exercise exercise);
 
     @Delete
     void delete(Exercise exercise);

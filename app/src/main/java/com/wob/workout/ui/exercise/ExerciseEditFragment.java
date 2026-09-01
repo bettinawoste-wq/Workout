@@ -31,7 +31,13 @@ public class ExerciseEditFragment extends Fragment {
             registerForActivityResult(
                     new ActivityResultContracts.PickVisualMedia(),
                     uri -> {
-                        if (uri != null) viewModel.onMediaSelected(uri);
+                        if (uri == null) return;
+                        // Disabled here, re-enabled by whichever of getPreview()/getMediaError()
+                        // fires once onMediaSelected()'s background copy+decode completes — same
+                        // reasoning as the initial-load gating above: selectedMediaFile/Type
+                        // isn't updated until then, so an early Save would persist the old media.
+                        binding.btnSave.setEnabled(false);
+                        viewModel.onMediaSelected(uri);
                     });
 
     public static ExerciseEditFragment edit(long exerciseId) {
@@ -62,10 +68,22 @@ public class ExerciseEditFragment extends Fragment {
 
         binding.btnDelete.setVisibility(viewModel.isNew() ? View.GONE : View.VISIBLE);
 
+        // For an existing exercise, Save/Delete start disabled until the async load lands:
+        // selectedMediaFile/selectedMediaType in the ViewModel are null until then, so a
+        // save() before that point would write null over the exercise's real media instead
+        // of leaving it alone. The old code never had this window — loadExercise() ran
+        // synchronously in onCreateView, before the buttons could be tapped at all.
+        if (!viewModel.isNew()) {
+            binding.btnSave.setEnabled(false);
+            binding.btnDelete.setEnabled(false);
+        }
+
         // Same reasoning as WorkoutEditFragment: only seed on first arrival — a rotation has
         // already restored whatever the user typed via Android's own view-state saving.
         viewModel.getExercise().observe(getViewLifecycleOwner(), exercise -> {
             if (exercise == null) return;
+            binding.btnSave.setEnabled(true);
+            binding.btnDelete.setEnabled(true);
             if (TextUtils.isEmpty(binding.edtTitle.getText())) {
                 binding.edtTitle.setText(exercise.title);
             }
@@ -74,11 +92,15 @@ public class ExerciseEditFragment extends Fragment {
             }
         });
 
-        viewModel.getPreview().observe(getViewLifecycleOwner(), this::showPreview);
+        viewModel.getPreview().observe(getViewLifecycleOwner(), preview -> {
+            showPreview(preview);
+            binding.btnSave.setEnabled(true);
+        });
 
         viewModel.getMediaError().observe(getViewLifecycleOwner(), event -> {
             String message = event != null ? event.getContentIfNotHandled() : null;
             if (message != null) {
+                binding.btnSave.setEnabled(true);
                 Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_SHORT).show();
             }
         });

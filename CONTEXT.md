@@ -24,20 +24,24 @@ lives in an on-device Room database.
   `WorkoutApplication` and reached via `((WorkoutApplication) context.getApplicationContext()).getAppContainer()`.
   No DI framework — deliberately the smallest mechanism that fits a single-developer app this size.
 - **MVVM migration is in progress, not finished.** `WorkoutListFragment`, `PlayerFragment`,
-  `WorkoutEditFragment`, and `ExerciseListFragment` have been migrated to the new pattern so far.
-  `WorkoutListViewModel` is a thin passthrough over `WorkoutSummaryRepository`'s reactive
-  `LiveData` (built via `LiveDataExecutor` running on `AppContainer.ioExecutor`); `PlayerViewModel`
-  owns the player's state machine, a consolidated `PlayerTimer`, and a standalone
-  `PlayerHistoryTracker` for session bookkeeping; `WorkoutEditViewModel` deliberately does *not*
-  use a reactive Room query — it re-runs a manual load-and-reload after each of its own writes,
-  plus on every view creation (to pick up changes made elsewhere, e.g. an Exercise deleted from
-  the catalog while this screen sat on the back stack) — see the class doc on
-  `WorkoutEditViewModel` for the full rationale; `ExerciseListViewModel` is the same thin-passthrough
-  shape as `WorkoutListViewModel`, over `ExerciseRepository.observeAll()` (a plain reactive query,
-  no relation/mapping needed). The rest of the screens (`ExerciseEditFragment`, the `ui/history`
-  screens) still construct repositories directly and call them synchronously — that's known,
-  tracked incremental debt, not an oversight. See GitHub issue #1 ("Lightweight MVVM Migration")
-  for the map of remaining screens.
+  `WorkoutEditFragment`, `ExerciseListFragment`, and `ExerciseEditFragment` have been migrated to
+  the new pattern so far. `WorkoutListViewModel` is a thin passthrough over
+  `WorkoutSummaryRepository`'s reactive `LiveData` (built via `LiveDataExecutor` running on
+  `AppContainer.ioExecutor`); `PlayerViewModel` owns the player's state machine, a consolidated
+  `PlayerTimer`, and a standalone `PlayerHistoryTracker` for session bookkeeping;
+  `WorkoutEditViewModel` deliberately does *not* use a reactive Room query — it re-runs a manual
+  load-and-reload after each of its own writes, plus on every view creation (to pick up changes
+  made elsewhere, e.g. an Exercise deleted from the catalog while this screen sat on the back
+  stack) — see the class doc on `WorkoutEditViewModel` for the full rationale; `ExerciseListViewModel`
+  is the same thin-passthrough shape as `WorkoutListViewModel`, over `ExerciseRepository.observeAll()`
+  (a plain reactive query, no relation/mapping needed); `ExerciseEditViewModel` follows the same
+  one-shot-load shape as `WorkoutEditViewModel` (manual load via `LiveDataExecutor`, not a
+  reactive query — this screen's edits are the only source of change while it's open) and adds
+  the app's first one-shot LiveData event, `Event<T>` (`data/Event.java`), for `mediaError` so a
+  Snackbar doesn't re-fire on rotation. The rest of the screens (the `ui/history` screens) still
+  construct repositories directly and call them synchronously — that's known, tracked incremental
+  debt, not an oversight. See GitHub issue #1 ("Lightweight MVVM Migration") for the map of
+  remaining screens.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
   `fallbackToDestructiveMigration()`. `DatabaseProvider` still calls `.allowMainThreadQueries()`
   (flagged in-code with a TODO); this goes away as more screens move off synchronous
