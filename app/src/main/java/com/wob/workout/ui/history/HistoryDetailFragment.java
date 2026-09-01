@@ -6,10 +6,12 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.wob.workout.data.entity.WorkoutSession;
-import com.wob.workout.data.repository.WorkoutHistoryRepository;
+import com.wob.workout.AppContainer;
+import com.wob.workout.WorkoutApplication;
+import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentHistoryDetailBinding;
 
 import java.text.SimpleDateFormat;
@@ -44,22 +46,25 @@ public class HistoryDetailFragment extends Fragment {
                 ? getArguments().getLong(ARG_SESSION_ID, -1)
                 : -1;
 
-        WorkoutHistoryRepository repository = new WorkoutHistoryRepository(requireContext());
-        WorkoutSession session = repository.getSession(sessionId);
+        AppContainer appContainer =
+                ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
+        HistoryDetailViewModel viewModel =
+                new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, sessionId))
+                        .get(HistoryDetailViewModel.class);
 
         HistoryExerciseAdapter adapter = new HistoryExerciseAdapter();
         binding.recyclerExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerExercises.setAdapter(adapter);
 
-        if (session != null) {
+        viewModel.getDetail().observe(getViewLifecycleOwner(), detail -> {
             binding.txtName.setText(
-                    session.workoutName != null ? session.workoutName : "Workout");
+                    detail.session.workoutName != null ? detail.session.workoutName : "Workout");
             binding.txtInfo.setText(
-                    dateFormat.format(new Date(session.startedAt))
-                            + " • " + (session.completed ? "Abgeschlossen" : "Abgebrochen"));
+                    dateFormat.format(new Date(detail.session.startedAt))
+                            + " • " + (detail.session.completed ? "Abgeschlossen" : "Abgebrochen"));
 
-            adapter.setData(repository.getExercises(sessionId));
-        }
+            adapter.setData(detail.exercises);
+        });
 
         return binding.getRoot();
     }
