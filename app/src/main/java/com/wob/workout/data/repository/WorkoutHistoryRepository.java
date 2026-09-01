@@ -3,11 +3,14 @@ package com.wob.workout.data.repository;
 import android.content.Context;
 
 import androidx.annotation.VisibleForTesting;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Transformations;
 
 import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.ExerciseSession;
 import com.wob.workout.data.entity.WorkoutSession;
+import com.wob.workout.data.relation.WorkoutSessionWithExercises;
 import com.wob.workout.ui.history.WorkoutSessionSummary;
 
 import java.util.ArrayList;
@@ -75,19 +78,22 @@ public class WorkoutHistoryRepository {
         database.workoutSessionDao().update(session);
     }
 
-    public List<WorkoutSessionSummary> getHistory() {
+    public LiveData<List<WorkoutSessionSummary>> observeHistory() {
+        return Transformations.map(
+                database.workoutSessionDao().getAllWithExercisesOrderByStartedAtDesc(),
+                WorkoutHistoryRepository::toSummaries);
+    }
+
+    private static List<WorkoutSessionSummary> toSummaries(List<WorkoutSessionWithExercises> rows) {
         List<WorkoutSessionSummary> result = new ArrayList<>();
 
-        for (WorkoutSession session : database.workoutSessionDao().getAllOrderByStartedAtDesc()) {
-
-            int exerciseCount =
-                    database.exerciseSessionDao().countBySession(session.id);
+        for (WorkoutSessionWithExercises row : rows) {
 
             // Sessions ohne aufgezeichnete Uebung und ohne Abschluss sind nur ein
             // sofortiger Rueckzug aus dem Player, keine echten Verlaufseintraege.
-            if (exerciseCount == 0 && !session.completed) continue;
+            if (row.exercises.isEmpty() && !row.session.completed) continue;
 
-            result.add(new WorkoutSessionSummary(session, exerciseCount));
+            result.add(new WorkoutSessionSummary(row.session, row.exercises.size()));
         }
 
         return result;
