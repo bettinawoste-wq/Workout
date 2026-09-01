@@ -38,9 +38,16 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
         return sessions.get(position);
     }
 
-    public void removeItem(int position) {
-        sessions.remove(position);
-        notifyItemRemoved(position);
+    /** Looks up a session's current position by id rather than trusting a position
+     *  captured earlier — the backing list can be replaced wholesale (new instances, see
+     *  {@link #setData}) by a Room re-emission triggered by any write anywhere in the app,
+     *  not just the caller's own pending action. Returns -1 if the session is no longer
+     *  in the list. */
+    public int indexOfSessionId(long sessionId) {
+        for (int i = 0; i < sessions.size(); i++) {
+            if (sessions.get(i).session.id == sessionId) return i;
+        }
+        return -1;
     }
 
     @NonNull

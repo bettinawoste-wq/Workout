@@ -24,8 +24,8 @@ lives in an on-device Room database.
   `WorkoutApplication` and reached via `((WorkoutApplication) context.getApplicationContext()).getAppContainer()`.
   No DI framework — deliberately the smallest mechanism that fits a single-developer app this size.
 - **MVVM migration is in progress, not finished.** `WorkoutListFragment`, `PlayerFragment`,
-  `WorkoutEditFragment`, `ExerciseListFragment`, and `ExerciseEditFragment` have been migrated to
-  the new pattern so far. `WorkoutListViewModel` is a thin passthrough over
+  `WorkoutEditFragment`, `ExerciseListFragment`, `ExerciseEditFragment`, and `HistoryListFragment`
+  have been migrated to the new pattern so far. `WorkoutListViewModel` is a thin passthrough over
   `WorkoutSummaryRepository`'s reactive `LiveData` (built via `LiveDataExecutor` running on
   `AppContainer.ioExecutor`); `PlayerViewModel` owns the player's state machine, a consolidated
   `PlayerTimer`, and a standalone `PlayerHistoryTracker` for session bookkeeping;
@@ -38,10 +38,19 @@ lives in an on-device Room database.
   one-shot-load shape as `WorkoutEditViewModel` (manual load via `LiveDataExecutor`, not a
   reactive query — this screen's edits are the only source of change while it's open) and adds
   the app's first one-shot LiveData event, `Event<T>` (`data/Event.java`), for `mediaError` so a
-  Snackbar doesn't re-fire on rotation. The rest of the screens (the `ui/history` screens) still
-  construct repositories directly and call them synchronously — that's known, tracked incremental
-  debt, not an oversight. See GitHub issue #1 ("Lightweight MVVM Migration") for the map of
-  remaining screens.
+  Snackbar doesn't re-fire on rotation; `HistoryListViewModel` is the same thin-passthrough shape
+  again, over `WorkoutHistoryRepository.observeHistory()`, which fixed that repository's N+1
+  per-session exercise-count query the same way `WorkoutSummaryRepository` did in ticket #3 — a
+  `@Transaction`/`@Relation` query (`WorkoutSessionWithExercises`) batched into one `LiveData`,
+  folded into `WorkoutSessionSummary` rows via `Transformations.map()`; swipe-to-delete stays
+  Fragment-side (`ItemTouchHelper` + a confirmation dialog), and on confirm it only calls
+  `HistoryListViewModel.delete()` — Room's invalidation re-emits the list and the observer's
+  `adapter.setData(...)` naturally drops the row, no manual `adapter.removeItem()` needed; only
+  a cancelled swipe still calls `adapter.notifyItemChanged()` directly, to reverse the swipe
+  animation without touching any data. `HistoryDetailFragment` still constructs its repository
+  directly and calls it synchronously — that's known, tracked incremental debt (issue #9),
+  not an oversight. See GitHub issue #1 ("Lightweight MVVM Migration") for the map of remaining
+  screens.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
   `fallbackToDestructiveMigration()`. `DatabaseProvider` still calls `.allowMainThreadQueries()`
   (flagged in-code with a TODO); this goes away as more screens move off synchronous
