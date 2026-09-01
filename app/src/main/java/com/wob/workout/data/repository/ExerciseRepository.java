@@ -2,6 +2,8 @@ package com.wob.workout.data.repository;
 
 import android.content.Context;
 
+import androidx.lifecycle.LiveData;
+
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.Exercise;
 
@@ -43,5 +45,11 @@ public class ExerciseRepository {
         return DatabaseProvider.get(context)
                 .exerciseDao()
                 .getAll();
+    }
+
+    public LiveData<List<Exercise>> observeAll() {
+        return DatabaseProvider.get(context)
+                .exerciseDao()
+                .getAllLive();
     }
 }
