@@ -23,10 +23,11 @@ public class ExerciseRepository {
                 .insert(exercise);
     }
 
-    public void update(Exercise exercise) {
-        DatabaseProvider.get(context)
+    /** @return true if a row was actually updated (false if the exercise's id no longer exists). */
+    public boolean update(Exercise exercise) {
+        return DatabaseProvider.get(context)
                 .exerciseDao()
-                .update(exercise);
+                .update(exercise) > 0;
     }
 
     public void delete(Exercise exercise) {
