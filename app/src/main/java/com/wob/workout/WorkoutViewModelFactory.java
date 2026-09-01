@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.wob.workout.player.PlayerViewModel;
+import com.wob.workout.ui.exercise.ExerciseListViewModel;
 import com.wob.workout.ui.workout.WorkoutEditViewModel;
 import com.wob.workout.ui.workout.WorkoutListViewModel;
 
@@ -43,6 +44,9 @@ public class WorkoutViewModelFactory implements ViewModelProvider.Factory {
         }
         if (modelClass.isAssignableFrom(WorkoutEditViewModel.class)) {
             return (T) new WorkoutEditViewModel(container, navArgId);
+        }
+        if (modelClass.isAssignableFrom(ExerciseListViewModel.class)) {
+            return (T) new ExerciseListViewModel(container);
         }
         throw new IllegalArgumentException("Unknown ViewModel class: " + modelClass);
     }

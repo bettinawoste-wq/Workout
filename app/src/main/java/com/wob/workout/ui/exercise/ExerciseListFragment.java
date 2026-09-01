@@ -8,17 +8,19 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.wob.workout.data.entity.Exercise;
-import com.wob.workout.data.repository.ExerciseRepository;
+import com.wob.workout.AppContainer;
 import com.wob.workout.R;
+import com.wob.workout.WorkoutApplication;
+import com.wob.workout.WorkoutViewModelFactory;
+import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentExerciseListBinding;
-
-import java.util.List;
 
 public class ExerciseListFragment extends Fragment {
     private FragmentExerciseListBinding binding;
+    private ExerciseAdapter adapter;
 
     @Nullable
     @Override
@@ -31,6 +33,17 @@ public class ExerciseListFragment extends Fragment {
                         inflater,
                         container,
                         false);
+
+        AppContainer appContainer =
+                ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
+        ExerciseListViewModel viewModel =
+                new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer))
+                        .get(ExerciseListViewModel.class);
+
+        adapter = new ExerciseAdapter(this::openExercise);
+        binding.recyclerExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recyclerExercises.setAdapter(adapter);
+
         binding.fabAddExercise.setOnClickListener(v -> {
             requireActivity()
                     .getSupportFragmentManager()
@@ -41,7 +54,12 @@ public class ExerciseListFragment extends Fragment {
                     .addToBackStack(null)
                     .commit();
         });
-        loadExercises();
+
+        viewModel.getExercises().observe(getViewLifecycleOwner(), exercises -> {
+            adapter.setData(exercises);
+            binding.txtEmpty.setVisibility(exercises.isEmpty() ? View.VISIBLE : View.GONE);
+        });
+
         return binding.getRoot();
     }
 
@@ -49,31 +67,6 @@ public class ExerciseListFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        loadExercises();
-    }
-    private void loadExercises() {
-        ExerciseRepository repository =
-                new ExerciseRepository(
-                        requireContext());
-        List<Exercise> exercises =
-                repository.getAll();
-        ExerciseAdapter adapter =
-                new ExerciseAdapter( this::openExercise);
-        adapter.setData(exercises);
-        binding.recyclerExercises.setLayoutManager(
-                new LinearLayoutManager(
-                        requireContext()));
-        binding.recyclerExercises.setAdapter(
-                adapter);
-        binding.txtEmpty.setVisibility(
-                exercises.isEmpty()
-                        ? View.VISIBLE
-                        : View.GONE);
     }
 
     private void openExercise(Exercise exercise) {
