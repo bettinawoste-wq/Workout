@@ -11,6 +11,8 @@ import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExercise;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Shared scaffold for ViewModel tests: a real {@link AppContainer} wired to a fresh,
  * isolated in-memory {@link AppDatabase}. Replaces the in-memory-database
@@ -63,9 +65,11 @@ public class MigrationTestHelper {
         Context context = ApplicationProvider.getApplicationContext();
         AppDatabase db = null;
         try {
-            db = Room.inMemoryDatabaseBuilder(context, AppDatabase.class)
-                    .allowMainThreadQueries()
-                    .build();
+            // No allowMainThreadQueries(), same as production since issue #21: a ViewModel
+            // that touches the database on the main thread fails its test instead of
+            // crashing only on the device. Test bodies run on the instrumentation thread,
+            // so seeding and assertions are unaffected.
+            db = Room.inMemoryDatabaseBuilder(context, AppDatabase.class).build();
             // Must precede the container: WorkoutSummaryRepository/WorkoutHistoryRepository
             // capture DatabaseProvider.get() once, at construction.
             DatabaseProvider.setInstanceForTest(db);
@@ -93,6 +97,13 @@ public class MigrationTestHelper {
     /** For DAO-level seeding or assertions the repositories don't expose. */
     public AppDatabase getDatabase() {
         return database;
+    }
+
+    /** Blocks until every task already submitted to the container's {@code ioExecutor} has
+     *  run - for asserting on fire-and-forget writes (e.g. {@code PlayerHistoryTracker}).
+     *  Works because that executor is single-threaded. */
+    public void drainIoExecutor() throws Exception {
+        appContainer.ioExecutor.submit(() -> { }).get();
     }
 
     public long insertWorkout(String name) {
@@ -126,7 +137,19 @@ public class MigrationTestHelper {
         }
         closed = true;
         try {
-            appContainer.ioExecutor.shutdownNow();
+            // Let already-queued writes (e.g. PlayerHistoryTracker's fire-and-forget ones)
+            // finish before the database closes. shutdownNow() would interrupt a running
+            // Room call, which rethrows the InterruptedException on the executor thread and
+            // kills the instrumentation process.
+            appContainer.ioExecutor.shutdown();
+            try {
+                if (!appContainer.ioExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    appContainer.ioExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                appContainer.ioExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
             database.close();
         } finally {
             DatabaseProvider.resetForTest();

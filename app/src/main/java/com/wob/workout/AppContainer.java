@@ -27,7 +27,9 @@ public class AppContainer {
     public final WorkoutHistoryRepository workoutHistoryRepository;
     public final PlayerRepository playerRepository;
 
-    /** Single background thread for all Room access — see wayfinder ticket #2. */
+    /** Single background thread for all Room access — see wayfinder ticket #2.
+     *  <b>Must stay single-threaded:</b> {@code PlayerHistoryTracker} relies on it to run
+     *  its fire-and-forget history writes in call order (issue #21). */
     public final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
     public AppContainer(Context appContext) {

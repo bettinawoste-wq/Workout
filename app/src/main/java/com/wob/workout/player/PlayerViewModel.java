@@ -42,7 +42,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private PlayerTick lastConsumedTick;
 
     public PlayerViewModel(AppContainer container, long workoutId) {
-        historyTracker = new PlayerHistoryTracker(container.workoutHistoryRepository);
+        historyTracker = new PlayerHistoryTracker(
+                container.workoutHistoryRepository, container.ioExecutor);
         loadExercises(container, workoutId);
     }
 
