@@ -4,6 +4,7 @@ import static com.wob.workout.LiveDataTestUtil.getOrAwaitValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -32,6 +33,9 @@ import java.util.function.Supplier;
  * waiting on the real countdown, so the tests are fast. Exercises are seeded with long
  * durations so the real timer never finishes an exercise on its own; the fixed 3-second
  * transition countdowns are only ever held for a few milliseconds before the next step.
+ * That window is the one remaining real-time dependency: a main-thread stall of over 3s
+ * between two steps would let the real timer advance a phase first (removing it would need
+ * an injectable timer in production code, which this ticket deliberately avoids).
  *
  * <p><b>Why there is no {@code InstantTaskExecutorRule} here</b>, unlike the other
  * ViewModel tests: {@link PlayerTimer} creates a real {@link android.os.CountDownTimer},
@@ -72,13 +76,12 @@ public class PlayerViewModelTest {
         try {
             if (viewModel != null) {
                 // Cancels the real timer so it can't fire into the next test.
-                onMain(() -> {
-                    viewModel.onCleared();
-                    return null;
-                });
+                runOnMain(viewModel::onCleared);
             }
         } finally {
-            helper.close();
+            if (helper != null) {
+                helper.close();
+            }
         }
     }
 
@@ -145,7 +148,7 @@ public class PlayerViewModelTest {
     }
 
     @Test
-    public void togglePauseWhileActivePausesAndResumesTimer() {
+    public void togglePauseWhileActivePausesAndResumesTimer() throws InterruptedException {
         finishCurrentPhase(); // READY -> ACTIVE (0)
 
         // Read in the same main-thread step as the toggle, so a real timer tick can't
@@ -156,6 +159,13 @@ public class PlayerViewModelTest {
         });
         assertFalse(paused.running);
         assertEquals(Phase.ACTIVE, paused.phase);
+        assertTrue(paused.remainingMillis > 0);
+        assertTrue(paused.remainingMillis <= LONG_DURATION_SECONDS * 1000L);
+
+        // Longer than the real timer's 1s tick interval: a still-running countdown would
+        // have emitted a new tick by now.
+        Thread.sleep(1100);
+        assertSame(paused, onMain(() -> viewModel.getTick().getValue()));
 
         PlayerTick resumed = onMain(() -> {
             viewModel.togglePause();
@@ -163,30 +173,38 @@ public class PlayerViewModelTest {
         });
         assertTrue(resumed.running);
         assertEquals(Phase.ACTIVE, resumed.phase);
+        // Resumes from where it paused rather than restarting the exercise.
+        assertEquals(paused.remainingMillis, resumed.remainingMillis);
     }
 
     @Test
     public void shouldPlayStartSoundReturnsTrueOncePerActiveState() {
         PlayerExerciseState ready = currentState();
-        assertFalse(viewModel.shouldPlayStartSound(ready));
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(ready)));
 
         PlayerExerciseState active = finishCurrentPhase();
 
-        assertTrue(viewModel.shouldPlayStartSound(active));
+        assertTrue(onMain(() -> viewModel.shouldPlayStartSound(active)));
         // Simulates LiveData redelivering the same value to a recreated Fragment's observer.
-        assertFalse(viewModel.shouldPlayStartSound(active));
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(active)));
     }
 
     @Test
     public void shouldPlayBeepReturnsTrueOncePerBeepingTick() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
 
+        PlayerTick silent = tickAt(10_000);
+        assertFalse(onMain(() -> viewModel.shouldPlayBeep(silent)));
+
         PlayerTick beeping = tickAt(2500);
         assertTrue(beeping.shouldBeep);
-
-        assertTrue(viewModel.shouldPlayBeep(beeping));
+        assertTrue(onMain(() -> viewModel.shouldPlayBeep(beeping)));
         // Simulates LiveData redelivering the same value to a recreated Fragment's observer.
-        assertFalse(viewModel.shouldPlayBeep(beeping));
+        assertFalse(onMain(() -> viewModel.shouldPlayBeep(beeping)));
+
+        // The next second's beep is a new value, so it plays again.
+        PlayerTick nextBeeping = tickAt(1500);
+        assertTrue(onMain(() -> viewModel.shouldPlayBeep(nextBeeping)));
     }
 
     /** Calls {@code onFinish()} as the timer would and returns the resulting state. */
@@ -212,7 +230,11 @@ public class PlayerViewModelTest {
     /** Runs {@code action} on the main thread and returns its result. */
     private static <T> T onMain(Supplier<T> action) {
         AtomicReference<T> result = new AtomicReference<>();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> result.set(action.get()));
+        runOnMain(() -> result.set(action.get()));
         return result.get();
+    }
+
+    private static void runOnMain(Runnable action) {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(action);
     }
 }
