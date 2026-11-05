@@ -35,9 +35,9 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>Media is only exercised where it is deterministic without real media files: a
  * {@code mediaFile} that doesn't exist on disk (the preview falls back to its name), and a
- * {@code Uri} no provider can type (the "unsupported type" error). The success path of
- * {@code onMediaSelected} needs a real, readable content {@code Uri} and is left to the
- * manual smoke test.
+ * {@code Uri} no provider can type (the "unsupported type" error). The success path and
+ * the copy-failure error of {@code onMediaSelected} both need a content {@code Uri} that
+ * reports an image/video type, i.e. a real provider, and are left to the manual smoke test.
  */
 @RunWith(AndroidJUnit4.class)
 public class ExerciseEditViewModelTest {
@@ -202,7 +202,7 @@ public class ExerciseEditViewModelTest {
         ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, 0);
         viewModel.onMediaSelected(UNTYPEABLE_URI);
         Event<String> first = getOrAwaitValue(viewModel.getMediaError());
-        first.getContentIfNotHandled();
+        assertEquals(UNSUPPORTED_TYPE_ERROR, first.getContentIfNotHandled());
 
         // A file:// Uri has no content-provider type either.
         viewModel.onMediaSelected(Uri.parse("file:///nonexistent/clip.mp4"));
