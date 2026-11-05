@@ -15,6 +15,7 @@
 .cxx
 local.properties
 WorkoutNotizen.txt
+grilling-entscheidungen.txt
 DEVELOPMENT.md
 /.agents/
 /skills-lock.json
