@@ -191,7 +191,9 @@ public class WorkoutEditViewModelTest {
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         assertTitles(getOrAwaitValue(viewModel.getExercises()), "Squat", "Lunge");
 
-        // Out of band: the catalog screen deletes an exercise this workout uses.
+        // Out of band: the catalog screen deletes an exercise this workout uses. The
+        // WorkoutExercise FK cascades, so this does not reach loadExerciseItems()'s
+        // null-exercise guard - it mirrors what production actually does.
         container.exerciseRepository.delete(container.exerciseRepository.getById(squatId));
 
         List<ExerciseItem> items = awaitEmissionAfter(viewModel, viewModel::refreshExercises);
@@ -201,16 +203,19 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void newWorkoutSkipsTheInitialLoad() throws Exception {
-        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, 0);
+        // isNew() is "workoutId <= 0", so both 0 and a negative id count as new.
+        for (long newWorkoutId : new long[] {0, -1}) {
+            WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, newWorkoutId);
 
-        assertTrue(viewModel.isNew());
-        viewModel.refreshExercises(); // Must be a no-op for a new workout, too.
-        // ioExecutor is single-threaded: once this barrier task has run, any load the
-        // constructor or refreshExercises() had queued would have delivered its value.
-        container.ioExecutor.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            assertTrue(viewModel.isNew());
+            viewModel.refreshExercises(); // Must be a no-op for a new workout, too.
+            // ioExecutor is single-threaded: once this barrier task has run, any load the
+            // constructor or refreshExercises() had queued would have delivered its value.
+            container.ioExecutor.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-        assertNull(viewModel.getWorkout().getValue());
-        assertNull(viewModel.getExercises().getValue());
+            assertNull(viewModel.getWorkout().getValue());
+            assertNull(viewModel.getExercises().getValue());
+        }
     }
 
     /** Waits for the initial load, runs {@code mutation}, and returns the list it emits. */
