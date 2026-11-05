@@ -1,6 +1,5 @@
 package com.wob.workout.data.database;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import android.content.Context;
@@ -54,12 +53,14 @@ public class DatabaseProviderTest {
     }
 
     @Test
-    public void resetForTest_clearsTheSingletonBackToNull() throws Exception {
+    public void resetForTest_restoresTheInstanceFromBeforeTheOverride() throws Exception {
+        AppDatabase before = readInstanceField();
         DatabaseProvider.setInstanceForTest(inMemory);
+        DatabaseProvider.setInstanceForTest(inMemory); // nested overrides still restore the original
 
         DatabaseProvider.resetForTest();
 
-        assertNull(readInstanceField());
+        assertSame(before, readInstanceField());
     }
 
     /** DatabaseProvider intentionally exposes no getter for INSTANCE beyond the seam issue #10

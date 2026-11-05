@@ -4,17 +4,10 @@ import static com.wob.workout.LiveDataTestUtil.getOrAwaitValue;
 import static com.wob.workout.LiveDataTestUtil.observeValues;
 import static org.junit.Assert.assertEquals;
 
-import android.content.Context;
-
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-import androidx.room.Room;
-import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.wob.workout.data.database.AppDatabase;
-import com.wob.workout.data.entity.Exercise;
-import com.wob.workout.data.entity.Workout;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.MigrationTestHelper;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
 
 import org.junit.After;
@@ -28,11 +21,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Establishes the ViewModel-migration testing pattern (in-memory Room database,
- * InstantTaskExecutorRule) that later screens reuse. Exercises WorkoutSummaryRepository
- * directly rather than constructing WorkoutListViewModel/AppContainer: the ViewModel is
- * a one-line passthrough (getWorkouts() just returns repository.observeAll()), so the
- * repository's LiveData is exactly what the ViewModel exposes.
+ * Exercises WorkoutSummaryRepository directly rather than constructing
+ * WorkoutListViewModel: the ViewModel is a one-line passthrough (getWorkouts() just
+ * returns repository.observeAll()), so the repository's LiveData is exactly what the
+ * ViewModel exposes. Database setup and seeding come from {@link MigrationTestHelper}.
  */
 @RunWith(AndroidJUnit4.class)
 public class WorkoutListViewModelTest {
@@ -40,49 +32,25 @@ public class WorkoutListViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private AppDatabase database;
+    private MigrationTestHelper helper;
     private WorkoutSummaryRepository repository;
 
     @Before
-    public void createDatabase() {
-        Context context = ApplicationProvider.getApplicationContext();
-        database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class)
-                .allowMainThreadQueries()
-                .build();
-        repository = new WorkoutSummaryRepository(database);
+    public void setUp() {
+        helper = new MigrationTestHelper();
+        repository = helper.getAppContainer().workoutSummaryRepository;
     }
 
     @After
-    public void closeDatabase() {
-        database.close();
-    }
-
-    private long insertWorkout(String name) {
-        Workout workout = new Workout();
-        workout.name = name;
-        return database.workoutDao().insert(workout);
-    }
-
-    private long insertExercise(String title) {
-        Exercise exercise = new Exercise();
-        exercise.title = title;
-        return database.exerciseDao().insert(exercise);
-    }
-
-    private void insertWorkoutExercise(long workoutId, long exerciseId, int durationSeconds) {
-        WorkoutExercise workoutExercise = new WorkoutExercise();
-        workoutExercise.workoutId = workoutId;
-        workoutExercise.exerciseId = exerciseId;
-        workoutExercise.position = 0;
-        workoutExercise.durationSeconds = durationSeconds;
-        database.workoutExerciseDao().insert(workoutExercise);
+    public void tearDown() {
+        helper.close();
     }
 
     @Test
     public void workoutsReflectsSavedWorkoutAndItsExercises() throws InterruptedException {
-        long workoutId = insertWorkout("Leg Day");
-        long exerciseId = insertExercise("Squat");
-        insertWorkoutExercise(workoutId, exerciseId, 45);
+        long workoutId = helper.insertWorkout("Leg Day");
+        long exerciseId = helper.insertExercise("Squat");
+        helper.insertWorkoutExercise(workoutId, exerciseId, 0, 45);
 
         List<WorkoutListItem> items = getOrAwaitValue(repository.observeAll());
 
@@ -94,8 +62,8 @@ public class WorkoutListViewModelTest {
 
     @Test
     public void workoutsUpdatesWhenAnExerciseIsAdded() throws InterruptedException {
-        long workoutId = insertWorkout("Push Day");
-        long exerciseId = insertExercise("Push-up");
+        long workoutId = helper.insertWorkout("Push Day");
+        long exerciseId = helper.insertExercise("Push-up");
 
         // One still-active observer across the mutation below - this is what actually
         // proves Room's invalidation tracking replaces the deleted onResume()/reload,
@@ -106,7 +74,7 @@ public class WorkoutListViewModelTest {
         List<WorkoutListItem> beforeAdding = values.poll(2, TimeUnit.SECONDS);
         assertEquals(0, beforeAdding.get(0).exerciseCount);
 
-        insertWorkoutExercise(workoutId, exerciseId, 30);
+        helper.insertWorkoutExercise(workoutId, exerciseId, 0, 30);
 
         List<WorkoutListItem> afterAdding = values.poll(2, TimeUnit.SECONDS);
         assertEquals(1, afterAdding.get(0).exerciseCount);
