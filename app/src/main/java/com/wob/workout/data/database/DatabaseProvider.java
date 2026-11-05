@@ -8,6 +8,13 @@ import androidx.room.Room;
 public class DatabaseProvider {
     private static AppDatabase INSTANCE;
 
+    /** What INSTANCE was before the first {@link #setInstanceForTest(AppDatabase)} call
+     *  (typically the on-disk database {@code WorkoutApplication}'s container already
+     *  opened), restored by {@link #resetForTest()}. Only meaningful while
+     *  {@code overriddenForTest} is true. */
+    private static AppDatabase instanceBeforeTest;
+    private static boolean overriddenForTest;
+
     public static synchronized AppDatabase get(Context context) {
 
         if (INSTANCE == null) {
@@ -40,16 +47,27 @@ public class DatabaseProvider {
     @VisibleForTesting
     @RestrictTo(RestrictTo.Scope.TESTS)
     public static synchronized void setInstanceForTest(AppDatabase database) {
+        if (!overriddenForTest) {
+            instanceBeforeTest = INSTANCE;
+            overriddenForTest = true;
+        }
         INSTANCE = database;
     }
 
-    /** Clears the singleton set by {@link #setInstanceForTest(AppDatabase)}, so the next
-     *  {@link #get(Context)} call rebuilds normally. Does not close the database being
-     *  discarded - the caller that built it (via {@link #setInstanceForTest(AppDatabase)})
-     *  owns closing it, typically right before calling this. */
+    /** Undoes {@link #setInstanceForTest(AppDatabase)}: restores whatever INSTANCE was
+     *  before the override (null if nothing had been built yet), rather than clearing it -
+     *  otherwise the next {@link #get(Context)} would open a second Room instance of the
+     *  on-disk file alongside the one the app-wide container already holds, with separate
+     *  invalidation trackers. A no-op if no override is active. Does not close the database
+     *  being discarded - the caller that built it owns closing it, typically right before
+     *  calling this. */
     @VisibleForTesting
     @RestrictTo(RestrictTo.Scope.TESTS)
     public static synchronized void resetForTest() {
-        INSTANCE = null;
+        if (overriddenForTest) {
+            INSTANCE = instanceBeforeTest;
+            instanceBeforeTest = null;
+            overriddenForTest = false;
+        }
     }
 }
