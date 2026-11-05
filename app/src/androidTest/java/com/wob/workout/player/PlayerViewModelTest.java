@@ -130,7 +130,7 @@ public class PlayerViewModelTest {
     }
 
     @Test
-    public void finishFromFinishingRecordsCompletedSession() throws InterruptedException {
+    public void finishFromFinishingRecordsCompletedSession() throws Exception {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
@@ -139,6 +139,8 @@ public class PlayerViewModelTest {
         PlayerExerciseState state = finishCurrentPhase();
 
         assertEquals(Phase.FINISHED, state.phase);
+        // History writes are fire-and-forget on the IO executor (issue #21).
+        helper.drainIoExecutor();
         List<WorkoutSessionSummary> history = getOrAwaitValue(
                 helper.getAppContainer().workoutHistoryRepository.observeHistory());
         assertEquals(1, history.size());
