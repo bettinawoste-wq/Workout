@@ -15,6 +15,9 @@ Room — no account, no backend.
 - **History** — every run is recorded (completed or aborted, with per-exercise actual vs.
   planned duration), browsable and deletable independently of whether the source workout
   still exists.
+- **Starter set** — a fresh install comes with 10 bodyweight exercises and a ready-made
+  full-body workout (one minute per exercise); afterwards they're ordinary data you can
+  edit or delete.
 
 ## Tech stack
 

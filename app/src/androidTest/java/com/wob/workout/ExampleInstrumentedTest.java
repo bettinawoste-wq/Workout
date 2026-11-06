@@ -21,6 +21,7 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.wob.workout", appContext.getPackageName());
+        // The debug build (which instrumented tests run against) uses applicationIdSuffix ".debug".
+        assertEquals("com.wob.workout.debug", appContext.getPackageName());
     }
 }

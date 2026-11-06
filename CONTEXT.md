@@ -64,6 +64,13 @@ lives in an on-device Room database.
   the flag today would crash with `IllegalStateException: Cannot access database on the main
   thread`. That call needs to move onto `AppContainer.ioExecutor` before this flag can go away —
   tracked as a gap in ticket #4's migration, found while verifying ticket #9.
+- **Starter set**: `StarterSet` is a Room `onCreate` callback added in `DatabaseProvider`, so it
+  runs only when the database file is first created — existing installs are untouched and
+  anything the user deletes stays deleted. Its content (10 exercises, one workout, seconds per
+  exercise) lives in `res/values/starter.xml`; the debug variant overrides all of it with a
+  2-exercise, 5-second demo in `app/src/debug/res/values/starter.xml`, and debug builds install
+  as `com.wob.workout.debug` with their own database. In-memory test databases don't register
+  the callback, so they start empty. `StarterResourcesTest` (JVM) pins what release ships.
 
 ## Consumer rules
 

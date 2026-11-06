@@ -17,6 +17,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Installs next to a release build as its own app with its own database.
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -37,7 +41,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.firebase.inappmessaging)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.arch.core.testing)
