@@ -88,6 +88,9 @@ public class PlayerFragment extends Fragment {
                 binding.txtState.setText("AKTUELLE ÜBUNG");
                 showExerciseInfo(state.exercise);
                 setTransportEnabled(true);
+                // Stepping past either end does nothing, so don't offer it.
+                binding.btnPrevious.setEnabled(state.hasPrevious());
+                binding.btnNext.setEnabled(state.hasNext());
                 binding.btnPause.setText("Pause");
                 if (viewModel.shouldPlayStartSound(state)) {
                     audioManager.playStart();
@@ -129,6 +132,12 @@ public class PlayerFragment extends Fragment {
         binding.btnPause.setEnabled(false);
         binding.btnNext.setEnabled(false);
         binding.btnPrevious.setEnabled(false);
+
+        // The session is already completed, so "Workout abbrechen" and its "saved as aborted"
+        // dialog no longer apply: turn the button into a plain way out.
+        binding.btnCancel.setText("Fertig");
+        binding.btnCancel.setOnClickListener(v ->
+                requireActivity().getSupportFragmentManager().popBackStack());
 
         binding.imgMedia.setVisibility(View.GONE);
         binding.videoPlayer.setVisibility(View.GONE);
