@@ -56,14 +56,19 @@ lives in an on-device Room database.
   `ExerciseEditViewModel`'s `LoadResult` pattern. See GitHub issue #1 ("Lightweight MVVM
   Migration") for the full history of the map.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
-  `fallbackToDestructiveMigration()`. `DatabaseProvider` still calls `.allowMainThreadQueries()`
-  (flagged in-code with a TODO) — now that every screen is migrated this was expected to be the
-  final cleanup step, but it's still blocked: `PlayerViewModel.onCleared()` calls
-  `PlayerHistoryTracker.closeOutCurrentExercise()`/`.finish()` synchronously on the main thread
-  (reachable via the normal "cancel workout mid-session" path, not just an edge case), so removing
-  the flag today would crash with `IllegalStateException: Cannot access database on the main
-  thread`. That call needs to move onto `AppContainer.ioExecutor` before this flag can go away —
-  tracked as a gap in ticket #4's migration, found while verifying ticket #9.
+  `fallbackToDestructiveMigration()`. Room runs without `allowMainThreadQueries()` (removed in
+  #22, the last step of the MVVM migration): every database access happens off the main thread,
+  either on `AppContainer.ioExecutor` (one-shot reads and writes via `LiveDataExecutor`, and
+  `PlayerHistoryTracker`'s three history writes) or on Room's own query executor behind reactive
+  `LiveData`. ViewModel tests built on `MigrationTestHelper`'s in-memory database fail with
+  `IllegalStateException` if code touches it from the main thread, so a regression shows up there.
+- **Starter set**: `StarterSet` is a Room `onCreate` callback added in `DatabaseProvider`, so it
+  runs only when the database file is first created — existing installs are untouched and
+  anything the user deletes stays deleted. Its content (10 exercises, one workout, seconds per
+  exercise) lives in `res/values/starter.xml`; the debug variant overrides all of it with a
+  2-exercise, 5-second demo in `app/src/debug/res/values/starter.xml`, and debug builds install
+  as `com.wob.workout.debug` with their own database. In-memory test databases don't register
+  the callback, so they start empty. `StarterResourcesTest` (JVM) pins what release ships.
 
 ## Consumer rules
 

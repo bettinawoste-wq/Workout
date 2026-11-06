@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The starter set: created once, on the first launch of a fresh installation (see
+     StarterSet.java). The debug variant overrides every resource here with a tiny demo
+     version in app/src/debug/res/values/starter.xml. -->
+<resources>
+    <string name="starter_workout_name">Ganzkörper</string>
+
+    <!-- How long every exercise of the starter workout lasts. -->
+    <integer name="starter_exercise_seconds">60</integer>
+
+    <!-- Titles and descriptions line up by index; StarterResourcesTest checks that. -->
+    <string-array name="starter_exercise_titles">
+        <item>Hampelmänner</item>
+        <item>Kniebeugen</item>
+        <item>Liegestütze</item>
+        <item>Ausfallschritte</item>
+        <item>Plank</item>
+        <item>Bergsteiger</item>
+        <item>Crunches</item>
+        <item>Beckenheben</item>
+        <item>Superman</item>
+        <item>Wandsitzen</item>
+    </string-array>
+
+    <string-array name="starter_exercise_descriptions">
+        <item>Aus dem Stand springen, dabei die Arme über den Kopf und die Beine auseinander bringen, dann zurück in die Ausgangsposition.</item>
+        <item>Füße schulterbreit, das Gesäß nach hinten unten schieben, Rücken gerade halten, die Knie zeigen in Richtung der Zehen.</item>
+        <item>Hände unter den Schultern, der Körper bildet eine Linie, die Brust Richtung Boden senken und wieder hochdrücken.</item>
+        <item>Großer Schritt nach vorn, das hintere Knie Richtung Boden senken, das vordere Knie bleibt über dem Knöchel, dann das Bein wechseln.</item>
+        <item>Unterarmstütz: Ellenbogen unter den Schultern, der Körper bildet eine gerade Linie, Bauch und Gesäß anspannen.</item>
+        <item>Aus der Liegestützposition abwechselnd und schnell die Knie Richtung Brust ziehen.</item>
+        <item>Rückenlage, Beine aufgestellt, die Schulterblätter mit Bauchspannung vom Boden heben, den Nacken locker lassen.</item>
+        <item>Rückenlage, Füße aufgestellt, das Becken anheben, bis Schultern, Hüfte und Knie eine Linie bilden, kurz halten.</item>
+        <item>Bauchlage, Arme und Beine gleichzeitig vom Boden abheben, kurz halten und wieder ablegen.</item>
+        <item>Rücken an die Wand, in die Hocke gehen, bis die Knie 90° gebeugt sind, und die Position halten.</item>
+    </string-array>
+</resources>

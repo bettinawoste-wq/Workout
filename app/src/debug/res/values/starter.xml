@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-variant override of the starter set: two exercises of five seconds, so a full
+     workout run takes seconds instead of ten minutes. Must define every resource the
+     release version in app/src/main/res/values/starter.xml defines (StarterResourcesTest). -->
+<resources>
+    <string name="starter_workout_name">Demo-Workout</string>
+
+    <integer name="starter_exercise_seconds">5</integer>
+
+    <string-array name="starter_exercise_titles">
+        <item>Demo-Übung 1</item>
+        <item>Demo-Übung 2</item>
+    </string-array>
+
+    <string-array name="starter_exercise_descriptions">
+        <item>Erste Demo-Übung für die Entwicklung.</item>
+        <item>Zweite Demo-Übung für die Entwicklung.</item>
+    </string-array>
+</resources>
