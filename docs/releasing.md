@@ -10,27 +10,35 @@ An installed app only accepts updates signed with the same key, so create one ke
 The keystore is never committed (`*.jks` doesn't belong in this repo); the workflow gets it from
 GitHub Secrets.
 
-1. Create the keystore. `keytool` ships with the JDK / Android Studio's `jbr`. It asks for the
-   passwords and your name interactively:
+1. Create the keystore in a folder **outside** this repo. `keytool` ships with the JDK and with
+   Android Studio's `jbr` folder (it is usually not on the `PATH`, hence the full path below).
+   It asks for the keystore password (twice) and your name interactively; the name fields can be
+   skipped with Enter.
 
-   ```bash
-   keytool -genkeypair -v -keystore workout-release.jks -alias workout \
-     -keyalg RSA -keysize 2048 -validity 10000
+   ```powershell
+   # PowerShell
+   mkdir C:\Users\<you>\keystores
+   cd C:\Users\<you>\keystores
+   & "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v `
+     -keystore workout-release.jks -alias workout -keyalg RSA -keysize 2048 -validity 10000
    ```
 
 2. **Back up `workout-release.jks` and both passwords** (password manager). If the key is lost,
    people who installed an APK have to uninstall before they can install a new one.
 
-3. Store the four secrets. `gh secret set` asks for each value, so nothing ends up in your shell
-   history:
+3. Store the four secrets from the same folder. `gh secret set` asks for each value, so nothing
+   ends up in your shell history. `--repo` is needed because you are not inside the repo folder:
 
    ```powershell
    # PowerShell
-   [Convert]::ToBase64String([IO.File]::ReadAllBytes("workout-release.jks")) | gh secret set KEYSTORE_BASE64
-   gh secret set KEYSTORE_PASSWORD
-   gh secret set KEY_ALIAS          # the alias from step 1, e.g. workout
-   gh secret set KEY_PASSWORD
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("workout-release.jks")) | gh secret set KEYSTORE_BASE64 --repo bettinawoste-wq/Workout
+   gh secret set KEYSTORE_PASSWORD --repo bettinawoste-wq/Workout
+   gh secret set KEY_ALIAS --repo bettinawoste-wq/Workout       # the alias from step 1, e.g. workout
+   gh secret set KEY_PASSWORD --repo bettinawoste-wq/Workout
    ```
+
+   The default keystore format (PKCS12) has no separate key password, so enter the **same
+   value** for `KEY_PASSWORD` as for `KEYSTORE_PASSWORD`.
 
    | Secret | Content |
    | --- | --- |
