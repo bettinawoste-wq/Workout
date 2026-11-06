@@ -1,5 +1,7 @@
 # Workout
 
+[![CI](https://github.com/bettinawoste-wq/Workout/actions/workflows/ci.yml/badge.svg)](https://github.com/bettinawoste-wq/Workout/actions/workflows/ci.yml)
+
 A local-only Android app for building custom workouts, running them with a timer and
 audio cues, and reviewing past sessions afterward. Everything is stored on-device in
 Room — no account, no backend.
