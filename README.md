@@ -4,6 +4,10 @@ A local-only Android app for building custom workouts, running them with a timer
 audio cues, and reviewing past sessions afterward. Everything is stored on-device in
 Room — no account, no backend.
 
+| Home | Workout editor | Player | History |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/home.png" width="190" alt="Home screen"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout"> | <img src="docs/screenshots/player.png" width="190" alt="Player running the first exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> |
+
 ## Features
 
 - **Exercises** — create/edit exercises with a photo or video demo (orientation-correct

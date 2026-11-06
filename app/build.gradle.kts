@@ -16,12 +16,30 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Release signing comes from the environment (the release workflow sets these from GitHub
+    // Secrets); the keystore itself is never committed. Without KEYSTORE_PATH - a local build -
+    // the release variant falls back to the debug key so it can still be installed.
+    val keystorePath: String? = System.getenv("KEYSTORE_PATH")
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Installs next to a release build as its own app with its own database.
             applicationIdSuffix = ".debug"
         }
         release {
+            signingConfig = signingConfigs.getByName(
+                if (keystorePath != null) "release" else "debug"
+            )
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
