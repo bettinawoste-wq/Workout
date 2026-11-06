@@ -45,9 +45,12 @@ public class ExerciseEditViewModel extends ViewModel {
             return new LoadResult(loaded, computePreview(container.appContext, loaded.mediaFile, loaded.mediaType));
         }, result -> {
             if (result == null) return;
-            exercise.setValue(result.exercise);
+            // The media fields are set before any observer hears about the loaded exercise:
+            // an observer's onChanged runs inside setValue(), so whoever reacts to it (a test
+            // waiting on getExercise(), a save() right after) must already find them in place.
             selectedMediaFile = result.exercise.mediaFile;
             selectedMediaType = result.exercise.mediaType;
+            exercise.setValue(result.exercise);
             preview.setValue(result.preview);
         });
     }
