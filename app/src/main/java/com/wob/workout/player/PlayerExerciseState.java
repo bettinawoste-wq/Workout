@@ -25,4 +25,14 @@ public class PlayerExerciseState {
         this.total = total;
         this.phase = phase;
     }
+
+    /** False on the last exercise, where {@code PlayerViewModel.next()} does nothing. */
+    public boolean hasNext() {
+        return index < total - 1;
+    }
+
+    /** False on the first exercise, where {@code PlayerViewModel.previous()} does nothing. */
+    public boolean hasPrevious() {
+        return index > 0;
+    }
 }
