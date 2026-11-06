@@ -10,8 +10,9 @@ android {
         applicationId = "com.wob.workout"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // The release workflow passes -PversionName / -PversionCode; local builds keep 1 / "1.0".
+        versionCode = providers.gradleProperty("versionCode").map(String::toInt).getOrElse(1)
+        versionName = providers.gradleProperty("versionName").getOrElse("1.0")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

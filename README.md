@@ -50,8 +50,12 @@ Run the unit and instrumented test suites:
 ./gradlew connectedDebugAndroidTest   # needs a connected device/emulator
 ```
 
+Signed release APKs are attached to each [GitHub Release](https://github.com/bettinawoste-wq/Workout/releases); how they are built
+is described in [`docs/releasing.md`](docs/releasing.md).
+
 ## Project docs
 
 - [`CONTEXT.md`](CONTEXT.md) — domain model and current architecture
+- [`docs/releasing.md`](docs/releasing.md) — signing key setup and how to cut a release
 - [`docs/adr/`](docs/adr/) — architecture decision records
 - [`docs/agents/`](docs/agents/) — conventions for AI coding agents working in this repo

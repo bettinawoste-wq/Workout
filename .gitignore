@@ -19,3 +19,5 @@ grilling-entscheidungen.txt
 DEVELOPMENT.md
 /.agents/
 /skills-lock.json
+*.jks
+*.keystore
