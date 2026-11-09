@@ -25,7 +25,7 @@ import com.wob.workout.data.entity.WorkoutSession;
                 WorkoutSession.class,
                 ExerciseSession.class
         },
-        version = 4,
+        version = 5,
         exportSchema = false
 )
 @TypeConverters(MediaTypeConverter.class)
@@ -96,6 +96,16 @@ public abstract class AppDatabase extends RoomDatabase {
 
             db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_WorkoutSession_workoutId` ON `WorkoutSession` (`workoutId`)");
+        }
+    };
+
+    public static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // Left NULL for existing exercises, which means the default framing (ADR 0003).
+            db.execSQL("ALTER TABLE `Exercise` ADD COLUMN `framingZoom` REAL");
+            db.execSQL("ALTER TABLE `Exercise` ADD COLUMN `framingOffsetX` REAL");
+            db.execSQL("ALTER TABLE `Exercise` ADD COLUMN `framingOffsetY` REAL");
         }
     };
 }

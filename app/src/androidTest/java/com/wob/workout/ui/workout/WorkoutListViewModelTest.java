@@ -8,6 +8,8 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.data.entity.Exercise;
+import com.wob.workout.data.entity.MediaType;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
 
 import org.junit.After;
@@ -61,6 +63,23 @@ public class WorkoutListViewModelTest {
     }
 
     @Test
+    public void picturedExercisesFollowTheWorkoutOrderAndSkipThoseWithoutMedia()
+            throws InterruptedException {
+        long workoutId = helper.insertWorkout("Leg Day");
+        // Inserted in the opposite order to their positions.
+        helper.insertWorkoutExercise(workoutId, insertPictured("Second"), 2, 30);
+        helper.insertWorkoutExercise(workoutId, helper.insertExercise("No picture"), 1, 30);
+        helper.insertWorkoutExercise(workoutId, insertPictured("First"), 0, 30);
+
+        WorkoutListItem item = getOrAwaitValue(repository.observeAll()).get(0);
+
+        assertEquals(3, item.exerciseCount);
+        assertEquals(2, item.picturedExercises.size());
+        assertEquals("First", item.picturedExercises.get(0).title);
+        assertEquals("Second", item.picturedExercises.get(1).title);
+    }
+
+    @Test
     public void workoutsUpdatesWhenAnExerciseIsAdded() throws InterruptedException {
         long workoutId = helper.insertWorkout("Push Day");
         long exerciseId = helper.insertExercise("Push-up");
@@ -79,5 +98,13 @@ public class WorkoutListViewModelTest {
         List<WorkoutListItem> afterAdding = values.poll(2, TimeUnit.SECONDS);
         assertEquals(1, afterAdding.get(0).exerciseCount);
         assertEquals(30, afterAdding.get(0).totalDurationSeconds);
+    }
+
+    private long insertPictured(String title) {
+        Exercise exercise = new Exercise();
+        exercise.title = title;
+        exercise.mediaFile = title + ".jpg";
+        exercise.mediaType = MediaType.IMAGE;
+        return helper.getAppContainer().exerciseRepository.save(exercise);
     }
 }

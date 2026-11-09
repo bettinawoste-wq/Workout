@@ -1,7 +1,10 @@
 package com.wob.workout.media;
 
 import android.content.Context;
+import android.graphics.Outline;
 import android.util.AttributeSet;
+import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 
 /**
@@ -11,12 +14,22 @@ import android.widget.FrameLayout;
  */
 public class PictureFrameLayout extends FrameLayout {
 
-    private static final int RATIO_WIDTH = 3;
-    private static final int RATIO_HEIGHT = 2;
+    static final int RATIO_WIDTH = 3;
+    static final int RATIO_HEIGHT = 2;
     private static final float MAX_SHARE_OF_SCREEN_HEIGHT = 0.45f;
+    private static final int CORNER_RADIUS_DP = 8;
 
     public PictureFrameLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
+
+        float cornerRadius = CORNER_RADIUS_DP * getResources().getDisplayMetrics().density;
+        setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius);
+            }
+        });
+        setClipToOutline(true);
     }
 
     @Override

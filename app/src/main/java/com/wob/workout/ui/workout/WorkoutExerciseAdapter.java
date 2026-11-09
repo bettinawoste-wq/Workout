@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.WorkoutExercise;
 import com.wob.workout.databinding.ItemWorkoutExerciseBinding;
+import com.wob.workout.media.ExerciseThumbnails;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,9 +34,11 @@ public class WorkoutExerciseAdapter
 
     private final List<ExerciseItem> items = new ArrayList<>();
     private final Listener listener;
+    private final ExerciseThumbnails thumbnails;
 
-    public WorkoutExerciseAdapter(Listener listener) {
+    public WorkoutExerciseAdapter(Listener listener, ExerciseThumbnails thumbnails) {
         this.listener = listener;
+        this.thumbnails = thumbnails;
     }
 
     public void setData(List<ExerciseItem> data) {
@@ -67,6 +70,7 @@ public class WorkoutExerciseAdapter
         ExerciseItem item = items.get(position);
 
         holder.binding.txtTitle.setText(item.exercise.title);
+        thumbnails.show(holder.binding.imgThumbnail, item.exercise);
         holder.binding.txtDuration.setText(item.workoutExercise.durationSeconds + "s");
         holder.itemView.setOnClickListener(v -> listener.onItemClicked(item));
     }

@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.ItemExerciseBinding;
+import com.wob.workout.media.ExerciseThumbnails;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,10 +27,14 @@ public class ExerciseAdapter
 
     private final ExerciseClickListener listener;
 
+    private final ExerciseThumbnails thumbnails;
+
     public ExerciseAdapter(
-            ExerciseClickListener listener) {
+            ExerciseClickListener listener,
+            ExerciseThumbnails thumbnails) {
 
         this.listener = listener;
+        this.thumbnails = thumbnails;
     }
 
     public void setData(List<Exercise> data) {
@@ -66,6 +71,8 @@ public class ExerciseAdapter
 
         holder.binding.txtTitle.setText(
                 exercise.title);
+
+        thumbnails.show(holder.binding.imgThumbnail, exercise);
 
         holder.itemView.setOnClickListener(v ->
                 listener.onExerciseClicked(

@@ -9,12 +9,15 @@ import androidx.lifecycle.Transformations;
 import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.dao.WorkoutDao;
+import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.WorkoutExercise;
 import com.wob.workout.data.relation.WorkoutWithExercises;
 import com.wob.workout.ui.workout.WorkoutListItem;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class WorkoutSummaryRepository {
 
@@ -46,9 +49,26 @@ public class WorkoutSummaryRepository {
             for (WorkoutExercise exercise : row.exercises) {
                 duration += exercise.durationSeconds;
             }
-            result.add(new WorkoutListItem(row.workout, row.exercises.size(), duration));
+            result.add(new WorkoutListItem(
+                    row.workout, row.exercises.size(), duration, picturedExercises(row)));
         }
 
         return result;
+    }
+
+    private static List<Exercise> picturedExercises(WorkoutWithExercises row) {
+        Map<Long, Exercise> exercisesById = new HashMap<>();
+        for (Exercise exercise : row.exerciseDetails) {
+            exercisesById.put(exercise.id, exercise);
+        }
+
+        List<Exercise> pictured = new ArrayList<>();
+        for (WorkoutExercise entry : row.exercisesInOrder()) {
+            Exercise exercise = exercisesById.get(entry.exerciseId);
+            if (exercise != null && exercise.mediaFile != null && !exercise.mediaFile.isEmpty()) {
+                pictured.add(exercise);
+            }
+        }
+        return pictured;
     }
 }

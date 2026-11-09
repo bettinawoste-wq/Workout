@@ -45,11 +45,10 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="8dp">
 
-            <ImageView
+            <com.wob.workout.media.FramedImageView
                 android:id="@+id/imgMediaPreview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
                 android:src="@drawable/exercise_placeholder"
                 android:contentDescription="@null"/>
         </com.wob.workout.media.PictureFrameLayout>
@@ -60,6 +59,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="Kein Medium ausgewählt"/>
+
+        <Button
+            android:id="@+id/btnResetFraming"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ausschnitt zurücksetzen"
+            android:visibility="gone"/>
 
         <Button
             android:id="@+id/btnRemoveMedia"
@@ -78,6 +85,7 @@
 
         <Button
             android:id="@+id/btnDelete"
+            style="@style/Widget.Workout.DeleteButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"

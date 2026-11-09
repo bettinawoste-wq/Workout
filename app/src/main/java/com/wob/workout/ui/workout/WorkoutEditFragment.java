@@ -72,7 +72,7 @@ public class WorkoutEditFragment extends Fragment {
         viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, workoutId))
                 .get(WorkoutEditViewModel.class);
 
-        adapter = new WorkoutExerciseAdapter(this::showExerciseMenu);
+        adapter = new WorkoutExerciseAdapter(this::showExerciseMenu, appContainer.thumbnails);
         binding.listExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.listExercises.setAdapter(adapter);
         itemTouchHelper.attachToRecyclerView(binding.listExercises);

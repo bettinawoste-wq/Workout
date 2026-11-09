@@ -19,6 +19,7 @@ import com.wob.workout.MigrationTestHelper;
 import com.wob.workout.data.Event;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.MediaType;
+import com.wob.workout.media.Framing;
 
 import org.junit.After;
 import org.junit.Before;
@@ -246,6 +247,36 @@ public class ExerciseEditViewModelTest {
         Exercise saved = container.exerciseRepository.getById(id);
         assertNull(saved.mediaFile);
         assertNull(saved.mediaType);
+    }
+
+    @Test
+    public void framingIsLoadedAndSaved() throws InterruptedException {
+        long id = insertExercise("Squat", null, "squat.jpg", MediaType.IMAGE);
+        Exercise stored = container.exerciseRepository.getById(id);
+        stored.storeFraming(new Framing(2f, 0.1f, -0.2f));
+        container.exerciseRepository.update(stored);
+        ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, id);
+        getOrAwaitValue(viewModel.getExercise());
+        assertEquals(2f, viewModel.getFraming().zoom, 0.001f);
+
+        viewModel.setFraming(new Framing(3f, 0f, 0f));
+
+        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Squat", null)));
+        assertEquals(3f, container.exerciseRepository.getById(id).framing().zoom, 0.001f);
+    }
+
+    @Test
+    public void removingMediaAlsoClearsItsFraming() throws InterruptedException {
+        long id = insertExercise("Squat", null, "squat.jpg", MediaType.IMAGE);
+        ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, id);
+        getOrAwaitValue(viewModel.getExercise());
+        viewModel.setFraming(new Framing(3f, 0f, 0f));
+
+        viewModel.removeMedia();
+
+        assertNull(viewModel.getFraming());
+        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Squat", null)));
+        assertNull(container.exerciseRepository.getById(id).framing());
     }
 
     private long insertExercise(String title, String description, String mediaFile,

@@ -11,6 +11,7 @@ import com.wob.workout.R;
 import com.wob.workout.data.LiveDataExecutor;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentPlayerBinding;
+import com.wob.workout.media.Framing;
 import com.wob.workout.media.MediaStorageManager;
 import com.wob.workout.media.MediaThumbnailLoader;
 
@@ -54,7 +55,7 @@ public class MediaController {
                 || name.endsWith(".mkv")) {
             showVideo(file);
         } else {
-            showImage(file);
+            showImage(file, exercise.framing());
         }
     }
 
@@ -86,10 +87,11 @@ public class MediaController {
     private void setPlaceholderImage() {
         binding.videoPlayer.setVisibility(View.GONE);
         binding.imgMedia.setVisibility(View.VISIBLE);
+        binding.imgMedia.setFraming(null);
         binding.imgMedia.setImageResource(R.drawable.exercise_placeholder);
     }
 
-    private void showImage(File file) {
+    private void showImage(File file, Framing framing) {
         binding.videoPlayer.setVisibility(View.GONE);
         binding.imgMedia.setVisibility(View.VISIBLE);
 
@@ -106,6 +108,7 @@ public class MediaController {
                     if (bitmap == null) {
                         setPlaceholderImage();
                     } else {
+                        binding.imgMedia.setFraming(framing);
                         binding.imgMedia.setImageBitmap(bitmap);
                     }
                 });

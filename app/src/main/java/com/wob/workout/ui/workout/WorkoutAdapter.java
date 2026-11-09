@@ -1,11 +1,15 @@
 package com.wob.workout.ui.workout;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.ItemWorkoutBinding;
+import com.wob.workout.media.ExerciseThumbnails;
+import com.wob.workout.media.FramedImageView;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,10 +21,12 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
     }
 
     private final Listener listener;
+    private final ExerciseThumbnails thumbnails;
     private final List<WorkoutListItem> workouts = new ArrayList<>();
 
-    public WorkoutAdapter(Listener listener) {
+    public WorkoutAdapter(Listener listener, ExerciseThumbnails thumbnails) {
         this.listener = listener;
+        this.thumbnails = thumbnails;
     }
 
     public void setData(List<WorkoutListItem> data) {
@@ -46,12 +52,32 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
         holder.binding.txtName.setText(item.workout.name);
         holder.binding.txtInfo.setText(
                 item.exerciseCount + " Übungen • " + formatDuration(item.totalDurationSeconds));
+        showPictureStrip(holder, item);
 
         holder.itemView.setOnClickListener(
                 v -> listener.onWorkoutClicked(item.workout));
 
         holder.binding.btnStart.setOnClickListener(
                 v -> listener.onWorkoutStartClicked(item.workout));
+    }
+
+    private void showPictureStrip(ViewHolder holder, WorkoutListItem item) {
+        List<Exercise> strip = item.stripExercises();
+        holder.binding.stripPictures.setVisibility(strip.isEmpty() ? View.GONE : View.VISIBLE);
+
+        for (int slot = 0; slot < holder.stripSlots.length; slot++) {
+            FramedImageView view = holder.stripSlots[slot];
+            if (slot < strip.size()) {
+                view.setVisibility(View.VISIBLE);
+                thumbnails.show(view, strip.get(slot));
+            } else {
+                view.setVisibility(View.INVISIBLE);
+            }
+        }
+
+        int more = item.morePictures();
+        holder.binding.txtMorePictures.setVisibility(more > 0 ? View.VISIBLE : View.INVISIBLE);
+        holder.binding.txtMorePictures.setText("+" + more);
     }
 
     @Override
@@ -66,10 +92,18 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
     static class ViewHolder extends RecyclerView.ViewHolder {
 
         final ItemWorkoutBinding binding;
+        final FramedImageView[] stripSlots;
 
         ViewHolder(ItemWorkoutBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
+            this.stripSlots = new FramedImageView[] {
+                    binding.imgStrip1,
+                    binding.imgStrip2,
+                    binding.imgStrip3,
+                    binding.imgStrip4,
+                    binding.imgStrip5
+            };
         }
     }
 }
