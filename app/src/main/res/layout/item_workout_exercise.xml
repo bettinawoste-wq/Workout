@@ -6,6 +6,18 @@
     android:gravity="center_vertical"
     android:padding="16dp">
 
+    <com.wob.workout.media.PictureFrameLayout
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp">
+
+        <com.wob.workout.media.FramedImageView
+            android:id="@+id/imgThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"/>
+    </com.wob.workout.media.PictureFrameLayout>
+
     <TextView
         android:id="@+id/txtTitle"
         android:layout_width="0dp"

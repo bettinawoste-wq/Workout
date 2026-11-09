@@ -33,7 +33,7 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
         viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer))
                 .get(WorkoutListViewModel.class);
 
-        adapter = new WorkoutAdapter(this);
+        adapter = new WorkoutAdapter(this, appContainer.thumbnails);
 
         binding.recyclerWorkouts.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerWorkouts.setAdapter(adapter);

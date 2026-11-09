@@ -17,11 +17,16 @@ public class MediaThumbnailLoader {
 
     /** Blocks while decoding, so call it off the main thread. */
     public static Bitmap loadRotatedImage(File file) {
+        return loadRotatedImage(file, MIN_DECODED_EDGE_PX);
+    }
+
+    /** Like {@link #loadRotatedImage(File)}, for a picture needing fewer pixels. */
+    public static Bitmap loadRotatedImage(File file, int minDecodedEdgePx) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(file.getAbsolutePath(), options);
 
-        options.inSampleSize = sampleSizeFor(options.outWidth, options.outHeight);
+        options.inSampleSize = sampleSizeFor(options.outWidth, options.outHeight, minDecodedEdgePx);
         options.inJustDecodeBounds = false;
 
         Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
@@ -37,11 +42,11 @@ public class MediaThumbnailLoader {
                 bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
-    /** The largest power of two that still leaves {@link #MIN_DECODED_EDGE_PX} pixels. */
-    static int sampleSizeFor(int width, int height) {
+    /** The largest power of two that still leaves {@code minEdgePx} pixels. */
+    static int sampleSizeFor(int width, int height, int minEdgePx) {
         int longestEdge = Math.max(width, height);
         int sampleSize = 1;
-        while (longestEdge / (sampleSize * 2) >= MIN_DECODED_EDGE_PX) {
+        while (longestEdge / (sampleSize * 2) >= minEdgePx) {
             sampleSize *= 2;
         }
         return sampleSize;

@@ -2,27 +2,113 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
+    android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:id="@+id/txtName"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textSize="18sp"
-        android:textStyle="bold"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/txtInfo"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        <TextView
+            android:id="@+id/txtName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
 
-    <Button
-        android:id="@+id/btnStart"
-        android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/txtInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/btnStart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start"/>
+    </LinearLayout>
+
+    <!-- Five slots and the "+N" always keep their place, so strips line up from row to row. -->
+    <LinearLayout
+        android:id="@+id/stripPictures"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start"/>
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.wob.workout.media.PictureFrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1">
+
+            <com.wob.workout.media.FramedImageView
+                android:id="@+id/imgStrip1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"/>
+        </com.wob.workout.media.PictureFrameLayout>
+
+        <com.wob.workout.media.PictureFrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1">
+
+            <com.wob.workout.media.FramedImageView
+                android:id="@+id/imgStrip2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"/>
+        </com.wob.workout.media.PictureFrameLayout>
+
+        <com.wob.workout.media.PictureFrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1">
+
+            <com.wob.workout.media.FramedImageView
+                android:id="@+id/imgStrip3"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"/>
+        </com.wob.workout.media.PictureFrameLayout>
+
+        <com.wob.workout.media.PictureFrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1">
+
+            <com.wob.workout.media.FramedImageView
+                android:id="@+id/imgStrip4"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"/>
+        </com.wob.workout.media.PictureFrameLayout>
+
+        <com.wob.workout.media.PictureFrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+
+            <com.wob.workout.media.FramedImageView
+                android:id="@+id/imgStrip5"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"/>
+        </com.wob.workout.media.PictureFrameLayout>
+
+        <TextView
+            android:id="@+id/txtMorePictures"
+            android:layout_width="40dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"/>
+    </LinearLayout>
 
 </LinearLayout>

@@ -7,6 +7,7 @@ import com.wob.workout.data.repository.WorkoutExerciseRepository;
 import com.wob.workout.data.repository.WorkoutHistoryRepository;
 import com.wob.workout.data.repository.WorkoutRepository;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
+import com.wob.workout.media.ExerciseThumbnails;
 import com.wob.workout.player.PlayerRepository;
 
 import java.util.concurrent.ExecutorService;
@@ -36,8 +37,12 @@ public class AppContainer {
      *  never holds up Room access. */
     public final ExecutorService mediaExecutor = Executors.newSingleThreadExecutor();
 
+    public final ExerciseThumbnails thumbnails;
+
     public AppContainer(Context appContext) {
         this.appContext = appContext;
+
+        thumbnails = new ExerciseThumbnails(appContext, mediaExecutor);
 
         workoutRepository = new WorkoutRepository(appContext);
         exerciseRepository = new ExerciseRepository(appContext);

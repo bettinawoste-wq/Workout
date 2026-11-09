@@ -1,8 +1,10 @@
 package com.wob.workout.data.relation;
 
 import androidx.room.Embedded;
+import androidx.room.Junction;
 import androidx.room.Relation;
 
+import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExercise;
 
@@ -25,6 +27,17 @@ public class WorkoutWithExercises {
      *  exercise order matters. */
     @Relation(parentColumn = "id", entityColumn = "workoutId")
     public List<WorkoutExercise> exercises;
+
+    /** The exercises behind {@link #exercises}: one per distinct exercise, in no particular
+     *  order. Look them up by id when walking {@link #exercisesInOrder()}. */
+    @Relation(
+            parentColumn = "id",
+            entityColumn = "id",
+            associateBy = @Junction(
+                    value = WorkoutExercise.class,
+                    parentColumn = "workoutId",
+                    entityColumn = "exerciseId"))
+    public List<Exercise> exerciseDetails;
 
     public List<WorkoutExercise> exercisesInOrder() {
         List<WorkoutExercise> sorted = new ArrayList<>(exercises);

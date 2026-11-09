@@ -40,7 +40,7 @@ public class ExerciseListFragment extends Fragment {
                 new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer))
                         .get(ExerciseListViewModel.class);
 
-        adapter = new ExerciseAdapter(this::openExercise);
+        adapter = new ExerciseAdapter(this::openExercise, appContainer.thumbnails);
         binding.recyclerExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerExercises.setAdapter(adapter);
 
