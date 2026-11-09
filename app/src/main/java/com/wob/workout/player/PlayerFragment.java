@@ -52,7 +52,7 @@ public class PlayerFragment extends Fragment {
                 .get(PlayerViewModel.class);
 
         audioManager = new AudioManager(requireContext());
-        mediaController = new MediaController(this, binding);
+        mediaController = new MediaController(this, binding, appContainer.mediaExecutor);
 
         binding.btnPause.setOnClickListener(v -> viewModel.togglePause());
         binding.btnNext.setOnClickListener(v -> viewModel.next());
@@ -139,8 +139,7 @@ public class PlayerFragment extends Fragment {
         binding.btnCancel.setOnClickListener(v ->
                 requireActivity().getSupportFragmentManager().popBackStack());
 
-        binding.imgMedia.setVisibility(View.GONE);
-        binding.videoPlayer.setVisibility(View.GONE);
+        mediaController.hide();
     }
 
     private void showTick(PlayerTick tick) {

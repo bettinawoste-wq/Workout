@@ -6,6 +6,7 @@ import android.webkit.MimeTypeMap;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
@@ -36,6 +37,21 @@ public class MediaStorageManager {
             }
         }
         return fileName;
+    }
+
+    /** Copies a bundled raw resource into the exercise folder under the given name. */
+    public static void copyResourceToExerciseFolder(
+            Context context, int resourceId, String fileName) throws IOException {
+        File targetFile = new File(getExerciseFolder(context), fileName);
+
+        try (InputStream input = context.getResources().openRawResource(resourceId);
+             FileOutputStream output = new FileOutputStream(targetFile)) {
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = input.read(buffer)) > 0) {
+                output.write(buffer, 0, length);
+            }
+        }
     }
 
     private static String getExtension(Context context, Uri uri) {

@@ -39,13 +39,20 @@
             android:layout_marginTop="16dp"
             android:text="Medium auswählen"/>
 
-        <ImageView
-            android:id="@+id/imgMediaPreview"
+        <com.wob.workout.media.PictureFrameLayout
             android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:layout_marginTop="8dp"
-            android:scaleType="centerCrop"
-            android:visibility="gone"/>
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp">
+
+            <ImageView
+                android:id="@+id/imgMediaPreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/exercise_placeholder"
+                android:contentDescription="@null"/>
+        </com.wob.workout.media.PictureFrameLayout>
 
         <TextView
             android:id="@+id/txtMedia"
@@ -53,6 +60,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="Kein Medium ausgewählt"/>
+
+        <Button
+            android:id="@+id/btnRemoveMedia"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bild entfernen"
+            android:visibility="gone"/>
 
         <Button
             android:id="@+id/btnSave"

@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.wob.workout.AppContainer;
+import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentExerciseEditBinding;
@@ -107,6 +108,7 @@ public class ExerciseEditFragment extends Fragment {
 
         binding.btnSave.setOnClickListener(v -> save());
         binding.btnDelete.setOnClickListener(v -> confirmDelete());
+        binding.btnRemoveMedia.setOnClickListener(v -> viewModel.removeMedia());
         binding.btnSelectMedia.setOnClickListener(v ->
                 mediaPicker.launch(
                         new PickVisualMediaRequest.Builder()
@@ -121,13 +123,14 @@ public class ExerciseEditFragment extends Fragment {
 
         if (preview.bitmap != null) {
             binding.imgMediaPreview.setImageBitmap(preview.bitmap);
-            binding.imgMediaPreview.setVisibility(View.VISIBLE);
             binding.txtMedia.setVisibility(View.GONE);
         } else {
-            binding.imgMediaPreview.setVisibility(View.GONE);
+            binding.imgMediaPreview.setImageResource(R.drawable.exercise_placeholder);
             binding.txtMedia.setVisibility(View.VISIBLE);
             binding.txtMedia.setText(preview.text);
         }
+
+        binding.btnRemoveMedia.setVisibility(viewModel.hasMedia() ? View.VISIBLE : View.GONE);
     }
 
     private void save() {

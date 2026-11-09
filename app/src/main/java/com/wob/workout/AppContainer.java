@@ -32,6 +32,10 @@ public class AppContainer {
      *  its fire-and-forget history writes in call order (issue #21). */
     public final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
+    /** Decodes pictures for display, apart from {@link #ioExecutor} so that a slow decode
+     *  never holds up Room access. */
+    public final ExecutorService mediaExecutor = Executors.newSingleThreadExecutor();
+
     public AppContainer(Context appContext) {
         this.appContext = appContext;
 

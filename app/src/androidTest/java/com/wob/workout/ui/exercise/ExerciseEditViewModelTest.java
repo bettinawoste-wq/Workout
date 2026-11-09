@@ -231,6 +231,23 @@ public class ExerciseEditViewModelTest {
         assertEquals(MediaType.IMAGE, saved.mediaType);
     }
 
+    @Test
+    public void removingMediaClearsThePreviewAndIsPersistedOnSave() throws InterruptedException {
+        long id = insertExercise("Squat", null, "squat.jpg", MediaType.IMAGE);
+        ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, id);
+        getOrAwaitValue(viewModel.getExercise());
+        assertTrue(viewModel.hasMedia());
+
+        viewModel.removeMedia();
+
+        assertFalse(viewModel.hasMedia());
+        assertPreviewText(NO_MEDIA_TEXT, viewModel.getPreview().getValue());
+        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Squat", null)));
+        Exercise saved = container.exerciseRepository.getById(id);
+        assertNull(saved.mediaFile);
+        assertNull(saved.mediaType);
+    }
+
     private long insertExercise(String title, String description, String mediaFile,
                                 MediaType mediaType) {
         Exercise exercise = new Exercise();
