@@ -35,6 +35,10 @@
         <item name="colorSurfaceContainerHighest">@color/surface_container_highest</item>
         <item name="colorOutline">@color/outline</item>
         <item name="colorOutlineVariant">@color/outline_variant</item>
+        <!-- Material's own defaults here are a fixed lilac grey that ignores the palette. -->
+        <item name="android:textColorPrimary">@color/on_surface</item>
+        <item name="android:textColorSecondary">@color/on_surface</item>
+        <item name="android:textColorTertiary">@color/on_surface</item>
     </style>
 
     <style name="Theme.Workout" parent="Base.Theme.Workout" />
