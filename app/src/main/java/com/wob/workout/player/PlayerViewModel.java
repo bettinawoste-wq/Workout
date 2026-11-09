@@ -26,7 +26,8 @@ import java.util.Set;
  */
 public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
-    private static final long TRANSITION_MILLIS = 3000;
+    /** The start countdown and the closing "Ende in X" countdown. */
+    private static final long COUNTDOWN_MILLIS = 3000;
 
     private final PlayerHistoryTracker historyTracker;
     private final PlayerTimer timer = new PlayerTimer(this);
@@ -44,6 +45,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private PlayerTick lastConsumedTick;
     private boolean successSoundPlayed;
 
+    private long transitionMillis;
     private PlayerProgress progress;
     /** Positions whose time ran out at least once, as opposed to being stepped away from. */
     private final Set<Integer> donePositions = new HashSet<>();
@@ -171,11 +173,15 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             List<PlayerExercise> loadedExercises = container.playerRepository.getExercises(workoutId);
             Workout workout = container.workoutRepository.getById(workoutId);
-            return new LoadResult(loadedExercises, workout != null ? workout.name : null);
+            return new LoadResult(
+                    loadedExercises,
+                    workout != null ? workout.name : null,
+                    (workout != null ? workout : new Workout()).transitionSeconds);
         }, () -> !cleared, result -> {
             if (result == null) return;
             exercises = result.exercises;
-            progress = new PlayerProgress(plannedSeconds(exercises), TRANSITION_MILLIS);
+            transitionMillis = result.transitionSeconds * 1000L;
+            progress = new PlayerProgress(plannedSeconds(exercises), transitionMillis);
             historyTracker.startSession(workoutId, result.workoutName);
             startInitialTransition();
         });
@@ -191,15 +197,15 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void startInitialTransition() {
         index = 0;
-        enterPhase(PlayerExerciseState.Phase.READY, exercises.get(index), TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.READY, exercises.get(index), COUNTDOWN_MILLIS);
     }
 
     private void startTransition() {
-        enterPhase(PlayerExerciseState.Phase.TRANSITION, exercises.get(index), TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.TRANSITION, exercises.get(index), transitionMillis);
     }
 
     private void startFinishTransition() {
-        enterPhase(PlayerExerciseState.Phase.FINISHING, null, TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.FINISHING, null, COUNTDOWN_MILLIS);
     }
 
     private void beginExercise() {
@@ -241,10 +247,12 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private static class LoadResult {
         final List<PlayerExercise> exercises;
         final String workoutName;
+        final int transitionSeconds;
 
-        LoadResult(List<PlayerExercise> exercises, String workoutName) {
+        LoadResult(List<PlayerExercise> exercises, String workoutName, int transitionSeconds) {
             this.exercises = exercises;
             this.workoutName = workoutName;
+            this.transitionSeconds = transitionSeconds;
         }
     }
 }

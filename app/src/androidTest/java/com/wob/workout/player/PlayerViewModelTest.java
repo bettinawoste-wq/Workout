@@ -12,6 +12,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.data.entity.Workout;
 import com.wob.workout.player.PlayerExerciseState.Phase;
 import com.wob.workout.ui.history.WorkoutSessionSummary;
 
@@ -31,7 +32,7 @@ import java.util.function.Supplier;
  * <p>The state machine is driven by calling the ViewModel's public
  * {@link PlayerTimer.Listener} methods ({@code onTick}/{@code onFinish}) directly instead of
  * waiting on the real countdown, so the tests are fast. Exercises are seeded with long
- * durations so the real timer never finishes an exercise on its own; the fixed 3-second
+ * durations so the real timer never finishes an exercise on its own; the few-second
  * transition countdowns are only ever held for a few milliseconds before the next step.
  * That window is the one remaining real-time dependency: a main-thread stall of over 3s
  * between two steps would let the real timer advance a phase first (removing it would need
@@ -258,10 +259,38 @@ public class PlayerViewModelTest {
 
         PlayerTick tick = tickAt(10_000);
 
-        long transition = 3000;
+        long transition = new Workout().transitionSeconds * 1000L;
         long secondExercise = LONG_DURATION_SECONDS * 1000L;
         assertEquals(10_000 + transition + secondExercise, tick.workoutRemainingMillis);
         assertEquals(2 * secondExercise + transition, tick.workoutTotalMillis);
+    }
+
+    @Test
+    public void theWorkoutsOwnPauseLengthIsUsedBetweenExercises() throws InterruptedException {
+        AppContainer container = helper.getAppContainer();
+        Workout workout = new Workout();
+        workout.name = "Long Rest";
+        workout.transitionSeconds = 9;
+        long workoutId = container.workoutRepository.save(workout);
+        helper.insertWorkoutExercise(workoutId, helper.insertExercise("A"), 0, LONG_DURATION_SECONDS);
+        helper.insertWorkoutExercise(workoutId, helper.insertExercise("B"), 1, LONG_DURATION_SECONDS);
+
+        PlayerViewModel other = onMain(() -> new PlayerViewModel(container, workoutId));
+        try {
+            getOrAwaitValue(other.getExerciseState());
+
+            PlayerTick tick = onMain(() -> {
+                other.onFinish(); // READY -> ACTIVE (0)
+                other.onFinish(); // ACTIVE (0) -> TRANSITION (1)
+                other.onTick(9000);
+                return other.getTick().getValue();
+            });
+
+            assertEquals(Phase.TRANSITION, tick.phase);
+            assertEquals(LONG_DURATION_SECONDS * 2000L + 9000, tick.workoutTotalMillis);
+        } finally {
+            runOnMain(other::onCleared);
+        }
     }
 
     /** Calls {@code onFinish()} as the timer would and returns the resulting state. */
