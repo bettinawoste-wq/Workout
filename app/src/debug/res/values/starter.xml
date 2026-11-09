@@ -16,4 +16,10 @@
         <item>Erste Demo-Übung für die Entwicklung.</item>
         <item>Zweite Demo-Übung für die Entwicklung.</item>
     </string-array>
+
+    <!-- One of each, so both cases can be seen in a debug build. -->
+    <array name="starter_exercise_images">
+        <item>@raw/starter_squat</item>
+        <item>@null</item>
+    </array>
 </resources>

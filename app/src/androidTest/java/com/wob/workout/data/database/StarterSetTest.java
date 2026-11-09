@@ -2,9 +2,11 @@ package com.wob.workout.data.database;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
@@ -12,14 +14,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.wob.workout.R;
 import com.wob.workout.data.entity.Exercise;
+import com.wob.workout.data.entity.MediaType;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.media.MediaStorageManager;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -63,9 +68,26 @@ public class StarterSetTest {
             Exercise exercise = exercises.get(titles.length - 1 - i);
             assertEquals(titles[i], exercise.title);
             assertEquals(descriptions[i], exercise.description);
-            assertNull(exercise.mediaFile);
-            assertNull(exercise.mediaType);
         }
+    }
+
+    @Test
+    public void onlyExercisesWithAConfiguredImageGetOneAndItsFileExists() {
+        TypedArray images = resources.obtainTypedArray(R.array.starter_exercise_images);
+        List<Exercise> exercises = database.exerciseDao().getAll();
+
+        for (int i = 0; i < images.length(); i++) {
+            Exercise exercise = exercises.get(images.length() - 1 - i);
+            if (images.getResourceId(i, 0) == 0) {
+                assertNull(exercise.mediaFile);
+                assertNull(exercise.mediaType);
+            } else {
+                assertEquals(MediaType.IMAGE, exercise.mediaType);
+                assertTrue(new File(MediaStorageManager.getFullPath(context, exercise.mediaFile))
+                        .isFile());
+            }
+        }
+        images.recycle();
     }
 
     @Test

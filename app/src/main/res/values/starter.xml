@@ -34,4 +34,18 @@
         <item>Bauchlage, Arme und Beine gleichzeitig vom Boden abheben, kurz halten und wieder ablegen.</item>
         <item>Rücken an die Wand, in die Hocke gehen, bis die Knie 90° gebeugt sind, und die Position halten.</item>
     </string-array>
+
+    <!-- Lines up with the titles by index; @null means the exercise has no picture of its own. -->
+    <array name="starter_exercise_images">
+        <item>@null</item>
+        <item>@raw/starter_squat</item>
+        <item>@null</item>
+        <item>@null</item>
+        <item>@null</item>
+        <item>@null</item>
+        <item>@null</item>
+        <item>@null</item>
+        <item>@null</item>
+        <item>@null</item>
+    </array>
 </resources>

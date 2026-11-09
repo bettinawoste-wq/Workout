@@ -98,6 +98,17 @@ public class ExerciseEditViewModel extends ViewModel {
         });
     }
 
+    public boolean hasMedia() {
+        return selectedMediaFile != null;
+    }
+
+    /** Takes effect on save, like picking new media does. */
+    public void removeMedia() {
+        selectedMediaFile = null;
+        selectedMediaType = null;
+        preview.setValue(computePreview(container.appContext, null, null));
+    }
+
     public void onMediaSelected(Uri uri) {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             try {

@@ -62,6 +62,27 @@ public class StarterResourcesTest {
         assertEquals(resourceNames(parse(RELEASE)), resourceNames(parse(DEBUG)));
     }
 
+    @Test
+    public void release_onlyKniebeugenHasAnImage() throws Exception {
+        Document release = parse(RELEASE);
+        List<String> titles = stringArray(release, "starter_exercise_titles");
+        List<String> images = array(release, "starter_exercise_images");
+
+        assertEquals(titles.size(), images.size());
+        for (int i = 0; i < titles.size(); i++) {
+            String expected = titles.get(i).equals("Kniebeugen") ? "@raw/starter_squat" : "@null";
+            assertEquals(titles.get(i), expected, images.get(i));
+        }
+    }
+
+    @Test
+    public void debug_imagesLineUpWithTitles() throws Exception {
+        Document debug = parse(DEBUG);
+
+        assertEquals(stringArray(debug, "starter_exercise_titles").size(),
+                array(debug, "starter_exercise_images").size());
+    }
+
     private static void assertTitlesAndDescriptionsLineUp(Document document) {
         List<String> titles = stringArray(document, "starter_exercise_titles");
         List<String> descriptions = stringArray(document, "starter_exercise_descriptions");
@@ -82,7 +103,15 @@ public class StarterResourcesTest {
     }
 
     private static List<String> stringArray(Document document, String name) {
-        NodeList arrays = document.getElementsByTagName("string-array");
+        return items(document, "string-array", name);
+    }
+
+    private static List<String> array(Document document, String name) {
+        return items(document, "array", name);
+    }
+
+    private static List<String> items(Document document, String tag, String name) {
+        NodeList arrays = document.getElementsByTagName(tag);
         for (int i = 0; i < arrays.getLength(); i++) {
             Element array = (Element) arrays.item(i);
             if (name.equals(array.getAttribute("name"))) {
@@ -94,7 +123,7 @@ public class StarterResourcesTest {
                 return items;
             }
         }
-        throw new AssertionError("no <string-array name=\"" + name + "\">");
+        throw new AssertionError("no <" + tag + " name=\"" + name + "\">");
     }
 
     private static int integer(Document document, String name) {

@@ -11,8 +11,20 @@ import java.io.IOException;
 
 public class MediaThumbnailLoader {
 
+    /** Decoded pictures keep at least this many pixels on their longest edge, when the
+     *  original has that many: enough for a full-width picture frame on current phones. */
+    static final int MIN_DECODED_EDGE_PX = 1280;
+
+    /** Blocks while decoding, so call it off the main thread. */
     public static Bitmap loadRotatedImage(File file) {
-        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+
+        options.inSampleSize = sampleSizeFor(options.outWidth, options.outHeight);
+        options.inJustDecodeBounds = false;
+
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), options);
         if (bitmap == null) return null;
 
         int rotation = readExifRotationDegrees(file);
@@ -23,6 +35,16 @@ public class MediaThumbnailLoader {
 
         return Bitmap.createBitmap(
                 bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+    }
+
+    /** The largest power of two that still leaves {@link #MIN_DECODED_EDGE_PX} pixels. */
+    static int sampleSizeFor(int width, int height) {
+        int longestEdge = Math.max(width, height);
+        int sampleSize = 1;
+        while (longestEdge / (sampleSize * 2) >= MIN_DECODED_EDGE_PX) {
+            sampleSize *= 2;
+        }
+        return sampleSize;
     }
 
     public static Bitmap loadVideoFrame(File file) {
