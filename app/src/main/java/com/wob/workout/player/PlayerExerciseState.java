@@ -18,12 +18,20 @@ public class PlayerExerciseState {
     public final int index;
     public final int total;
     public final Phase phase;
+    /** Only set during {@link Phase#FINISHED}. */
+    public final PlayerWorkoutSummary summary;
 
     public PlayerExerciseState(PlayerExercise exercise, int index, int total, Phase phase) {
+        this(exercise, index, total, phase, null);
+    }
+
+    public PlayerExerciseState(PlayerExercise exercise, int index, int total, Phase phase,
+                               PlayerWorkoutSummary summary) {
         this.exercise = exercise;
         this.index = index;
         this.total = total;
         this.phase = phase;
+        this.summary = summary;
     }
 
     /** False on the last exercise, where {@code PlayerViewModel.next()} does nothing. */

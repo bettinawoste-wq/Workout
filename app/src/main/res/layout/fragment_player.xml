@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="12dp">
 
             <com.wob.workout.media.FramedImageView
                 android:id="@+id/imgMedia"
@@ -33,6 +33,22 @@
                 android:keepScreenOn="true"
                 app:use_controller="false"/>
         </com.wob.workout.media.PictureFrameLayout>
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progressWorkout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="1000"
+            app:trackCornerRadius="2dp"/>
+
+        <TextView
+            android:id="@+id/txtWorkoutRemaining"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="12dp"
+            android:textSize="12sp"/>
 
         <TextView
             android:id="@+id/txtState"

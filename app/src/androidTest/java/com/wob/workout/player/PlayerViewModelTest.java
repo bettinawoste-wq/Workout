@@ -209,6 +209,61 @@ public class PlayerViewModelTest {
         assertTrue(onMain(() -> viewModel.shouldPlayBeep(nextBeeping)));
     }
 
+    @Test
+    public void shouldPlaySuccessSoundOnlyOnceAndOnlyWhenFinished() {
+        PlayerExerciseState active = finishCurrentPhase(); // READY -> ACTIVE (0)
+        assertFalse(onMain(() -> viewModel.shouldPlaySuccessSound(active)));
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
+        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
+
+        PlayerExerciseState finished = finishCurrentPhase();
+
+        assertTrue(onMain(() -> viewModel.shouldPlaySuccessSound(finished)));
+        // Simulates LiveData redelivering the same value to a recreated Fragment's observer.
+        assertFalse(onMain(() -> viewModel.shouldPlaySuccessSound(finished)));
+    }
+
+    @Test
+    public void summaryCountsAnExerciseSteppedAwayFromAsSkipped() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        runOnMain(viewModel::next); // skips exercise 0
+        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
+
+        PlayerExerciseState finished = finishCurrentPhase();
+
+        assertEquals(Phase.FINISHED, finished.phase);
+        assertEquals(1, finished.summary.doneExercises);
+        assertEquals(1, finished.summary.skippedExercises());
+    }
+
+    @Test
+    public void summaryCountsASkippedExerciseAsDoneOnceItsTimeRanOutOnReturn() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        runOnMain(viewModel::next); // skips exercise 0
+        runOnMain(viewModel::previous); // back to exercise 0
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
+        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
+
+        PlayerExerciseState finished = finishCurrentPhase();
+
+        assertEquals(2, finished.summary.doneExercises);
+        assertEquals(0, finished.summary.skippedExercises());
+    }
+
+    @Test
+    public void ticksCarryTheRemainingTimeOfTheWholeWorkout() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+
+        PlayerTick tick = tickAt(10_000);
+
+        long transition = 3000;
+        long secondExercise = LONG_DURATION_SECONDS * 1000L;
+        assertEquals(10_000 + transition + secondExercise, tick.workoutRemainingMillis);
+        assertEquals(2 * secondExercise + transition, tick.workoutTotalMillis);
+    }
+
     /** Calls {@code onFinish()} as the timer would and returns the resulting state. */
     private PlayerExerciseState finishCurrentPhase() {
         return onMain(() -> {

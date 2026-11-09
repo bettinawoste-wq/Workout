@@ -107,7 +107,10 @@ public class PlayerFragment extends Fragment {
                 setTransportEnabled(false);
                 break;
             case FINISHED:
-                showFinished(state.total);
+                showFinished(state.summary);
+                if (viewModel.shouldPlaySuccessSound(state)) {
+                    audioManager.playSuccess();
+                }
                 break;
         }
     }
@@ -130,14 +133,16 @@ public class PlayerFragment extends Fragment {
         mediaController.show(exercise.exercise);
     }
 
-    private void showFinished(int total) {
-        binding.txtTitle.setText(total + " Übungen. Gut gemacht 💪");
-        binding.txtDescription.setText("Workout abgeschlossen");
-        binding.txtTimer.setText("00:00");
+    private void showFinished(PlayerWorkoutSummary summary) {
+        binding.txtState.setText("GESAMTZEIT");
+        binding.txtTimer.setText(formatTime(summary.activeSeconds * 1000L));
+        binding.txtTitle.setText("Gut gemacht 💪");
+        binding.txtDescription.setText(summary.resultText());
 
-        binding.btnPause.setEnabled(false);
-        binding.btnNext.setEnabled(false);
-        binding.btnPrevious.setEnabled(false);
+        binding.txtProgress.setVisibility(View.GONE);
+        binding.rowTransport.setVisibility(View.GONE);
+        binding.progressWorkout.setVisibility(View.GONE);
+        binding.txtWorkoutRemaining.setVisibility(View.GONE);
 
         // The session is already completed, so "Workout abbrechen" and its "saved as aborted"
         // dialog no longer apply: turn the button into a plain way out.
@@ -150,6 +155,9 @@ public class PlayerFragment extends Fragment {
 
     private void showTick(PlayerTick tick) {
         if (viewModel.shouldPlayBeep(tick)) audioManager.playBeep();
+
+        binding.progressWorkout.setProgressCompat(tick.workoutPermilleDone(), true);
+        binding.txtWorkoutRemaining.setText("Noch " + formatTime(tick.workoutRemainingMillis));
 
         switch (tick.phase) {
             case READY:

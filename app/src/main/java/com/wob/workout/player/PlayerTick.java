@@ -13,12 +13,24 @@ public class PlayerTick {
     public final boolean running;
     public final boolean shouldBeep;
     public final PlayerExerciseState.Phase phase;
+    /** What is left of the whole workout, see {@link PlayerProgress}. */
+    public final long workoutRemainingMillis;
+    public final long workoutTotalMillis;
 
     public PlayerTick(long remainingMillis, boolean running, boolean shouldBeep,
-                       PlayerExerciseState.Phase phase) {
+                       PlayerExerciseState.Phase phase,
+                       long workoutRemainingMillis, long workoutTotalMillis) {
         this.remainingMillis = remainingMillis;
         this.running = running;
         this.shouldBeep = shouldBeep;
         this.phase = phase;
+        this.workoutRemainingMillis = workoutRemainingMillis;
+        this.workoutTotalMillis = workoutTotalMillis;
+    }
+
+    /** @return how far through the workout this is, from 0 to 1000 */
+    public int workoutPermilleDone() {
+        if (workoutTotalMillis <= 0) return 1000;
+        return (int) (1000 * (workoutTotalMillis - workoutRemainingMillis) / workoutTotalMillis);
     }
 }

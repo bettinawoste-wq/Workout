@@ -39,6 +39,7 @@ public class PlayerHistoryTracker {
     private long currentExerciseStartedAt;
     private long currentExercisePausedMillis;
     private long pauseStartedAt = 0;
+    private int activeSeconds = 0;
 
     public PlayerHistoryTracker(WorkoutHistoryRepository historyRepository, Executor ioExecutor) {
         this.historyRepository = historyRepository;
@@ -75,6 +76,8 @@ public class PlayerHistoryTracker {
         long exerciseId = current.exercise.id;
         String title = current.exercise.title;
         int plannedSeconds = current.durationSeconds;
+        int actualSeconds = (int) (activeMillis / 1000);
+        activeSeconds += actualSeconds;
 
         write(() -> {
             if (sessionId < 0) return; // startSession's insert failed - nothing to attach to
@@ -84,12 +87,17 @@ public class PlayerHistoryTracker {
                     title,
                     index,
                     plannedSeconds,
-                    (int) (activeMillis / 1000),
+                    actualSeconds,
                     startedAt,
                     now);
         });
 
         exerciseStarted = false;
+    }
+
+    /** The same total the session's History entry ends up with: its recorded exercises added up. */
+    public int getActiveSeconds() {
+        return activeSeconds;
     }
 
     public void finish(boolean completed) {

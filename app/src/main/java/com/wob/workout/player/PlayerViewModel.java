@@ -8,7 +8,9 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.data.LiveDataExecutor;
 import com.wob.workout.data.entity.Workout;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Owns the player's state machine (READY/ACTIVE/TRANSITION/FINISHING/FINISHED), the single
@@ -40,6 +42,11 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private PlayerExerciseState lastStartSoundState;
     private PlayerTick lastConsumedTick;
+    private boolean successSoundPlayed;
+
+    private PlayerProgress progress;
+    /** Positions whose time ran out at least once, as opposed to being stepped away from. */
+    private final Set<Integer> donePositions = new HashSet<>();
 
     public PlayerViewModel(AppContainer container, long workoutId) {
         historyTracker = new PlayerHistoryTracker(
@@ -70,6 +77,13 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         return tick.shouldBeep;
     }
 
+    /** Same idea as {@link #shouldPlayStartSound}, for the sound of a completed workout. */
+    public boolean shouldPlaySuccessSound(PlayerExerciseState state) {
+        if (state.phase != PlayerExerciseState.Phase.FINISHED || successSoundPlayed) return false;
+        successSoundPlayed = true;
+        return true;
+    }
+
     public void togglePause() {
         if (!isActive()) return;
 
@@ -80,7 +94,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
             historyTracker.onExerciseResume();
             timer.resume();
         }
-        tick.setValue(new PlayerTick(timer.getMillisLeft(), timer.isRunning(), false, currentPhase));
+        tick.setValue(newTick(timer.getMillisLeft(), timer.isRunning(), false));
     }
 
     public void next() {
@@ -105,8 +119,17 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     @Override
     public void onTick(long millisUntilFinished) {
-        tick.setValue(new PlayerTick(
-                millisUntilFinished, true, computeShouldBeep(millisUntilFinished), currentPhase));
+        tick.setValue(newTick(millisUntilFinished, true, computeShouldBeep(millisUntilFinished)));
+    }
+
+    private PlayerTick newTick(long millisLeft, boolean running, boolean shouldBeep) {
+        return new PlayerTick(
+                millisLeft,
+                running,
+                shouldBeep,
+                currentPhase,
+                progress.remainingMillis(index, currentPhase, millisLeft),
+                progress.totalMillis());
     }
 
     @Override
@@ -117,6 +140,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
                 beginExercise();
                 break;
             case ACTIVE:
+                donePositions.add(index);
                 historyTracker.closeOutCurrentExercise(index, exercises.get(index));
                 if (index >= exercises.size() - 1) {
                     startFinishTransition();
@@ -151,9 +175,18 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         }, () -> !cleared, result -> {
             if (result == null) return;
             exercises = result.exercises;
+            progress = new PlayerProgress(plannedSeconds(exercises), TRANSITION_MILLIS);
             historyTracker.startSession(workoutId, result.workoutName);
             startInitialTransition();
         });
+    }
+
+    private static int[] plannedSeconds(List<PlayerExercise> exercises) {
+        int[] seconds = new int[exercises.size()];
+        for (int i = 0; i < seconds.length; i++) {
+            seconds[i] = exercises.get(i).durationSeconds;
+        }
+        return seconds;
     }
 
     private void startInitialTransition() {
@@ -185,7 +218,10 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private void finishWorkout() {
         currentPhase = PlayerExerciseState.Phase.FINISHED;
         historyTracker.finish(true);
-        exerciseState.setValue(new PlayerExerciseState(null, index, exercises.size(), currentPhase));
+        PlayerWorkoutSummary summary = new PlayerWorkoutSummary(
+                historyTracker.getActiveSeconds(), donePositions.size(), exercises.size());
+        exerciseState.setValue(
+                new PlayerExerciseState(null, index, exercises.size(), currentPhase, summary));
     }
 
     /** Same guard {@code lastBeepSecond} already implemented in the pre-migration Fragment,
