@@ -13,6 +13,7 @@ import com.wob.workout.data.Event;
 import com.wob.workout.data.LiveDataExecutor;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.MediaType;
+import com.wob.workout.media.Framing;
 import com.wob.workout.media.MediaStorageManager;
 import com.wob.workout.media.MediaThumbnailLoader;
 
@@ -29,6 +30,7 @@ public class ExerciseEditViewModel extends ViewModel {
 
     private String selectedMediaFile;
     private MediaType selectedMediaType;
+    private Framing selectedFraming;
 
     public ExerciseEditViewModel(AppContainer container, long exerciseId) {
         this.container = container;
@@ -50,6 +52,7 @@ public class ExerciseEditViewModel extends ViewModel {
             // waiting on getExercise(), a save() right after) must already find them in place.
             selectedMediaFile = result.exercise.mediaFile;
             selectedMediaType = result.exercise.mediaType;
+            selectedFraming = result.exercise.framing();
             exercise.setValue(result.exercise);
             preview.setValue(result.preview);
         });
@@ -78,6 +81,7 @@ public class ExerciseEditViewModel extends ViewModel {
         target.description = description;
         target.mediaFile = selectedMediaFile;
         target.mediaType = selectedMediaType;
+        target.storeFraming(selectedFraming);
         boolean isInsert = target.id == 0;
 
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
@@ -102,10 +106,25 @@ public class ExerciseEditViewModel extends ViewModel {
         return selectedMediaFile != null;
     }
 
+    public boolean hasPhoto() {
+        return selectedMediaType == MediaType.IMAGE;
+    }
+
+    /** @return the framing to show and save, or null for the default */
+    public Framing getFraming() {
+        return selectedFraming;
+    }
+
+    /** Takes effect on save. */
+    public void setFraming(Framing framing) {
+        selectedFraming = framing;
+    }
+
     /** Takes effect on save, like picking new media does. */
     public void removeMedia() {
         selectedMediaFile = null;
         selectedMediaType = null;
+        selectedFraming = null;
         preview.setValue(computePreview(container.appContext, null, null));
     }
 
@@ -140,6 +159,7 @@ public class ExerciseEditViewModel extends ViewModel {
             // might read shouldn't be mutated from the background thread.
             selectedMediaFile = result.mediaFile;
             selectedMediaType = result.mediaType;
+            selectedFraming = null;
             preview.setValue(result.preview);
         });
     }

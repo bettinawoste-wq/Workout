@@ -109,6 +109,10 @@ public class ExerciseEditFragment extends Fragment {
         binding.btnSave.setOnClickListener(v -> save());
         binding.btnDelete.setOnClickListener(v -> confirmDelete());
         binding.btnRemoveMedia.setOnClickListener(v -> viewModel.removeMedia());
+        binding.btnResetFraming.setOnClickListener(v -> {
+            viewModel.setFraming(null);
+            binding.imgMediaPreview.setFraming(null);
+        });
         binding.btnSelectMedia.setOnClickListener(v ->
                 mediaPicker.launch(
                         new PickVisualMediaRequest.Builder()
@@ -121,11 +125,24 @@ public class ExerciseEditFragment extends Fragment {
     private void showPreview(ExerciseEditViewModel.Preview preview) {
         if (preview == null) return;
 
+        // Only a photo that could actually be loaded can be framed, not a video or the placeholder.
+        boolean canFrame = preview.bitmap != null && viewModel.hasPhoto();
+        binding.imgMediaPreview.setFraming(canFrame ? viewModel.getFraming() : null);
+        binding.imgMediaPreview.setFramingListener(canFrame ? viewModel::setFraming : null);
+        binding.btnResetFraming.setVisibility(canFrame ? View.VISIBLE : View.GONE);
+
         if (preview.bitmap != null) {
             binding.imgMediaPreview.setImageBitmap(preview.bitmap);
-            binding.txtMedia.setVisibility(View.GONE);
         } else {
             binding.imgMediaPreview.setImageResource(R.drawable.exercise_placeholder);
+        }
+
+        if (canFrame) {
+            binding.txtMedia.setVisibility(View.VISIBLE);
+            binding.txtMedia.setText("Mit zwei Fingern zoomen, mit einem verschieben");
+        } else if (preview.bitmap != null) {
+            binding.txtMedia.setVisibility(View.GONE);
+        } else {
             binding.txtMedia.setVisibility(View.VISIBLE);
             binding.txtMedia.setText(preview.text);
         }

@@ -11,8 +11,8 @@ import android.widget.FrameLayout;
  */
 public class PictureFrameLayout extends FrameLayout {
 
-    private static final int RATIO_WIDTH = 3;
-    private static final int RATIO_HEIGHT = 2;
+    static final int RATIO_WIDTH = 3;
+    static final int RATIO_HEIGHT = 2;
     private static final float MAX_SHARE_OF_SCREEN_HEIGHT = 0.45f;
 
     public PictureFrameLayout(Context context, AttributeSet attrs) {

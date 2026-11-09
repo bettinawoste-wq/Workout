@@ -13,11 +13,10 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="16dp">
 
-        <ImageView
+        <com.wob.workout.media.FramedImageView
             android:id="@+id/imgMedia"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="centerCrop"/>
+            android:layout_height="match_parent"/>
 
         <androidx.media3.ui.PlayerView
             android:id="@+id/videoPlayer"
