@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.wob.workout.AppContainer;
+import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentPlayerBinding;
@@ -91,7 +92,7 @@ public class PlayerFragment extends Fragment {
                 // Stepping past either end does nothing, so don't offer it.
                 binding.btnPrevious.setEnabled(state.hasPrevious());
                 binding.btnNext.setEnabled(state.hasNext());
-                binding.btnPause.setText("Pause");
+                showPauseButton(true);
                 if (viewModel.shouldPlayStartSound(state)) {
                     audioManager.playStart();
                 }
@@ -109,6 +110,11 @@ public class PlayerFragment extends Fragment {
                 showFinished(state.total);
                 break;
         }
+    }
+
+    private void showPauseButton(boolean running) {
+        binding.btnPause.setIconResource(running ? R.drawable.ic_pause : R.drawable.ic_play);
+        binding.btnPause.setContentDescription(running ? "Pause" : "Weiter");
     }
 
     private void setTransportEnabled(boolean enabled) {
@@ -155,7 +161,7 @@ public class PlayerFragment extends Fragment {
                 break;
             case ACTIVE:
                 binding.txtTimer.setText(formatTime(tick.remainingMillis));
-                binding.btnPause.setText(tick.running ? "Pause" : "Weiter");
+                showPauseButton(tick.running);
                 break;
             case FINISHED:
                 break;
