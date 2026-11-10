@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.wob.workout.databinding.ItemHistoryBinding;
+import com.wob.workout.ui.ExerciseCount;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -73,7 +74,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
                 item.session.completed ? "✓ Abgeschlossen" : "✗ Abgebrochen");
         holder.binding.txtInfo.setText(
                 dateFormat.format(new Date(item.session.startedAt))
-                        + " • " + item.exerciseCount + " Übungen"
+                        + " • " + ExerciseCount.text(item.exerciseCount)
                         + " • " + formatDuration(item.session.activeDurationSeconds));
 
         holder.itemView.setOnClickListener(v -> listener.onItemClicked(item));
