@@ -8,15 +8,13 @@ import org.junit.Test;
 
 public class PlayerProgressTest {
 
-    private static final long TRANSITION = 3000;
-    /** 60s + 3s + 30s + 3s + 10s */
-    private static final long TOTAL = 106_000;
+    /** 60s + 30s + 10s */
+    private static final long TOTAL = 100_000;
 
-    private final PlayerProgress progress =
-            new PlayerProgress(new int[] {60, 30, 10}, TRANSITION);
+    private final PlayerProgress progress = new PlayerProgress(new int[] {60, 30, 10});
 
     @Test
-    public void totalCountsExercisesAndTheTransitionsBetweenThem() {
+    public void totalCountsExerciseTimeOnly() {
         assertEquals(TOTAL, progress.totalMillis());
     }
 
@@ -27,14 +25,16 @@ public class PlayerProgressTest {
 
     @Test
     public void duringAnExerciseItsRestAndEverythingAfterRemains() {
-        assertEquals(20_000 + 3000 + 30_000 + 3000 + 10_000,
-                progress.remainingMillis(0, Phase.ACTIVE, 20_000));
+        assertEquals(20_000 + 30_000 + 10_000, progress.remainingMillis(0, Phase.ACTIVE, 20_000));
     }
 
     @Test
-    public void duringATransitionTheNextExerciseStillFullyRemains() {
-        assertEquals(2000 + 30_000 + 3000 + 10_000,
-                progress.remainingMillis(1, Phase.TRANSITION, 2000));
+    public void thePauseBetweenExercisesDoesNotCount() {
+        long endOfFirst = progress.remainingMillis(0, Phase.ACTIVE, 0);
+
+        assertEquals(endOfFirst, progress.remainingMillis(1, Phase.TRANSITION, 4000));
+        assertEquals(endOfFirst, progress.remainingMillis(1, Phase.TRANSITION, 1000));
+        assertEquals(30_000 + 10_000, endOfFirst);
     }
 
     @Test
@@ -44,21 +44,12 @@ public class PlayerProgressTest {
 
     @Test
     public void skippingAheadJumps() {
-        long before = progress.remainingMillis(0, Phase.ACTIVE, 50_000);
-        long after = progress.remainingMillis(1, Phase.ACTIVE, 30_000);
-
-        assertEquals(50_000 + 3000 + 30_000 + 3000 + 10_000, before);
-        assertEquals(30_000 + 3000 + 10_000, after);
+        assertEquals(50_000 + 30_000 + 10_000, progress.remainingMillis(0, Phase.ACTIVE, 50_000));
+        assertEquals(30_000 + 10_000, progress.remainingMillis(1, Phase.ACTIVE, 30_000));
     }
 
     @Test
     public void nothingRemainsOnceTheLastExerciseIsOver() {
-        assertEquals(0, progress.remainingMillis(2, Phase.FINISHING, 2000));
         assertEquals(0, progress.remainingMillis(2, Phase.FINISHED, 0));
-    }
-
-    @Test
-    public void aSingleExerciseHasNoTransition() {
-        assertEquals(45_000, new PlayerProgress(new int[] {45}, TRANSITION).totalMillis());
     }
 }

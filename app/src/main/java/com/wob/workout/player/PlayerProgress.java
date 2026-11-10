@@ -1,19 +1,17 @@
 package com.wob.workout.player;
 
 /**
- * How much of a whole workout is still to come: its exercises and the transitions between
- * them. The start countdown and the closing countdown don't count.
+ * How much exercise time of a whole workout is still to come. Pauses don't count: during the
+ * start countdown and between exercises the remaining time stands still.
  */
 public class PlayerProgress {
 
     private final int[] exerciseSeconds;
-    private final long transitionMillis;
     private final long totalMillis;
 
-    public PlayerProgress(int[] exerciseSeconds, long transitionMillis) {
+    public PlayerProgress(int[] exerciseSeconds) {
         this.exerciseSeconds = exerciseSeconds;
-        this.transitionMillis = transitionMillis;
-        this.totalMillis = millisAfter(-1);
+        this.totalMillis = millisFrom(0);
     }
 
     public long totalMillis() {
@@ -26,21 +24,20 @@ public class PlayerProgress {
             case READY:
                 return totalMillis;
             case ACTIVE:
-                return millisLeft + millisAfter(index);
+                return millisLeft + millisFrom(index + 1);
             case TRANSITION:
-                // index is already the exercise this transition leads to.
-                return millisLeft + exerciseSeconds[index] * 1000L + millisAfter(index);
+                // index is already the exercise this pause leads to.
+                return millisFrom(index);
             default:
                 return 0;
         }
     }
 
-    /** Everything following the exercise at {@code index}, with the transitions before each. */
-    private long millisAfter(int index) {
+    /** The exercise time from the exercise at {@code index} to the end. */
+    private long millisFrom(int index) {
         long millis = 0;
-        for (int i = index + 1; i < exerciseSeconds.length; i++) {
+        for (int i = index; i < exerciseSeconds.length; i++) {
             millis += exerciseSeconds[i] * 1000L;
-            if (i > 0) millis += transitionMillis;
         }
         return millis;
     }

@@ -117,7 +117,7 @@ public class PlayerViewModelTest {
     }
 
     @Test
-    public void finishFromActiveOnLastExerciseStartsFinishing() {
+    public void finishFromActiveOnLastExerciseFinishesWithoutAnotherCountdown() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         PlayerExerciseState lastActive = finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
@@ -126,16 +126,15 @@ public class PlayerViewModelTest {
 
         PlayerExerciseState state = finishCurrentPhase();
 
-        assertEquals(Phase.FINISHING, state.phase);
+        assertEquals(Phase.FINISHED, state.phase);
         assertNull(state.exercise);
     }
 
     @Test
-    public void finishFromFinishingRecordsCompletedSession() throws Exception {
+    public void finishingTheLastExerciseRecordsCompletedSession() throws Exception {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState state = finishCurrentPhase();
 
@@ -193,8 +192,50 @@ public class PlayerViewModelTest {
     }
 
     @Test
+    public void noStartSoundForAnExerciseTheUserSteppedTo() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+
+        PlayerExerciseState next = onMain(() -> {
+            viewModel.next();
+            return viewModel.getExerciseState().getValue();
+        });
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(next)));
+
+        PlayerExerciseState previous = onMain(() -> {
+            viewModel.previous();
+            return viewModel.getExerciseState().getValue();
+        });
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(previous)));
+    }
+
+    @Test
+    public void startSoundAfterTheCountdownBetweenExercises() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        PlayerExerciseState transition = finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(transition)));
+
+        PlayerExerciseState active = finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
+
+        assertTrue(onMain(() -> viewModel.shouldPlayStartSound(active)));
+    }
+
+    @Test
+    public void beepsCountDownOutOfEveryExerciseButThePauseStaysQuiet() {
+        // The real start countdown has already reported second 3, so check second 2.
+        assertTrue(tickAt(1500).shouldBeep); // READY, before the first exercise
+
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        assertTrue(tickAt(2500).shouldBeep);
+
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        assertFalse(tickAt(2500).shouldBeep);
+    }
+
+    @Test
     public void shouldPlayBeepReturnsTrueOncePerBeepingTick() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        finishCurrentPhase(); // TRANSITION -> ACTIVE (1), the last exercise
 
         PlayerTick silent = tickAt(10_000);
         assertFalse(onMain(() -> viewModel.shouldPlayBeep(silent)));
@@ -216,7 +257,6 @@ public class PlayerViewModelTest {
         assertFalse(onMain(() -> viewModel.shouldPlaySuccessSound(active)));
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState finished = finishCurrentPhase();
 
@@ -229,7 +269,6 @@ public class PlayerViewModelTest {
     public void summaryCountsAnExerciseSteppedAwayFromAsSkipped() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         runOnMain(viewModel::next); // skips exercise 0
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState finished = finishCurrentPhase();
 
@@ -245,7 +284,6 @@ public class PlayerViewModelTest {
         runOnMain(viewModel::previous); // back to exercise 0
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState finished = finishCurrentPhase();
 
@@ -259,10 +297,10 @@ public class PlayerViewModelTest {
 
         PlayerTick tick = tickAt(10_000);
 
-        long transition = new Workout().transitionSeconds * 1000L;
+        // Exercise time only: the pause between the two exercises doesn't count.
         long secondExercise = LONG_DURATION_SECONDS * 1000L;
-        assertEquals(10_000 + transition + secondExercise, tick.workoutRemainingMillis);
-        assertEquals(2 * secondExercise + transition, tick.workoutTotalMillis);
+        assertEquals(10_000 + secondExercise, tick.workoutRemainingMillis);
+        assertEquals(2 * secondExercise, tick.workoutTotalMillis);
     }
 
     @Test
@@ -279,15 +317,18 @@ public class PlayerViewModelTest {
         try {
             getOrAwaitValue(other.getExerciseState());
 
-            PlayerTick tick = onMain(() -> {
+            onMain(() -> {
                 other.onFinish(); // READY -> ACTIVE (0)
                 other.onFinish(); // ACTIVE (0) -> TRANSITION (1)
-                other.onTick(9000);
-                return other.getTick().getValue();
+                return null;
             });
+            // The real timer reports the pause's own countdown as soon as it starts.
+            Thread.sleep(300);
+            PlayerTick tick = onMain(() -> other.getTick().getValue());
 
             assertEquals(Phase.TRANSITION, tick.phase);
-            assertEquals(LONG_DURATION_SECONDS * 2000L + 9000, tick.workoutTotalMillis);
+            assertTrue("pause countdown " + tick.remainingMillis,
+                    tick.remainingMillis > 8000 && tick.remainingMillis <= 9000);
         } finally {
             runOnMain(other::onCleared);
         }
