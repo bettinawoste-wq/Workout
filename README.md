@@ -4,7 +4,7 @@
 
 A local-only Android app for building custom workouts, running them with a timer and
 audio cues, and reviewing past sessions afterward. Everything is stored on-device in
-Room — no account, no backend.
+Room — no account, no backend. The interface is in German.
 
 | Home | Workout editor | Player | History |
 | :---: | :---: | :---: | :---: |
@@ -12,26 +12,31 @@ Room — no account, no backend.
 
 ## Features
 
-- **Exercises** — create/edit exercises with a photo or video demo (orientation-correct
-  thumbnails, looping video preview).
-- **Workouts** — build a named, ordered list of exercises with a duration each; reorder
-  by drag-and-drop.
-- **Player** — runs through a workout with a countdown timer, audio start/end cues, and
-  a confirmation dialog before cancelling.
+- **Exercises** — title, description and an optional photo or video. Photos are framed in
+  the editor: zoom with two fingers and move with one to decide how much of the edge is cut
+  off; the original file stays untouched. Exercises without a picture show a placeholder.
+- **Workouts** — a named, ordered list of exercises with a duration each, reordered by
+  drag-and-drop. The workout list shows a thumbnail of every exercise.
+- **Player** — counts down into the first exercise and out of every exercise, marks each
+  start with a soft tone, and keeps the pause between exercises quiet. While a countdown
+  runs, the coming exercise is shown darkened with its title. A progress bar shows the
+  exercise time left in the whole workout. Exercises can be skipped or revisited; a
+  finished workout ends with a chime and a summary of total time and skipped exercises.
 - **History** — every run is recorded (completed or aborted, with per-exercise actual vs.
   planned duration), browsable and deletable independently of whether the source workout
   still exists.
 - **Starter set** — a fresh install comes with 10 bodyweight exercises and a ready-made
   full-body workout (one minute per exercise); afterwards they're ordinary data you can
   edit or delete.
+- **Design** — Material 3 with a petrol palette, following the system's light or dark mode.
 
 ## Tech stack
 
 - Java, Android Gradle Plugin, min SDK 24 / target SDK 37
 - Room (SQLite) for persistence, with explicit versioned migrations
 - Media3 (ExoPlayer) for video playback
-- View Binding + Data Binding
-- Incremental migration to ViewModel + LiveData (see [`CONTEXT.md`](CONTEXT.md) for how far that's progressed)
+- View Binding, ViewModel + LiveData; a small manual DI container instead of a framework
+  (see [`docs/adr/0001-manual-di-container.md`](docs/adr/0001-manual-di-container.md))
 
 ## Building
 
@@ -49,7 +54,7 @@ Run the unit and instrumented test suites:
 
 ```bash
 ./gradlew testDebugUnitTest
-./gradlew connectedDebugAndroidTest   # needs a connected device/emulator
+./gradlew connectedDebugAndroidTest   # needs a connected device/emulator; uninstalls the debug app afterwards
 ```
 
 Signed release APKs are attached to each [GitHub Release](https://github.com/bettinawoste-wq/Workout/releases); how they are built
@@ -59,5 +64,7 @@ is described in [`docs/releasing.md`](docs/releasing.md).
 
 - [`CONTEXT.md`](CONTEXT.md) — domain model and current architecture
 - [`docs/releasing.md`](docs/releasing.md) — signing key setup and how to cut a release
+- [`GLOSSARY.md`](GLOSSARY.md) — the domain language used in code and issues
 - [`docs/adr/`](docs/adr/) — architecture decision records
+- [`docs/sounds.md`](docs/sounds.md) — where the app's sounds come from
 - [`docs/agents/`](docs/agents/) — conventions for AI coding agents working in this repo
