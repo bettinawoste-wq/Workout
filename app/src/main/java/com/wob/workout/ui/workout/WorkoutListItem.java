@@ -7,33 +7,21 @@ import java.util.List;
 
 public class WorkoutListItem {
 
-    static final int MAX_STRIP_PICTURES = 5;
-
     public final Workout workout;
     public final int exerciseCount;
     public final int totalDurationSeconds;
-    /** The exercises with a demonstration of their own, in workout order. */
-    public final List<Exercise> picturedExercises;
+    /** The workout's exercises in workout order; one used twice appears twice. */
+    public final List<Exercise> exercises;
 
     public WorkoutListItem(
             Workout workout,
             int exerciseCount,
             int totalDurationSeconds,
-            List<Exercise> picturedExercises) {
+            List<Exercise> exercises) {
 
         this.workout = workout;
         this.exerciseCount = exerciseCount;
         this.totalDurationSeconds = totalDurationSeconds;
-        this.picturedExercises = picturedExercises;
-    }
-
-    public List<Exercise> stripExercises() {
-        return picturedExercises.subList(
-                0, Math.min(MAX_STRIP_PICTURES, picturedExercises.size()));
-    }
-
-    /** How many pictured exercises don't fit into the strip. */
-    public int morePictures() {
-        return Math.max(0, picturedExercises.size() - MAX_STRIP_PICTURES);
+        this.exercises = exercises;
     }
 }

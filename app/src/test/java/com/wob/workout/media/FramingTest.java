@@ -88,8 +88,68 @@ public class FramingTest {
     }
 
     @Test
+    public void zoomingOutStopsOnceTheWholePhotoIsVisible() {
+        Framing zoomedOut = new Framing(2, 0, 0).zoomedBy(0.1f, CENTRE, CENTRE, PORTRAIT);
+
+        assertEquals(1f, zoomedOut.zoom, DELTA);
+    }
+
+    @Test
+    public void aPhotoNarrowerThanTheFrameStaysCentredWithEqualMargins() {
+        Framing moved = new Framing(1, 0, 0).movedBy(0.4f, 0.3f, PORTRAIT);
+
+        assertEquals(0f, moved.offsetX, DELTA);
+        assertEquals(0f, moved.offsetY, DELTA);
+    }
+
+    @Test
+    public void aPhotoLargerThanTheFrameMovesOnlyUntilItsEdgeMeetsTheFrame() {
+        Framing moved = new Framing(2, 0, 0).movedBy(5f, -5f, FRAME_SHAPED);
+
+        assertEquals(0f, moved.photoLeft(FRAME_SHAPED), DELTA);
+        assertEquals(1f, moved.photoTop(FRAME_SHAPED) + moved.photoHeight(FRAME_SHAPED), DELTA);
+    }
+
+    @Test
+    public void marginsOnlyEverShowOnTwoOppositeEdgesAlike() {
+        float[] aspects = {0.5f, 0.75f, 1f, 1.5f, 2f, 3f};
+        float[] zoomFactors = {0.1f, 0.7f, 1f, 1.3f, 2.5f};
+        float[] moves = {-2f, -0.3f, 0f, 0.2f, 2f};
+
+        for (float aspect : aspects) {
+            for (float factor : zoomFactors) {
+                for (float deltaX : moves) {
+                    for (float deltaY : moves) {
+                        Framing framing = Framing.filling(aspect)
+                                .zoomedBy(factor, 0.3f, 0.6f, aspect)
+                                .movedBy(deltaX, deltaY, aspect);
+
+                        assertMarginsOnOppositeEdgesOnly(framing, aspect,
+                                "aspect " + aspect + ", zoom x" + factor
+                                        + ", moved " + deltaX + "/" + deltaY);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void assertMarginsOnOppositeEdgesOnly(
+            Framing framing, float aspect, String scenario) {
+        float left = framing.photoLeft(aspect);
+        float top = framing.photoTop(aspect);
+        float right = 1 - (left + framing.photoWidth(aspect));
+        float bottom = 1 - (top + framing.photoHeight(aspect));
+
+        boolean sides = left > DELTA || right > DELTA;
+        boolean topOrBottom = top > DELTA || bottom > DELTA;
+        assertTrue(scenario + ": margins left/right and top/bottom", !(sides && topOrBottom));
+        if (sides) assertEquals(scenario, left, right, DELTA);
+        if (topOrBottom) assertEquals(scenario, top, bottom, DELTA);
+    }
+
+    @Test
     public void movingIsRelativeToTheFrame() {
-        Framing moved = new Framing(1, 0, 0).movedBy(0.1f, -0.2f, FRAME_SHAPED);
+        Framing moved = new Framing(2, 0, 0).movedBy(0.1f, -0.2f, FRAME_SHAPED);
 
         assertEquals(0.1f, moved.offsetX, DELTA);
         assertEquals(-0.2f, moved.offsetY, DELTA);

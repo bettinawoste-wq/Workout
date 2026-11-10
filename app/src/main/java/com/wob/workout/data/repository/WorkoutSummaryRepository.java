@@ -50,25 +50,23 @@ public class WorkoutSummaryRepository {
                 duration += exercise.durationSeconds;
             }
             result.add(new WorkoutListItem(
-                    row.workout, row.exercises.size(), duration, picturedExercises(row)));
+                    row.workout, row.exercises.size(), duration, exercisesInOrder(row)));
         }
 
         return result;
     }
 
-    private static List<Exercise> picturedExercises(WorkoutWithExercises row) {
+    private static List<Exercise> exercisesInOrder(WorkoutWithExercises row) {
         Map<Long, Exercise> exercisesById = new HashMap<>();
         for (Exercise exercise : row.exerciseDetails) {
             exercisesById.put(exercise.id, exercise);
         }
 
-        List<Exercise> pictured = new ArrayList<>();
+        List<Exercise> inOrder = new ArrayList<>();
         for (WorkoutExercise entry : row.exercisesInOrder()) {
             Exercise exercise = exercisesById.get(entry.exerciseId);
-            if (exercise != null && exercise.mediaFile != null && !exercise.mediaFile.isEmpty()) {
-                pictured.add(exercise);
-            }
+            if (exercise != null) inOrder.add(exercise);
         }
-        return pictured;
+        return inOrder;
     }
 }

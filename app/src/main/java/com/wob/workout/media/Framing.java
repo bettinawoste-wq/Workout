@@ -9,14 +9,12 @@ package com.wob.workout.media;
  */
 public final class Framing {
 
-    static final float MIN_ZOOM = 0.5f;
+    /** The whole photo just fits. Any smaller would leave a margin on all four edges. */
+    static final float MIN_ZOOM = 1f;
     static final float MAX_ZOOM = 4f;
 
     private static final float FRAME_ASPECT =
             (float) PictureFrameLayout.RATIO_WIDTH / PictureFrameLayout.RATIO_HEIGHT;
-    /** How much of the photo, or of the frame if that is smaller, always stays overlapping. */
-    private static final float MIN_OVERLAP = 0.25f;
-
     /** 1 means the whole photo just fits inside the frame. */
     public final float zoom;
     /** Where the photo's centre is, relative to the centre of the frame. */
@@ -77,8 +75,13 @@ public final class Framing {
                 Math.max(-limitY, Math.min(limitY, offsetY)));
     }
 
+    /**
+     * A margin only ever shows on two opposite edges, the same width on both. Where the photo
+     * is smaller than the frame it stays centred; where it is larger it can be moved, but never
+     * so far that it uncovers an edge.
+     */
     private static float offsetLimit(float photoSize) {
-        return (1 + photoSize) / 2 - MIN_OVERLAP * Math.min(1, photoSize);
+        return Math.max(0, (photoSize - 1) / 2);
     }
 
     private static float fillingZoom(float photoAspect) {

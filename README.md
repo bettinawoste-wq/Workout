@@ -8,7 +8,7 @@ Room — no account, no backend.
 
 | Home | Workout editor | Player | History |
 | :---: | :---: | :---: | :---: |
-| <img src="docs/screenshots/home.png" width="190" alt="Home screen"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout"> | <img src="docs/screenshots/player.png" width="190" alt="Player running the first exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> |
+| <img src="docs/screenshots/home.png" width="190" alt="Home screen"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout"> | <img src="docs/screenshots/player.png" width="190" alt="Player running an exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> |
 
 ## Features
 

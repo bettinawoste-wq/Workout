@@ -5,6 +5,7 @@
     <string name="exercises">Übungen</string>
     <string name="no_exercises">Keine Übungen vorhanden</string>
     <string name="neue_uebung">Neue Übung</string>
+    <string name="uebung_bearbeiten">Übung bearbeiten</string>
     <string name="titel">Titel</string>
     <string name="description">Beschreibung</string>
     <string name="speichern">Speichern</string>

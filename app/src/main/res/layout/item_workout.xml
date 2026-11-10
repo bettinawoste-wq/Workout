@@ -41,85 +41,13 @@
             android:text="Start"/>
     </LinearLayout>
 
-    <!-- Five slots and the "+N" always keep their place, so strips line up from row to row. -->
+    <!-- Filled by WorkoutAdapter with rows of item_workout_picture_row. -->
     <LinearLayout
         android:id="@+id/stripPictures"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.wob.workout.media.PictureFrameLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1">
-
-            <com.wob.workout.media.FramedImageView
-                android:id="@+id/imgStrip1"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@null"/>
-        </com.wob.workout.media.PictureFrameLayout>
-
-        <com.wob.workout.media.PictureFrameLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1">
-
-            <com.wob.workout.media.FramedImageView
-                android:id="@+id/imgStrip2"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@null"/>
-        </com.wob.workout.media.PictureFrameLayout>
-
-        <com.wob.workout.media.PictureFrameLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1">
-
-            <com.wob.workout.media.FramedImageView
-                android:id="@+id/imgStrip3"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@null"/>
-        </com.wob.workout.media.PictureFrameLayout>
-
-        <com.wob.workout.media.PictureFrameLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1">
-
-            <com.wob.workout.media.FramedImageView
-                android:id="@+id/imgStrip4"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@null"/>
-        </com.wob.workout.media.PictureFrameLayout>
-
-        <com.wob.workout.media.PictureFrameLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1">
-
-            <com.wob.workout.media.FramedImageView
-                android:id="@+id/imgStrip5"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@null"/>
-        </com.wob.workout.media.PictureFrameLayout>
-
-        <TextView
-            android:id="@+id/txtMorePictures"
-            android:layout_width="40dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"/>
-    </LinearLayout>
+        android:layout_marginTop="4dp"
+        android:orientation="vertical"/>
 
 </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

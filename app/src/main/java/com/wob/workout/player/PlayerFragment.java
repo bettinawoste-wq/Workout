@@ -82,11 +82,13 @@ public class PlayerFragment extends Fragment {
         switch (state.phase) {
             case READY:
                 binding.txtState.setText("BEREIT");
+                showPreviewLabel("ERSTE ÜBUNG", state.exercise);
                 showExerciseInfo(state.exercise);
                 setTransportEnabled(false);
                 break;
             case ACTIVE:
                 binding.txtState.setText("AKTUELLE ÜBUNG");
+                showPreviewLabel(null, null);
                 showExerciseInfo(state.exercise);
                 setTransportEnabled(true);
                 // Stepping past either end does nothing, so don't offer it.
@@ -99,11 +101,8 @@ public class PlayerFragment extends Fragment {
                 break;
             case TRANSITION:
                 binding.txtState.setText("NÄCHSTE ÜBUNG");
+                showPreviewLabel("NÄCHSTE ÜBUNG", state.exercise);
                 showExerciseInfo(state.exercise);
-                setTransportEnabled(false);
-                break;
-            case FINISHING:
-                binding.txtState.setText("FERTIG");
                 setTransportEnabled(false);
                 break;
             case FINISHED:
@@ -113,6 +112,15 @@ public class PlayerFragment extends Fragment {
                 }
                 break;
         }
+    }
+
+    /** Darkens the picture and names it while it only previews the coming exercise. */
+    private void showPreviewLabel(String label, PlayerExercise exercise) {
+        int visibility = label != null ? View.VISIBLE : View.GONE;
+        binding.mediaScrim.setVisibility(visibility);
+        binding.mediaLabels.setVisibility(visibility);
+        binding.txtMediaLabel.setText(label);
+        binding.txtMediaTitle.setText(exercise != null ? exercise.exercise.title : null);
     }
 
     private void showPauseButton(boolean running) {
@@ -163,9 +171,6 @@ public class PlayerFragment extends Fragment {
             case READY:
             case TRANSITION:
                 binding.txtTimer.setText("Start in " + ((tick.remainingMillis + 999) / 1000));
-                break;
-            case FINISHING:
-                binding.txtTimer.setText("Ende in " + ((tick.remainingMillis + 999) / 1000));
                 break;
             case ACTIVE:
                 binding.txtTimer.setText(formatTime(tick.remainingMillis));

@@ -67,6 +67,8 @@ public class ExerciseEditFragment extends Fragment {
         viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, exerciseId))
                 .get(ExerciseEditViewModel.class);
 
+        binding.txtHeading.setText(
+                viewModel.isNew() ? R.string.neue_uebung : R.string.uebung_bearbeiten);
         binding.btnDelete.setVisibility(viewModel.isNew() ? View.GONE : View.VISIBLE);
 
         // For an existing exercise, Save/Delete start disabled until the async load lands:

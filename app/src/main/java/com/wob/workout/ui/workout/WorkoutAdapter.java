@@ -3,13 +3,16 @@ package com.wob.workout.ui.workout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.wob.workout.R;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.ItemWorkoutBinding;
 import com.wob.workout.media.ExerciseThumbnails;
 import com.wob.workout.media.FramedImageView;
+import com.wob.workout.ui.ExerciseCount;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +22,8 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
         void onWorkoutClicked(Workout workout);
         void onWorkoutStartClicked(Workout workout);
     }
+
+    private static final int PICTURES_PER_ROW = 5;
 
     private final Listener listener;
     private final ExerciseThumbnails thumbnails;
@@ -51,7 +56,7 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
 
         holder.binding.txtName.setText(item.workout.name);
         holder.binding.txtInfo.setText(
-                item.exerciseCount + " Übungen • " + formatDuration(item.totalDurationSeconds));
+                ExerciseCount.text(item.exerciseCount) + " • " + formatDuration(item.totalDurationSeconds));
         showPictureStrip(holder, item);
 
         holder.itemView.setOnClickListener(
@@ -61,23 +66,30 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
                 v -> listener.onWorkoutStartClicked(item.workout));
     }
 
+    /** Shows every exercise of the workout in order, in as many rows as that takes. */
     private void showPictureStrip(ViewHolder holder, WorkoutListItem item) {
-        List<Exercise> strip = item.stripExercises();
-        holder.binding.stripPictures.setVisibility(strip.isEmpty() ? View.GONE : View.VISIBLE);
+        LinearLayout strip = holder.binding.stripPictures;
+        List<Exercise> exercises = item.exercises;
+        int rows = (exercises.size() + PICTURES_PER_ROW - 1) / PICTURES_PER_ROW;
 
-        for (int slot = 0; slot < holder.stripSlots.length; slot++) {
-            FramedImageView view = holder.stripSlots[slot];
-            if (slot < strip.size()) {
-                view.setVisibility(View.VISIBLE);
-                thumbnails.show(view, strip.get(slot));
-            } else {
-                view.setVisibility(View.INVISIBLE);
-            }
+        while (strip.getChildCount() > rows) {
+            strip.removeViewAt(strip.getChildCount() - 1);
+        }
+        LayoutInflater inflater = LayoutInflater.from(strip.getContext());
+        while (strip.getChildCount() < rows) {
+            inflater.inflate(R.layout.item_workout_picture_row, strip, true);
         }
 
-        int more = item.morePictures();
-        holder.binding.txtMorePictures.setVisibility(more > 0 ? View.VISIBLE : View.INVISIBLE);
-        holder.binding.txtMorePictures.setText("+" + more);
+        for (int slot = 0; slot < rows * PICTURES_PER_ROW; slot++) {
+            ViewGroup row = (ViewGroup) strip.getChildAt(slot / PICTURES_PER_ROW);
+            ViewGroup frame = (ViewGroup) row.getChildAt(slot % PICTURES_PER_ROW);
+            if (slot < exercises.size()) {
+                frame.setVisibility(View.VISIBLE);
+                thumbnails.show((FramedImageView) frame.getChildAt(0), exercises.get(slot));
+            } else {
+                frame.setVisibility(View.INVISIBLE);
+            }
+        }
     }
 
     @Override
@@ -92,18 +104,10 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
     static class ViewHolder extends RecyclerView.ViewHolder {
 
         final ItemWorkoutBinding binding;
-        final FramedImageView[] stripSlots;
 
         ViewHolder(ItemWorkoutBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
-            this.stripSlots = new FramedImageView[] {
-                    binding.imgStrip1,
-                    binding.imgStrip2,
-                    binding.imgStrip3,
-                    binding.imgStrip4,
-                    binding.imgStrip5
-            };
         }
     }
 }

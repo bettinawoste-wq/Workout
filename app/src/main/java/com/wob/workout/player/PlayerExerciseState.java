@@ -2,17 +2,13 @@ package com.wob.workout.player;
 
 /**
  * Emitted only when the screen moves to a new exercise/transition/finish — the Fragment's
- * media-display observer watches this. {@code exercise} is null during {@link Phase#FINISHING}
- * and {@link Phase#FINISHED} (there is no next exercise to preview); the Fragment leaves the
- * last-shown media/title untouched in that case, matching what the pre-migration Fragment
- * code did. See wayfinder ticket #4.
+ * media-display observer watches this. {@code exercise} is null during {@link Phase#FINISHED}.
+ * See wayfinder ticket #4.
  */
 public class PlayerExerciseState {
 
-    /** FINISHING is the 3-second "Ende in X" countdown before FINISHED — a distinct value
-     *  from TRANSITION (the between-exercise countdown) so the two aren't told apart via a
-     *  null-exercise sentinel. */
-    public enum Phase { READY, ACTIVE, TRANSITION, FINISHING, FINISHED }
+    /** FINISHED follows the last exercise directly: its own last seconds are the countdown. */
+    public enum Phase { READY, ACTIVE, TRANSITION, FINISHED }
 
     public final PlayerExercise exercise;
     public final int index;

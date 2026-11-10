@@ -12,6 +12,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.data.entity.Workout;
 import com.wob.workout.player.PlayerExerciseState.Phase;
 import com.wob.workout.ui.history.WorkoutSessionSummary;
 
@@ -31,7 +32,7 @@ import java.util.function.Supplier;
  * <p>The state machine is driven by calling the ViewModel's public
  * {@link PlayerTimer.Listener} methods ({@code onTick}/{@code onFinish}) directly instead of
  * waiting on the real countdown, so the tests are fast. Exercises are seeded with long
- * durations so the real timer never finishes an exercise on its own; the fixed 3-second
+ * durations so the real timer never finishes an exercise on its own; the few-second
  * transition countdowns are only ever held for a few milliseconds before the next step.
  * That window is the one remaining real-time dependency: a main-thread stall of over 3s
  * between two steps would let the real timer advance a phase first (removing it would need
@@ -116,7 +117,7 @@ public class PlayerViewModelTest {
     }
 
     @Test
-    public void finishFromActiveOnLastExerciseStartsFinishing() {
+    public void finishFromActiveOnLastExerciseFinishesWithoutAnotherCountdown() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         PlayerExerciseState lastActive = finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
@@ -125,16 +126,15 @@ public class PlayerViewModelTest {
 
         PlayerExerciseState state = finishCurrentPhase();
 
-        assertEquals(Phase.FINISHING, state.phase);
+        assertEquals(Phase.FINISHED, state.phase);
         assertNull(state.exercise);
     }
 
     @Test
-    public void finishFromFinishingRecordsCompletedSession() throws Exception {
+    public void finishingTheLastExerciseRecordsCompletedSession() throws Exception {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState state = finishCurrentPhase();
 
@@ -192,8 +192,50 @@ public class PlayerViewModelTest {
     }
 
     @Test
+    public void noStartSoundForAnExerciseTheUserSteppedTo() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+
+        PlayerExerciseState next = onMain(() -> {
+            viewModel.next();
+            return viewModel.getExerciseState().getValue();
+        });
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(next)));
+
+        PlayerExerciseState previous = onMain(() -> {
+            viewModel.previous();
+            return viewModel.getExerciseState().getValue();
+        });
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(previous)));
+    }
+
+    @Test
+    public void startSoundAfterTheCountdownBetweenExercises() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        PlayerExerciseState transition = finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(transition)));
+
+        PlayerExerciseState active = finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
+
+        assertTrue(onMain(() -> viewModel.shouldPlayStartSound(active)));
+    }
+
+    @Test
+    public void beepsCountDownOutOfEveryExerciseButThePauseStaysQuiet() {
+        // The real start countdown has already reported second 3, so check second 2.
+        assertTrue(tickAt(1500).shouldBeep); // READY, before the first exercise
+
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        assertTrue(tickAt(2500).shouldBeep);
+
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        assertFalse(tickAt(2500).shouldBeep);
+    }
+
+    @Test
     public void shouldPlayBeepReturnsTrueOncePerBeepingTick() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        finishCurrentPhase(); // TRANSITION -> ACTIVE (1), the last exercise
 
         PlayerTick silent = tickAt(10_000);
         assertFalse(onMain(() -> viewModel.shouldPlayBeep(silent)));
@@ -215,7 +257,6 @@ public class PlayerViewModelTest {
         assertFalse(onMain(() -> viewModel.shouldPlaySuccessSound(active)));
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState finished = finishCurrentPhase();
 
@@ -228,7 +269,6 @@ public class PlayerViewModelTest {
     public void summaryCountsAnExerciseSteppedAwayFromAsSkipped() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         runOnMain(viewModel::next); // skips exercise 0
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState finished = finishCurrentPhase();
 
@@ -244,7 +284,6 @@ public class PlayerViewModelTest {
         runOnMain(viewModel::previous); // back to exercise 0
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
         finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
-        finishCurrentPhase(); // ACTIVE (1) -> FINISHING
 
         PlayerExerciseState finished = finishCurrentPhase();
 
@@ -258,10 +297,41 @@ public class PlayerViewModelTest {
 
         PlayerTick tick = tickAt(10_000);
 
-        long transition = 3000;
+        // Exercise time only: the pause between the two exercises doesn't count.
         long secondExercise = LONG_DURATION_SECONDS * 1000L;
-        assertEquals(10_000 + transition + secondExercise, tick.workoutRemainingMillis);
-        assertEquals(2 * secondExercise + transition, tick.workoutTotalMillis);
+        assertEquals(10_000 + secondExercise, tick.workoutRemainingMillis);
+        assertEquals(2 * secondExercise, tick.workoutTotalMillis);
+    }
+
+    @Test
+    public void theWorkoutsOwnPauseLengthIsUsedBetweenExercises() throws InterruptedException {
+        AppContainer container = helper.getAppContainer();
+        Workout workout = new Workout();
+        workout.name = "Long Rest";
+        workout.transitionSeconds = 9;
+        long workoutId = container.workoutRepository.save(workout);
+        helper.insertWorkoutExercise(workoutId, helper.insertExercise("A"), 0, LONG_DURATION_SECONDS);
+        helper.insertWorkoutExercise(workoutId, helper.insertExercise("B"), 1, LONG_DURATION_SECONDS);
+
+        PlayerViewModel other = onMain(() -> new PlayerViewModel(container, workoutId));
+        try {
+            getOrAwaitValue(other.getExerciseState());
+
+            onMain(() -> {
+                other.onFinish(); // READY -> ACTIVE (0)
+                other.onFinish(); // ACTIVE (0) -> TRANSITION (1)
+                return null;
+            });
+            // The real timer reports the pause's own countdown as soon as it starts.
+            Thread.sleep(300);
+            PlayerTick tick = onMain(() -> other.getTick().getValue());
+
+            assertEquals(Phase.TRANSITION, tick.phase);
+            assertTrue("pause countdown " + tick.remainingMillis,
+                    tick.remainingMillis > 8000 && tick.remainingMillis <= 9000);
+        } finally {
+            runOnMain(other::onCleared);
+        }
     }
 
     /** Calls {@code onFinish()} as the timer would and returns the resulting state. */

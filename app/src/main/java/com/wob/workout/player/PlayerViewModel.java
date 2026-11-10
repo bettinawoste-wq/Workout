@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Owns the player's state machine (READY/ACTIVE/TRANSITION/FINISHING/FINISHED), the single
+ * Owns the player's state machine (READY/ACTIVE/TRANSITION/FINISHED), the single
  * {@link PlayerTimer}, and the {@link PlayerHistoryTracker}. Survives configuration
  * changes, which fixes a duplicate-session bug the old Fragment-owned version had on
  * rotation (see wayfinder ticket #4). Data loading (exercises + workout name) happens
@@ -26,7 +26,8 @@ import java.util.Set;
  */
 public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
-    private static final long TRANSITION_MILLIS = 3000;
+    /** The countdown before the first exercise. */
+    private static final long COUNTDOWN_MILLIS = 3000;
 
     private final PlayerHistoryTracker historyTracker;
     private final PlayerTimer timer = new PlayerTimer(this);
@@ -40,10 +41,12 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private PlayerExerciseState.Phase currentPhase = PlayerExerciseState.Phase.READY;
     private boolean cleared;
 
-    private PlayerExerciseState lastStartSoundState;
+    /** The exercise state whose start sound is still to be played, if any. */
+    private PlayerExerciseState startSoundState;
     private PlayerTick lastConsumedTick;
     private boolean successSoundPlayed;
 
+    private long transitionMillis;
     private PlayerProgress progress;
     /** Positions whose time ran out at least once, as opposed to being stepped away from. */
     private final Set<Integer> donePositions = new HashSet<>();
@@ -62,12 +65,13 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         return tick;
     }
 
-    /** Returns true at most once per distinct {@link PlayerExerciseState}, even across a
+    /** The start sound belongs to an exercise that a countdown led into, not to one the user
+     *  stepped to. Returns true at most once per such {@link PlayerExerciseState}, even across a
      *  Fragment recreation that re-observes and receives LiveData's redelivered value. */
     public boolean shouldPlayStartSound(PlayerExerciseState state) {
-        if (state == lastStartSoundState) return false;
-        lastStartSoundState = state;
-        return state.phase == PlayerExerciseState.Phase.ACTIVE;
+        if (state != startSoundState) return false;
+        startSoundState = null;
+        return true;
     }
 
     /** Same idea as {@link #shouldPlayStartSound} for the per-second beep. */
@@ -102,7 +106,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         if (index >= exercises.size() - 1) return;
         historyTracker.closeOutCurrentExercise(index, exercises.get(index));
         index++;
-        beginExercise();
+        beginExercise(false);
     }
 
     public void previous() {
@@ -110,7 +114,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         if (index <= 0) return;
         historyTracker.closeOutCurrentExercise(index, exercises.get(index));
         index--;
-        beginExercise();
+        beginExercise(false);
     }
 
     private boolean isActive() {
@@ -137,20 +141,20 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         switch (currentPhase) {
             case READY:
             case TRANSITION:
-                beginExercise();
+                beginExercise(true);
                 break;
             case ACTIVE:
                 donePositions.add(index);
                 historyTracker.closeOutCurrentExercise(index, exercises.get(index));
                 if (index >= exercises.size() - 1) {
-                    startFinishTransition();
+                    // The exercise's own last seconds already counted down to the end.
+                    finishWorkout();
                 } else {
                     index++;
                     startTransition();
                 }
                 break;
-            case FINISHING:
-                finishWorkout();
+            case FINISHED:
                 break;
         }
     }
@@ -171,11 +175,15 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             List<PlayerExercise> loadedExercises = container.playerRepository.getExercises(workoutId);
             Workout workout = container.workoutRepository.getById(workoutId);
-            return new LoadResult(loadedExercises, workout != null ? workout.name : null);
+            return new LoadResult(
+                    loadedExercises,
+                    workout != null ? workout.name : null,
+                    (workout != null ? workout : new Workout()).transitionSeconds);
         }, () -> !cleared, result -> {
             if (result == null) return;
             exercises = result.exercises;
-            progress = new PlayerProgress(plannedSeconds(exercises), TRANSITION_MILLIS);
+            transitionMillis = result.transitionSeconds * 1000L;
+            progress = new PlayerProgress(plannedSeconds(exercises));
             historyTracker.startSession(workoutId, result.workoutName);
             startInitialTransition();
         });
@@ -191,27 +199,31 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void startInitialTransition() {
         index = 0;
-        enterPhase(PlayerExerciseState.Phase.READY, exercises.get(index), TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.READY, exercises.get(index), COUNTDOWN_MILLIS);
     }
 
     private void startTransition() {
-        enterPhase(PlayerExerciseState.Phase.TRANSITION, exercises.get(index), TRANSITION_MILLIS);
+        enterPhase(PlayerExerciseState.Phase.TRANSITION, exercises.get(index), transitionMillis);
     }
 
-    private void startFinishTransition() {
-        enterPhase(PlayerExerciseState.Phase.FINISHING, null, TRANSITION_MILLIS);
-    }
-
-    private void beginExercise() {
+    private void beginExercise(boolean afterCountdown) {
         historyTracker.startExercise();
         PlayerExercise current = exercises.get(index);
-        enterPhase(PlayerExerciseState.Phase.ACTIVE, current, current.durationSeconds * 1000L);
+        PlayerExerciseState state = new PlayerExerciseState(
+                current, index, exercises.size(), PlayerExerciseState.Phase.ACTIVE);
+        // Set before the state goes out: observers are told inside setValue().
+        startSoundState = afterCountdown ? state : null;
+        enterPhase(state, current.durationSeconds * 1000L);
     }
 
     private void enterPhase(PlayerExerciseState.Phase phase, PlayerExercise exercise, long millis) {
-        currentPhase = phase;
+        enterPhase(new PlayerExerciseState(exercise, index, exercises.size(), phase), millis);
+    }
+
+    private void enterPhase(PlayerExerciseState state, long millis) {
+        currentPhase = state.phase;
         lastBeepSecond = -1;
-        exerciseState.setValue(new PlayerExerciseState(exercise, index, exercises.size(), phase));
+        exerciseState.setValue(state);
         timer.start(millis);
     }
 
@@ -224,12 +236,18 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
                 new PlayerExerciseState(null, index, exercises.size(), currentPhase, summary));
     }
 
-    /** Same guard {@code lastBeepSecond} already implemented in the pre-migration Fragment,
-     *  now applied uniformly to both the exercise countdown and the transition countdown
-     *  (the old code only beeped near the end of an exercise after a pause/resume cycle —
-     *  a latent inconsistency this migration fixes as a side effect of consolidating the
-     *  timer logic into one place). */
+    /**
+     * Beeps count down into the first exercise and out of every exercise. The pause between two
+     * exercises stays quiet: its end is marked by the start sound alone.
+     */
+    private boolean countsDownAudibly() {
+        return currentPhase != PlayerExerciseState.Phase.TRANSITION;
+    }
+
+    /** One beep for each of the last three seconds, however often a second is reported. */
     private boolean computeShouldBeep(long millisUntilFinished) {
+        if (!countsDownAudibly()) return false;
+
         long second = (millisUntilFinished + 999) / 1000;
         if (second <= 3 && second > 0 && second != lastBeepSecond) {
             lastBeepSecond = second;
@@ -241,10 +259,12 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private static class LoadResult {
         final List<PlayerExercise> exercises;
         final String workoutName;
+        final int transitionSeconds;
 
-        LoadResult(List<PlayerExercise> exercises, String workoutName) {
+        LoadResult(List<PlayerExercise> exercises, String workoutName, int transitionSeconds) {
             this.exercises = exercises;
             this.workoutName = workoutName;
+            this.transitionSeconds = transitionSeconds;
         }
     }
 }

@@ -5,7 +5,7 @@ import android.os.CountDownTimer;
 /**
  * Wraps a single {@link CountDownTimer}, handling the cancel-and-recreate-with-remaining-
  * time dance Android's CountDownTimer requires for pause/resume. One instance is reused
- * across both the exercise countdown and the 3-second transition countdown — never more
+ * across both the exercise countdown and the countdowns between exercises — never more
  * than one running at once in the player's state machine. See wayfinder ticket #4.
  */
 public class PlayerTimer {
