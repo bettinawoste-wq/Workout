@@ -63,7 +63,7 @@ public class WorkoutListViewModelTest {
     }
 
     @Test
-    public void picturedExercisesFollowTheWorkoutOrderAndSkipThoseWithoutMedia()
+    public void exercisesFollowTheWorkoutOrderWithOrWithoutMedia()
             throws InterruptedException {
         long workoutId = helper.insertWorkout("Leg Day");
         // Inserted in the opposite order to their positions.
@@ -74,9 +74,10 @@ public class WorkoutListViewModelTest {
         WorkoutListItem item = getOrAwaitValue(repository.observeAll()).get(0);
 
         assertEquals(3, item.exerciseCount);
-        assertEquals(2, item.picturedExercises.size());
-        assertEquals("First", item.picturedExercises.get(0).title);
-        assertEquals("Second", item.picturedExercises.get(1).title);
+        assertEquals(3, item.exercises.size());
+        assertEquals("First", item.exercises.get(0).title);
+        assertEquals("No picture", item.exercises.get(1).title);
+        assertEquals("Second", item.exercises.get(2).title);
     }
 
     @Test
