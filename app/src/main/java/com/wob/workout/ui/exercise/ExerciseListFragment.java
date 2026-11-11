@@ -15,9 +15,9 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
-import com.wob.workout.ui.ScreenToolbar;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentExerciseListBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 public class ExerciseListFragment extends Fragment {
     private FragmentExerciseListBinding binding;

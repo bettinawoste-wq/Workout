@@ -315,6 +315,18 @@ public class WorkoutEditViewModelTest {
         assertEquals(45, original.get(0).workoutExercise.durationSeconds);
     }
 
+    @Test
+    public void theStoredNameIsShownOnlyOnceAndNeverForANewWorkout() {
+        long workoutId = helper.insertWorkout("Leg Day");
+        WorkoutEditViewModel existing = new WorkoutEditViewModel(container, workoutId);
+        WorkoutEditViewModel fresh = new WorkoutEditViewModel(container, -1);
+
+        // Afterwards the field keeps what the user left in it, even an empty name.
+        assertTrue(existing.takeNameToShow());
+        assertFalse(existing.takeNameToShow());
+        assertFalse(fresh.takeNameToShow());
+    }
+
     /** What the editor shows when the workout is opened again, e.g. after leaving it. */
     private String nameInFreshEditor(long workoutId) throws InterruptedException {
         return getOrAwaitValue(new WorkoutEditViewModel(container, workoutId).getWorkout()).name;

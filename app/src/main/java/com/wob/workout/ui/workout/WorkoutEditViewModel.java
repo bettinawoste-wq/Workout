@@ -43,6 +43,7 @@ public class WorkoutEditViewModel extends ViewModel {
     public WorkoutEditViewModel(AppContainer container, long workoutId) {
         this.container = container;
         this.workoutId = workoutId;
+        this.nameShown = isNew();
 
         if (!isNew()) {
             LiveDataExecutor.runOnExecutorOnce(
@@ -52,8 +53,21 @@ public class WorkoutEditViewModel extends ViewModel {
         }
     }
 
+    /** A new workout has no stored name to show; an existing one shows it only once. */
+    private boolean nameShown;
+
     public boolean isNew() {
         return workoutId <= 0;
+    }
+
+    /** True the first time only, for an existing workout: whether the screen should fill
+     *  its name field from {@link #getWorkout()}. Afterwards the field itself is the truth
+     *  (Android restores it on rotation and on return from the back stack), and the loaded
+     *  name may be stale, e.g. after the field was cleared and "Neues Workout" saved. */
+    public boolean takeNameToShow() {
+        boolean show = !nameShown;
+        nameShown = true;
+        return show;
     }
 
     /** Saves the name right away; an empty one is saved as {@link #DEFAULT_NAME}. A new

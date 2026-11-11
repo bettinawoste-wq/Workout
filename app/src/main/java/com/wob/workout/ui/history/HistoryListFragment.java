@@ -17,8 +17,8 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
-import com.wob.workout.ui.ScreenToolbar;
 import com.wob.workout.databinding.FragmentHistoryListBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 public class HistoryListFragment extends Fragment {
 

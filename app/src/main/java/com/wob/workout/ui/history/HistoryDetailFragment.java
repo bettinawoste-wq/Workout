@@ -12,8 +12,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.wob.workout.AppContainer;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
-import com.wob.workout.ui.ScreenToolbar;
 import com.wob.workout.databinding.FragmentHistoryDetailBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

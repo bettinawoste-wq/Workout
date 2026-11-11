@@ -16,7 +16,8 @@ Room — no account, no backend. The interface is in German.
   the editor: zoom with two fingers and move with one to decide how much of the edge is cut
   off; the original file stays untouched. Exercises without a picture show a placeholder.
 - **Workouts** — a named, ordered list of exercises with a duration each, reordered by
-  drag-and-drop. The workout list shows a thumbnail of every exercise.
+  drag-and-drop. The editor saves every change as you make it, and a workout can be
+  duplicated from its menu. The workout list shows a thumbnail of every exercise.
 - **Player** — counts down into the first exercise and out of every exercise, marks each
   start with a soft tone, and keeps the pause between exercises quiet. While a countdown
   runs, the coming exercise is shown darkened with its title. A progress bar shows the

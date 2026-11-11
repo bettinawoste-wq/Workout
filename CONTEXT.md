@@ -10,7 +10,9 @@ lives in an on-device Room database.
   copies the picked file into app storage; `MediaThumbnailLoader` handles EXIF rotation and
   video-frame preview).
 - **Workout** — a named, ordered list of exercises (`WorkoutExercise` is the join row,
-  carrying `durationSeconds` and position). Built and reordered in `WorkoutEditFragment`.
+  carrying `durationSeconds` and position). Built and reordered in `WorkoutEditFragment`, which
+  has no save button: every change is written at once, and `WorkoutEditViewModel` creates a new
+  workout on its first change (a name, or an exercise added under "Neues Workout").
 - **WorkoutSession / ExerciseSession** — a historical record of one run through a workout:
   when it started/finished, whether it was completed or aborted, and the actual vs. planned
   duration per exercise. Written by `PlayerFragment` as the player runs, read by the

@@ -31,6 +31,7 @@ import java.util.function.Consumer;
 public class WorkoutEditFragment extends Fragment {
 
     private static final String ARG_WORKOUT_ID = "workout_id";
+    private static final String ARG_OPENED_AS_NEW = "opened_as_new";
     private FragmentWorkoutEditBinding binding;
     private WorkoutEditViewModel viewModel;
     private WorkoutExerciseAdapter adapter;
@@ -82,21 +83,21 @@ public class WorkoutEditFragment extends Fragment {
         itemTouchHelper.attachToRecyclerView(binding.listExercises);
 
         ScreenToolbar.setUp(this, binding.toolbar);
-        binding.toolbar.setTitle(viewModel.isNew() ? R.string.neues_workout : R.string.workout_bearbeiten);
+        // From how the screen was opened, so it doesn't change once the first edit saves it.
+        boolean openedAsNew = getArguments() != null && getArguments().getBoolean(ARG_OPENED_AS_NEW);
+        binding.toolbar.setTitle(openedAsNew ? R.string.neues_workout : R.string.workout_bearbeiten);
         binding.toolbar.setOnMenuItemClickListener(this::onMenuItemClick);
         setWorkoutActionsEnabled(!viewModel.isNew());
 
-        // Only seed the field the first time — if the screen was recreated (e.g. rotation),
-        // the EditText has already restored whatever the user had typed via Android's own
-        // view-state saving, and this async load could otherwise land after that and stomp it.
-        // Also fires when a new workout gets created by its first change.
+        // Fills the name field once for an existing workout (see takeNameToShow()). Also
+        // fires when a new workout gets created by its first change.
         viewModel.getWorkout().observe(getViewLifecycleOwner(), workout -> {
             if (workout == null) return;
             // Remembered so a recreated screen (e.g. after process death) edits this
             // workout rather than starting yet another new one.
             requireArguments().putLong(ARG_WORKOUT_ID, workout.id);
             setWorkoutActionsEnabled(true);
-            if (TextUtils.isEmpty(binding.edtName.getText())) {
+            if (viewModel.takeNameToShow() && TextUtils.isEmpty(binding.edtName.getText())) {
                 binding.edtName.setText(workout.name);
             }
         });
@@ -139,7 +140,9 @@ public class WorkoutEditFragment extends Fragment {
 
     /** Opens the editor on a new workout, saved as soon as anything is entered. */
     public static WorkoutEditFragment create() {
-        return edit(-1);
+        WorkoutEditFragment fragment = edit(-1);
+        fragment.requireArguments().putBoolean(ARG_OPENED_AS_NEW, true);
+        return fragment;
     }
 
     public static WorkoutEditFragment edit(long workoutId) {
