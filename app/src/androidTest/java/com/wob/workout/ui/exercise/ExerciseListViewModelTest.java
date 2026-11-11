@@ -40,20 +40,20 @@ public class ExerciseListViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private TestAppContainer helper;
+    private TestAppContainer testContainer;
     private ExerciseRepository repository;
     private ExerciseListViewModel viewModel;
 
     @Before
     public void setUp() {
-        helper = new TestAppContainer();
-        repository = helper.getAppContainer().exerciseRepository;
-        viewModel = new ExerciseListViewModel(helper.getAppContainer());
+        testContainer = new TestAppContainer();
+        repository = testContainer.getAppContainer().exerciseRepository;
+        viewModel = new ExerciseListViewModel(testContainer.getAppContainer());
     }
 
     @After
     public void tearDown() {
-        helper.close();
+        testContainer.close();
     }
 
     @Test
@@ -65,8 +65,8 @@ public class ExerciseListViewModelTest {
 
     @Test
     public void exercisesListsCatalogNewestFirst() throws InterruptedException {
-        helper.insertExercise("Squat");
-        helper.insertExercise("Lunge");
+        testContainer.insertExercise("Squat");
+        testContainer.insertExercise("Lunge");
 
         List<Exercise> exercises = getOrAwaitValue(viewModel.getExercises());
 
@@ -87,7 +87,7 @@ public class ExerciseListViewModelTest {
         BlockingQueue<List<Exercise>> values = observeValues(viewModel.getExercises());
         assertTrue(poll(values).isEmpty());
 
-        helper.insertExercise("Push-up");
+        testContainer.insertExercise("Push-up");
 
         List<Exercise> afterInsert = poll(values);
         assertEquals(1, afterInsert.size());
@@ -96,7 +96,7 @@ public class ExerciseListViewModelTest {
 
     @Test
     public void exercisesUpdatesOnUpdateWithoutReload() throws InterruptedException {
-        long id = helper.insertExercise("Push-up");
+        long id = testContainer.insertExercise("Push-up");
         BlockingQueue<List<Exercise>> values = observeValues(viewModel.getExercises());
         assertEquals("Push-up", poll(values).get(0).title);
 
@@ -111,8 +111,8 @@ public class ExerciseListViewModelTest {
 
     @Test
     public void exercisesUpdatesOnDeleteWithoutReload() throws InterruptedException {
-        helper.insertExercise("Squat");
-        long lungeId = helper.insertExercise("Lunge");
+        testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
         BlockingQueue<List<Exercise>> values = observeValues(viewModel.getExercises());
         assertEquals(2, poll(values).size());
 

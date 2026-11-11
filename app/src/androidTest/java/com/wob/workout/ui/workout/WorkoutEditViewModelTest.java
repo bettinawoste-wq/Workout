@@ -49,29 +49,29 @@ public class WorkoutEditViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private TestAppContainer helper;
+    private TestAppContainer testContainer;
     private AppContainer container;
 
     @Before
     public void setUp() {
-        helper = new TestAppContainer();
-        container = helper.getAppContainer();
+        testContainer = new TestAppContainer();
+        container = testContainer.getAppContainer();
     }
 
     @After
     public void tearDown() {
-        helper.close();
+        testContainer.close();
     }
 
     @Test
     public void constructorLoadsWorkoutAndExercisesWithoutExplicitRefresh()
             throws InterruptedException {
-        long workoutId = helper.insertWorkout("Leg Day");
-        long squatId = helper.insertExercise("Squat");
-        long lungeId = helper.insertExercise("Lunge");
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
         // Inserted out of order to show the list follows position, not insertion order.
-        helper.insertWorkoutExercise(workoutId, lungeId, 1, 30);
-        helper.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
 
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
 
@@ -87,11 +87,11 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void addExercisesAppendsThemInTickOrderWith60SecondsEach() throws InterruptedException {
-        long workoutId = helper.insertWorkout("Push Day");
-        long pushUpId = helper.insertExercise("Push-up");
-        long dipId = helper.insertExercise("Dip");
-        long plankId = helper.insertExercise("Plank");
-        helper.insertWorkoutExercise(workoutId, pushUpId, 0, 30);
+        long workoutId = testContainer.insertWorkout("Push Day");
+        long pushUpId = testContainer.insertExercise("Push-up");
+        long dipId = testContainer.insertExercise("Dip");
+        long plankId = testContainer.insertExercise("Plank");
+        testContainer.insertWorkoutExercise(workoutId, pushUpId, 0, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         // Ticked in this order, not in catalog order.
         List<Exercise> ticked = Arrays.asList(
@@ -110,10 +110,10 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void addingTheSameExerciseTwiceKeepsBothInOrder() throws InterruptedException {
-        long workoutId = helper.insertWorkout("Core");
-        long plankId = helper.insertExercise("Plank");
-        long crunchId = helper.insertExercise("Crunch");
-        helper.insertWorkoutExercise(workoutId, plankId, 0, 30);
+        long workoutId = testContainer.insertWorkout("Core");
+        long plankId = testContainer.insertExercise("Plank");
+        long crunchId = testContainer.insertExercise("Crunch");
+        testContainer.insertWorkoutExercise(workoutId, plankId, 0, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         Exercise plank = container.exerciseRepository.getById(plankId);
         Exercise crunch = container.exerciseRepository.getById(crunchId);
@@ -130,9 +130,9 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void changeDurationIsPersistedAndReloaded() throws InterruptedException {
-        long workoutId = helper.insertWorkout("Core");
-        long plankId = helper.insertExercise("Plank");
-        helper.insertWorkoutExercise(workoutId, plankId, 0, 30);
+        long workoutId = testContainer.insertWorkout("Core");
+        long plankId = testContainer.insertExercise("Plank");
+        testContainer.insertWorkoutExercise(workoutId, plankId, 0, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         ExerciseItem plank = getOrAwaitValue(viewModel.getExercises()).get(0);
 
@@ -147,11 +147,11 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void removeExerciseDropsItFromTheList() throws InterruptedException {
-        long workoutId = helper.insertWorkout("Full Body");
-        long squatId = helper.insertExercise("Squat");
-        long rowId = helper.insertExercise("Row");
-        helper.insertWorkoutExercise(workoutId, squatId, 0, 45);
-        helper.insertWorkoutExercise(workoutId, rowId, 1, 40);
+        long workoutId = testContainer.insertWorkout("Full Body");
+        long squatId = testContainer.insertExercise("Squat");
+        long rowId = testContainer.insertExercise("Row");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, rowId, 1, 40);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         ExerciseItem squat = getOrAwaitValue(viewModel.getExercises()).get(0);
 
@@ -163,13 +163,13 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void reorderPersistsTheNewPositions() throws InterruptedException {
-        long workoutId = helper.insertWorkout("Circuit");
-        long aId = helper.insertExercise("A");
-        long bId = helper.insertExercise("B");
-        long cId = helper.insertExercise("C");
-        helper.insertWorkoutExercise(workoutId, aId, 0, 10);
-        helper.insertWorkoutExercise(workoutId, bId, 1, 20);
-        helper.insertWorkoutExercise(workoutId, cId, 2, 30);
+        long workoutId = testContainer.insertWorkout("Circuit");
+        long aId = testContainer.insertExercise("A");
+        long bId = testContainer.insertExercise("B");
+        long cId = testContainer.insertExercise("C");
+        testContainer.insertWorkoutExercise(workoutId, aId, 0, 10);
+        testContainer.insertWorkoutExercise(workoutId, bId, 1, 20);
+        testContainer.insertWorkoutExercise(workoutId, cId, 2, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         List<ExerciseItem> loaded = getOrAwaitValue(viewModel.getExercises());
 
@@ -191,9 +191,9 @@ public class WorkoutEditViewModelTest {
     @Test
     public void refreshExercisesPicksUpAnExerciseRenamedOnAnotherScreen()
             throws InterruptedException {
-        long workoutId = helper.insertWorkout("Leg Day");
-        long squatId = helper.insertExercise("Squat");
-        helper.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         assertTitles(getOrAwaitValue(viewModel.getExercises()), "Squat");
 
@@ -210,11 +210,11 @@ public class WorkoutEditViewModelTest {
     @Test
     public void refreshExercisesDropsAnExerciseDeletedOnAnotherScreen()
             throws InterruptedException {
-        long workoutId = helper.insertWorkout("Leg Day");
-        long squatId = helper.insertExercise("Squat");
-        long lungeId = helper.insertExercise("Lunge");
-        helper.insertWorkoutExercise(workoutId, squatId, 0, 45);
-        helper.insertWorkoutExercise(workoutId, lungeId, 1, 30);
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         assertTitles(getOrAwaitValue(viewModel.getExercises()), "Squat", "Lunge");
 
@@ -257,7 +257,7 @@ public class WorkoutEditViewModelTest {
         assertEquals("Leg Day", nameInFreshEditor(created.id));
 
         viewModel.changeName("Leg Day Heavy");
-        helper.drainIoExecutor();
+        testContainer.drainIoExecutor();
 
         assertEquals("Leg Day Heavy", nameInFreshEditor(created.id));
         assertEquals(1, container.workoutRepository.getAll().size());
@@ -265,11 +265,11 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void clearingTheNameSavesNeuesWorkout() throws Exception {
-        long workoutId = helper.insertWorkout("Leg Day");
+        long workoutId = testContainer.insertWorkout("Leg Day");
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
 
         viewModel.changeName("   ");
-        helper.drainIoExecutor();
+        testContainer.drainIoExecutor();
 
         assertEquals("Neues Workout", nameInFreshEditor(workoutId));
     }
@@ -279,7 +279,7 @@ public class WorkoutEditViewModelTest {
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
 
         viewModel.changeName("");
-        helper.drainIoExecutor();
+        testContainer.drainIoExecutor();
 
         assertTrue(viewModel.isNew());
         assertTrue(container.workoutRepository.getAll().isEmpty());
@@ -287,7 +287,7 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void addingAnExerciseToANewWorkoutSavesItAsNeuesWorkout() throws Exception {
-        long squatId = helper.insertExercise("Squat");
+        long squatId = testContainer.insertExercise("Squat");
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
 
         viewModel.addExercises(Arrays.asList(container.exerciseRepository.getById(squatId)));
@@ -302,11 +302,11 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void duplicateCopiesNameExercisesAndDurations() throws Exception {
-        long workoutId = helper.insertWorkout("Leg Day");
-        long squatId = helper.insertExercise("Squat");
-        long lungeId = helper.insertExercise("Lunge");
-        helper.insertWorkoutExercise(workoutId, lungeId, 1, 30);
-        helper.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
 
         long copyId = getOrAwaitValue(viewModel.duplicate());
@@ -322,11 +322,11 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void editingADuplicateLeavesTheOriginalUnchanged() throws Exception {
-        long workoutId = helper.insertWorkout("Leg Day");
-        long squatId = helper.insertExercise("Squat");
-        long lungeId = helper.insertExercise("Lunge");
-        helper.insertWorkoutExercise(workoutId, squatId, 0, 45);
-        helper.insertWorkoutExercise(workoutId, lungeId, 1, 30);
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
         long copyId = getOrAwaitValue(new WorkoutEditViewModel(container, workoutId).duplicate());
 
         WorkoutEditViewModel copy = new WorkoutEditViewModel(container, copyId);
@@ -334,7 +334,7 @@ public class WorkoutEditViewModelTest {
         awaitEmissionAfter(copy, () -> copy.changeDuration(copied.get(0), 99));
         awaitEmissionAfter(copy, () -> copy.removeExercise(copied.get(1)));
         copy.changeName("Arm Day");
-        helper.drainIoExecutor();
+        testContainer.drainIoExecutor();
 
         assertEquals("Leg Day", nameInFreshEditor(workoutId));
         List<ExerciseItem> original =
@@ -345,7 +345,7 @@ public class WorkoutEditViewModelTest {
 
     @Test
     public void theStoredNameIsShownOnlyOnceAndNeverForANewWorkout() {
-        long workoutId = helper.insertWorkout("Leg Day");
+        long workoutId = testContainer.insertWorkout("Leg Day");
         WorkoutEditViewModel existing = new WorkoutEditViewModel(container, workoutId);
         WorkoutEditViewModel fresh = new WorkoutEditViewModel(container, -1);
 

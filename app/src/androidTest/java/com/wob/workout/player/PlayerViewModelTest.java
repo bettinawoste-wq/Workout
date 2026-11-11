@@ -53,19 +53,19 @@ public class PlayerViewModelTest {
     /** Long enough that the real exercise countdown can never finish during a test. */
     private static final int LONG_DURATION_SECONDS = 600;
 
-    private TestAppContainer helper;
+    private TestAppContainer testContainer;
     private PlayerViewModel viewModel;
 
     @Before
     public void setUp() throws InterruptedException {
-        helper = new TestAppContainer();
-        long workoutId = helper.insertWorkout("Push Day");
-        long pushUpId = helper.insertExercise("Push-up");
-        long squatId = helper.insertExercise("Squat");
-        helper.insertWorkoutExercise(workoutId, pushUpId, 0, LONG_DURATION_SECONDS);
-        helper.insertWorkoutExercise(workoutId, squatId, 1, LONG_DURATION_SECONDS);
+        testContainer = new TestAppContainer();
+        long workoutId = testContainer.insertWorkout("Push Day");
+        long pushUpId = testContainer.insertExercise("Push-up");
+        long squatId = testContainer.insertExercise("Squat");
+        testContainer.insertWorkoutExercise(workoutId, pushUpId, 0, LONG_DURATION_SECONDS);
+        testContainer.insertWorkoutExercise(workoutId, squatId, 1, LONG_DURATION_SECONDS);
 
-        AppContainer container = helper.getAppContainer();
+        AppContainer container = testContainer.getAppContainer();
         // The constructor observes the load's LiveData, which must happen on the main thread.
         viewModel = onMain(() -> new PlayerViewModel(container, workoutId));
         // Waits for the async load; asserted in initialLoadEntersReadyForFirstExercise.
@@ -80,8 +80,8 @@ public class PlayerViewModelTest {
                 runOnMain(viewModel::onCleared);
             }
         } finally {
-            if (helper != null) {
-                helper.close();
+            if (testContainer != null) {
+                testContainer.close();
             }
         }
     }
@@ -140,9 +140,9 @@ public class PlayerViewModelTest {
 
         assertEquals(Phase.FINISHED, state.phase);
         // History writes are fire-and-forget on the IO executor (issue #21).
-        helper.drainIoExecutor();
+        testContainer.drainIoExecutor();
         List<WorkoutSessionSummary> history = getOrAwaitValue(
-                helper.getAppContainer().workoutHistoryRepository.observeHistory());
+                testContainer.getAppContainer().workoutHistoryRepository.observeHistory());
         assertEquals(1, history.size());
         assertTrue(history.get(0).session.completed);
         assertEquals("Push Day", history.get(0).session.workoutName);
@@ -305,13 +305,15 @@ public class PlayerViewModelTest {
 
     @Test
     public void theWorkoutsOwnPauseLengthIsUsedBetweenExercises() throws InterruptedException {
-        AppContainer container = helper.getAppContainer();
+        AppContainer container = testContainer.getAppContainer();
         Workout workout = new Workout();
         workout.name = "Long Rest";
         workout.transitionSeconds = 9;
         long workoutId = container.workoutRepository.save(workout);
-        helper.insertWorkoutExercise(workoutId, helper.insertExercise("A"), 0, LONG_DURATION_SECONDS);
-        helper.insertWorkoutExercise(workoutId, helper.insertExercise("B"), 1, LONG_DURATION_SECONDS);
+        testContainer.insertWorkoutExercise(
+                workoutId, testContainer.insertExercise("A"), 0, LONG_DURATION_SECONDS);
+        testContainer.insertWorkoutExercise(
+                workoutId, testContainer.insertExercise("B"), 1, LONG_DURATION_SECONDS);
 
         PlayerViewModel other = onMain(() -> new PlayerViewModel(container, workoutId));
         try {

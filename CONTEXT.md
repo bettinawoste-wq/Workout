@@ -68,7 +68,7 @@ lives in an on-device Room database.
   `app/schemas/`, committed and shipped in the test APK. Every `version` bump commits the new
   JSON, adds its `Migration` to `AppDatabase.ALL_MIGRATIONS` (which `DatabaseProvider`
   registers) and adds a test built on Room's `MigrationTestHelper`, like `Migration4To5Test`.
-  `AllMigrationsTest` migrates version 4 — the oldest any release shipped — to the current one.
+  `AllMigrationsTest` migrates version 4 â€” the oldest any release shipped â€” to the current one.
 - **Starter set**: `StarterSet` is a Room `onCreate` callback added in `DatabaseProvider`, so it
   runs only when the database file is first created â€” existing installs are untouched and
   anything the user deletes stays deleted. Its content (10 exercises, one workout, seconds per

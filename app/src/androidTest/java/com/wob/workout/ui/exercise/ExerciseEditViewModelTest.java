@@ -53,18 +53,18 @@ public class ExerciseEditViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private TestAppContainer helper;
+    private TestAppContainer testContainer;
     private AppContainer container;
 
     @Before
     public void setUp() {
-        helper = new TestAppContainer();
-        container = helper.getAppContainer();
+        testContainer = new TestAppContainer();
+        container = testContainer.getAppContainer();
     }
 
     @After
     public void tearDown() {
-        helper.close();
+        testContainer.close();
     }
 
     @Test

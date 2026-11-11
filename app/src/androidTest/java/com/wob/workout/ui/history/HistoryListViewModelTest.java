@@ -43,20 +43,20 @@ public class HistoryListViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private TestAppContainer helper;
+    private TestAppContainer testContainer;
     private WorkoutHistoryRepository history;
     private HistoryListViewModel viewModel;
 
     @Before
     public void setUp() {
-        helper = new TestAppContainer();
-        history = helper.getAppContainer().workoutHistoryRepository;
-        viewModel = new HistoryListViewModel(helper.getAppContainer());
+        testContainer = new TestAppContainer();
+        history = testContainer.getAppContainer().workoutHistoryRepository;
+        viewModel = new HistoryListViewModel(testContainer.getAppContainer());
     }
 
     @After
     public void tearDown() {
-        helper.close();
+        testContainer.close();
     }
 
     @Test
@@ -161,7 +161,7 @@ public class HistoryListViewModelTest {
     }
 
     private void setStartedAt(long sessionId, long startedAt) {
-        WorkoutSessionDao dao = helper.getDatabase().workoutSessionDao();
+        WorkoutSessionDao dao = testContainer.getDatabase().workoutSessionDao();
         WorkoutSession session = dao.getById(sessionId);
         session.startedAt = startedAt;
         dao.update(session);
