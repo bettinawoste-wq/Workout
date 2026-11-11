@@ -26,7 +26,7 @@ import com.wob.workout.data.entity.WorkoutSession;
                 ExerciseSession.class
         },
         version = 5,
-        exportSchema = false
+        exportSchema = true
 )
 @TypeConverters(MediaTypeConverter.class)
 public abstract class AppDatabase extends RoomDatabase { 
