@@ -16,7 +16,9 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Shared scaffold for ViewModel tests: a real {@link AppContainer} wired to a fresh,
- * isolated in-memory {@link AppDatabase}. Replaces the in-memory-database
+ * isolated in-memory {@link AppDatabase}. Called {@code MigrationTestHelper} in issues #10
+ * and #11 (after the MVVM migration); renamed so it is not confused with Room's
+ * {@code androidx.room.testing.MigrationTestHelper}, which tests schema migrations. Replaces the in-memory-database
  * {@code @Before}/{@code @After} boilerplate that {@code WorkoutListViewModelTest}
  * established inline, and additionally covers ViewModels that need a whole
  * {@code AppContainer} rather than one repository.
@@ -29,9 +31,9 @@ import java.util.concurrent.TimeUnit;
  * <p>Usage:
  * <pre>
  * &#64;Rule public InstantTaskExecutorRule rule = new InstantTaskExecutorRule();
- * private MigrationTestHelper helper;
+ * private TestAppContainer helper;
  *
- * &#64;Before public void setUp()    { helper = new MigrationTestHelper(); }
+ * &#64;Before public void setUp()    { helper = new TestAppContainer(); }
  * &#64;After  public void tearDown() { helper.close(); }
  *
  * // new SomeViewModel(helper.getAppContainer()), seed with helper.insertWorkout(...)
@@ -44,7 +46,7 @@ import java.util.concurrent.TimeUnit;
  * stays in the test class, since it is a JUnit rule and this is a plain object (like
  * {@link LiveDataTestUtil}).
  */
-public class MigrationTestHelper {
+public class TestAppContainer {
 
     /** Guards the one-helper-at-a-time rule: a second live helper would silently re-point
      *  the first one's per-call repositories at its own database. */
@@ -55,11 +57,11 @@ public class MigrationTestHelper {
     private boolean closed;
 
     /** @throws IllegalStateException if another helper hasn't been closed yet. */
-    public MigrationTestHelper() {
-        synchronized (MigrationTestHelper.class) {
+    public TestAppContainer() {
+        synchronized (TestAppContainer.class) {
             if (active) {
                 throw new IllegalStateException(
-                        "Another MigrationTestHelper is still open - close() it first.");
+                        "Another TestAppContainer is still open - close() it first.");
             }
             active = true;
         }

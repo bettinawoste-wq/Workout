@@ -8,7 +8,7 @@ import static org.junit.Assert.assertNotNull;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.MediaType;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * Exercises WorkoutSummaryRepository directly rather than constructing
  * WorkoutListViewModel: the ViewModel is a one-line passthrough (getWorkouts() just
  * returns repository.observeAll()), so the repository's LiveData is exactly what the
- * ViewModel exposes. Database setup and seeding come from {@link MigrationTestHelper}.
+ * ViewModel exposes. Database setup and seeding come from {@link TestAppContainer}.
  */
 @RunWith(AndroidJUnit4.class)
 public class WorkoutListViewModelTest {
@@ -37,12 +37,12 @@ public class WorkoutListViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer helper;
     private WorkoutSummaryRepository repository;
 
     @Before
     public void setUp() {
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         repository = helper.getAppContainer().workoutSummaryRepository;
     }
 

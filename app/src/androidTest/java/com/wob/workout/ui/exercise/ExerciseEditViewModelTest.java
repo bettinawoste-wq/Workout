@@ -15,7 +15,7 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.wob.workout.AppContainer;
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.Event;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.MediaType;
@@ -53,12 +53,12 @@ public class ExerciseEditViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer helper;
     private AppContainer container;
 
     @Before
     public void setUp() {
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         container = helper.getAppContainer();
     }
 

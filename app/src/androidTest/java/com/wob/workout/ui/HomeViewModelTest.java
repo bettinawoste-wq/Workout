@@ -6,7 +6,7 @@ import static org.junit.Assert.assertEquals;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.ui.workout.WorkoutListItem;
 
 import org.junit.After;
@@ -27,12 +27,12 @@ public class HomeViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer helper;
     private HomeViewModel viewModel;
 
     @Before
     public void setUp() {
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         viewModel = new HomeViewModel(helper.getAppContainer());
     }
 

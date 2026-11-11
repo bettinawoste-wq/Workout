@@ -26,18 +26,18 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 /**
- * Smoke test for {@link MigrationTestHelper} itself (issue #11): proves the container it
+ * Smoke test for {@link TestAppContainer} itself (issue #11): proves the container it
  * builds shares one isolated in-memory database across all repositories, that close()
  * fully tears down and hands DatabaseProvider back its previous instance, and that only
  * one helper can be live at a time.
  */
 @RunWith(AndroidJUnit4.class)
-public class MigrationTestHelperTest {
+public class TestAppContainerTest {
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer helper;
 
     @After
     public void tearDown() {
@@ -48,7 +48,7 @@ public class MigrationTestHelperTest {
 
     @Test
     public void repositoriesOnTheSameContainerShareOneDatabase() throws InterruptedException {
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         AppContainer container = helper.getAppContainer();
 
         long workoutId = helper.insertWorkout("Leg Day");
@@ -75,7 +75,7 @@ public class MigrationTestHelperTest {
     @Test
     public void closeTearsDownAndRestoresTheProvidersPreviousInstance() throws Exception {
         Object before = readProviderInstance();
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         assertSame(helper.getDatabase(), readProviderInstance());
 
         helper.close();
@@ -89,7 +89,7 @@ public class MigrationTestHelperTest {
     @Test
     public void closedHelperLeavesNothingBehindForTheNextHelper() throws Exception {
         Object before = readProviderInstance();
-        MigrationTestHelper first = new MigrationTestHelper();
+        TestAppContainer first = new TestAppContainer();
         AppDatabase firstDatabase = first.getDatabase();
         try {
             first.insertWorkout("Only in first");
@@ -101,15 +101,15 @@ public class MigrationTestHelperTest {
         assertNotSame(firstDatabase, readProviderInstance());
         assertSame(before, readProviderInstance());
 
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         assertTrue(helper.getAppContainer().workoutRepository.getAll().isEmpty());
     }
 
     @Test
     public void secondHelperWhileOneIsOpenIsRejected() throws Exception {
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
 
-        assertThrows(IllegalStateException.class, MigrationTestHelper::new);
+        assertThrows(IllegalStateException.class, TestAppContainer::new);
         // The rejected constructor must not have touched the live helper's wiring.
         assertSame(helper.getDatabase(), readProviderInstance());
     }

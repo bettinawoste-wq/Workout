@@ -62,7 +62,7 @@ lives in an on-device Room database.
   #22, the last step of the MVVM migration): every database access happens off the main thread,
   either on `AppContainer.ioExecutor` (one-shot reads and writes via `LiveDataExecutor`, and
   `PlayerHistoryTracker`'s three history writes) or on Room's own query executor behind reactive
-  `LiveData`. ViewModel tests built on `MigrationTestHelper`'s in-memory database fail with
+  `LiveData`. ViewModel tests built on `TestAppContainer`'s in-memory database fail with
   `IllegalStateException` if code touches it from the main thread, so a regression shows up there.
 - **Starter set**: `StarterSet` is a Room `onCreate` callback added in `DatabaseProvider`, so it
   runs only when the database file is first created — existing installs are untouched and

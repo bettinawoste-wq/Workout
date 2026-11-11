@@ -11,7 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.wob.workout.AppContainer;
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.player.PlayerExerciseState.Phase;
 import com.wob.workout.ui.history.WorkoutSessionSummary;
@@ -53,12 +53,12 @@ public class PlayerViewModelTest {
     /** Long enough that the real exercise countdown can never finish during a test. */
     private static final int LONG_DURATION_SECONDS = 600;
 
-    private MigrationTestHelper helper;
+    private TestAppContainer helper;
     private PlayerViewModel viewModel;
 
     @Before
     public void setUp() throws InterruptedException {
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         long workoutId = helper.insertWorkout("Push Day");
         long pushUpId = helper.insertExercise("Push-up");
         long squatId = helper.insertExercise("Squat");

@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.dao.WorkoutSessionDao;
 import com.wob.workout.data.entity.WorkoutSession;
 import com.wob.workout.data.repository.WorkoutHistoryRepository;
@@ -43,13 +43,13 @@ public class HistoryListViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer helper;
     private WorkoutHistoryRepository history;
     private HistoryListViewModel viewModel;
 
     @Before
     public void setUp() {
-        helper = new MigrationTestHelper();
+        helper = new TestAppContainer();
         history = helper.getAppContainer().workoutHistoryRepository;
         viewModel = new HistoryListViewModel(helper.getAppContainer());
     }
