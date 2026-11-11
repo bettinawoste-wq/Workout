@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -15,21 +16,33 @@ import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentPlayerBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 public class PlayerFragment extends Fragment {
 
     private static final String ARG_WORKOUT_ID = "workout_id";
+    private static final String ARG_WORKOUT_NAME = "workout_name";
 
     private FragmentPlayerBinding binding;
     private PlayerViewModel viewModel;
     private AudioManager audioManager;
     private MediaController mediaController;
 
-    public static PlayerFragment create(long workoutId) {
+    /** While a workout runs, leaving it (back arrow or system back) aborts it, so ask first,
+     *  just like "Workout abbrechen". Disabled once it's finished: then back just leaves. */
+    private final OnBackPressedCallback confirmAbortOnBack = new OnBackPressedCallback(true) {
+        @Override
+        public void handleOnBackPressed() {
+            confirmCancelWorkout();
+        }
+    };
+
+    public static PlayerFragment create(long workoutId, String workoutName) {
         PlayerFragment fragment = new PlayerFragment();
 
         Bundle args = new Bundle();
         args.putLong(ARG_WORKOUT_ID, workoutId);
+        args.putString(ARG_WORKOUT_NAME, workoutName);
 
         fragment.setArguments(args);
 
@@ -39,6 +52,13 @@ public class PlayerFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentPlayerBinding.inflate(inflater, container, false);
+        ScreenToolbar.setUp(this, binding.toolbar);
+        String workoutName = getArguments() != null
+                ? getArguments().getString(ARG_WORKOUT_NAME)
+                : null;
+        binding.toolbar.setTitle(workoutName != null ? workoutName : "Workout");
+        requireActivity().getOnBackPressedDispatcher()
+                .addCallback(getViewLifecycleOwner(), confirmAbortOnBack);
 
         requireActivity().getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -154,6 +174,7 @@ public class PlayerFragment extends Fragment {
 
         // The session is already completed, so "Workout abbrechen" and its "saved as aborted"
         // dialog no longer apply: turn the button into a plain way out.
+        confirmAbortOnBack.setEnabled(false);
         binding.btnCancel.setText("Fertig");
         binding.btnCancel.setOnClickListener(v ->
                 requireActivity().getSupportFragmentManager().popBackStack());

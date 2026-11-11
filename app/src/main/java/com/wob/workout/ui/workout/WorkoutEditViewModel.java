@@ -28,8 +28,13 @@ import java.util.List;
  */
 public class WorkoutEditViewModel extends ViewModel {
 
+    /** Stored in place of an empty name, so a workout never shows up nameless. */
+    public static final String DEFAULT_NAME = "Neues Workout";
+
     private final AppContainer container;
-    private final long workoutId;
+    /** Starts at -1 for a new workout and is set once, on the io executor, when the first
+     *  change creates the workout; read from both threads, hence volatile. */
+    private volatile long workoutId;
 
     private final MutableLiveData<Workout> workout = new MutableLiveData<>();
     private final MutableLiveData<List<WorkoutExerciseAdapter.ExerciseItem>> exercises =
@@ -38,6 +43,7 @@ public class WorkoutEditViewModel extends ViewModel {
     public WorkoutEditViewModel(AppContainer container, long workoutId) {
         this.container = container;
         this.workoutId = workoutId;
+        this.nameShown = isNew();
 
         if (!isNew()) {
             LiveDataExecutor.runOnExecutorOnce(
@@ -47,8 +53,48 @@ public class WorkoutEditViewModel extends ViewModel {
         }
     }
 
+    /** A new workout has no stored name to show; an existing one shows it only once. */
+    private boolean nameShown;
+
     public boolean isNew() {
         return workoutId <= 0;
+    }
+
+    /** True the first time only, for an existing workout: whether the screen should fill
+     *  its name field from {@link #getWorkout()}. Afterwards the field itself is the truth
+     *  (Android restores it on rotation and on return from the back stack), and the loaded
+     *  name may be stale, e.g. after the field was cleared and "Neues Workout" saved. */
+    public boolean takeNameToShow() {
+        boolean show = !nameShown;
+        nameShown = true;
+        return show;
+    }
+
+    /** Saves the name right away; an empty one is saved as {@link #DEFAULT_NAME}. A new
+     *  workout is created by its first non-empty name, not by an empty one. */
+    public void changeName(String name) {
+        String trimmed = name.trim();
+        String toSave = trimmed.isEmpty() ? DEFAULT_NAME : trimmed;
+        // Checked on the executor, behind any creation still queued there.
+        container.ioExecutor.execute(() -> {
+            if (trimmed.isEmpty() && isNew()) return;
+            if (!createIfNew(toSave)) {
+                container.workoutRepository.updateName(workoutId, toSave);
+            }
+        });
+    }
+
+    /** Runs on the io executor. Creates the workout if it doesn't exist yet, so the first
+     *  change to a new workout saves it, and publishes it through {@link #getWorkout()}.
+     *  @return true if this call created it. */
+    private boolean createIfNew(String name) {
+        if (!isNew()) return false;
+        Workout created = new Workout();
+        created.name = name;
+        created.id = container.workoutRepository.save(created);
+        workoutId = created.id;
+        workout.postValue(created);
+        return true;
     }
 
     public LiveData<Workout> getWorkout() {
@@ -67,25 +113,21 @@ public class WorkoutEditViewModel extends ViewModel {
         writeThenReload(() -> { });
     }
 
-    public LiveData<Boolean> save(String name) {
-        if (isNew()) {
-            return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
-                Workout created = new Workout();
-                created.name = name;
-                container.workoutRepository.save(created);
-                return true;
-            });
-        }
-        return LiveDataExecutor.runOnExecutor(
-                container.ioExecutor, () -> container.workoutRepository.updateName(workoutId, name));
-    }
-
     public LiveData<Boolean> delete() {
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
             Workout target = new Workout();
             target.id = workoutId;
             container.workoutRepository.delete(target);
             return true;
+        });
+    }
+
+    /** Copies this workout as "<name> (Kopie)" with the same exercises and durations.
+     *  @return the copy's id, or null if copying failed. */
+    public LiveData<Long> duplicate() {
+        return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
+            Workout source = container.workoutRepository.getById(workoutId);
+            return container.workoutRepository.duplicate(workoutId, source.name + " (Kopie)");
         });
     }
 
@@ -97,6 +139,7 @@ public class WorkoutEditViewModel extends ViewModel {
 
     public void addExercise(Exercise exercise, int durationSeconds) {
         writeThenReload(() -> {
+            createIfNew(DEFAULT_NAME);
             WorkoutExercise workoutExercise = new WorkoutExercise();
             workoutExercise.workoutId = workoutId;
             workoutExercise.exerciseId = exercise.id;

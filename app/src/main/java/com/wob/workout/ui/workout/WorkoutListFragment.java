@@ -16,6 +16,7 @@ import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.FragmentWorkoutListBinding;
 import com.wob.workout.player.PlayerFragment;
+import com.wob.workout.ui.ScreenToolbar;
 
 public class WorkoutListFragment extends Fragment implements WorkoutAdapter.Listener {
 
@@ -27,6 +28,7 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         binding = FragmentWorkoutListBinding.inflate(inflater, container, false);
+        ScreenToolbar.setUp(this, binding.toolbar);
 
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
@@ -41,7 +43,7 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
         binding.btnAdd.setOnClickListener(v ->
                 requireActivity().getSupportFragmentManager()
                         .beginTransaction()
-                        .replace(R.id.main, new WorkoutEditFragment())
+                        .replace(R.id.main, WorkoutEditFragment.create())
                         .addToBackStack(null)
                         .commit());
 
@@ -66,7 +68,7 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
     public void onWorkoutStartClicked(Workout workout) {
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.main, PlayerFragment.create(workout.id))
+                .replace(R.id.main, PlayerFragment.create(workout.id, workout.name))
                 .addToBackStack(null)
                 .commit();
     }

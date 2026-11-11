@@ -17,6 +17,7 @@ import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentExerciseListBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 public class ExerciseListFragment extends Fragment {
     private FragmentExerciseListBinding binding;
@@ -33,6 +34,7 @@ public class ExerciseListFragment extends Fragment {
                         inflater,
                         container,
                         false);
+        ScreenToolbar.setUp(this, binding.toolbar);
 
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();

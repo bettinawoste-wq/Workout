@@ -18,6 +18,7 @@ import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentHistoryListBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 public class HistoryListFragment extends Fragment {
 
@@ -46,6 +47,7 @@ public class HistoryListFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         binding = FragmentHistoryListBinding.inflate(inflater, container, false);
+        ScreenToolbar.setUp(this, binding.toolbar);
 
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();

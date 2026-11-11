@@ -20,6 +20,7 @@ import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentExerciseEditBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 public class ExerciseEditFragment extends Fragment {
 
@@ -67,7 +68,8 @@ public class ExerciseEditFragment extends Fragment {
         viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, exerciseId))
                 .get(ExerciseEditViewModel.class);
 
-        binding.txtHeading.setText(
+        ScreenToolbar.setUp(this, binding.toolbar);
+        binding.toolbar.setTitle(
                 viewModel.isNew() ? R.string.neue_uebung : R.string.uebung_bearbeiten);
         binding.btnDelete.setVisibility(viewModel.isNew() ? View.GONE : View.VISIBLE);
 
