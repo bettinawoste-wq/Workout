@@ -22,7 +22,6 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
-import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
 import com.wob.workout.ui.ScreenToolbar;
 
@@ -62,20 +61,28 @@ public class WorkoutEditFragment extends Fragment {
                 }
             });
 
+    /** Here rather than in onCreateView, so the exercise picker sheet, a child fragment
+     *  that shares this ViewModel, finds it even when it is restored first. */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        long workoutId = getArguments() != null
+                ? getArguments().getLong(ARG_WORKOUT_ID, -1)
+                : -1;
+        AppContainer appContainer =
+                ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
+        viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, workoutId))
+                .get(WorkoutEditViewModel.class);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         binding = FragmentWorkoutEditBinding.inflate(inflater, container, false);
 
-        long workoutId = getArguments() != null
-                ? getArguments().getLong(ARG_WORKOUT_ID, -1)
-                : -1;
-
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
-        viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, workoutId))
-                .get(WorkoutEditViewModel.class);
 
         adapter = new WorkoutExerciseAdapter(this::showExerciseMenu, appContainer.thumbnails);
         binding.listExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -127,7 +134,7 @@ public class WorkoutEditFragment extends Fragment {
         // screen's own writes.
         viewModel.refreshExercises();
 
-        binding.btnAddExercise.setOnClickListener(v -> showExercisePicker());
+        binding.btnAddExercise.setOnClickListener(v -> ExercisePickerSheet.show(this));
 
         return binding.getRoot();
     }
@@ -209,24 +216,6 @@ public class WorkoutEditFragment extends Fragment {
                             }
                         }))
                 .show();
-    }
-
-    private void showExercisePicker() {
-
-        viewModel.loadAllExercises().observe(getViewLifecycleOwner(), exercises -> {
-            if (exercises == null) return;
-
-            String[] titles = exercises.stream().map(e -> e.title).toArray(String[]::new);
-
-            new MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Übung auswählen")
-                    .setItems(titles, (dialog, which) -> {
-                        Exercise selected = exercises.get(which);
-                        showDurationInputDialog(selected.title, 60,
-                                duration -> viewModel.addExercise(selected, duration));
-                    })
-                    .show();
-        });
     }
 
     private void showDurationInputDialog(

@@ -30,6 +30,8 @@ public class WorkoutEditViewModel extends ViewModel {
 
     /** Stored in place of an empty name, so a workout never shows up nameless. */
     public static final String DEFAULT_NAME = "Neues Workout";
+    /** What an added exercise lasts until its duration is changed. */
+    public static final int NEW_EXERCISE_SECONDS = 60;
 
     private final AppContainer container;
     /** Starts at -1 for a new workout and is set once, on the io executor, when the first
@@ -131,21 +133,29 @@ public class WorkoutEditViewModel extends ViewModel {
         });
     }
 
-    /** For the exercise-picker dialog, which needs the full exercise catalog (not just
+    /** For the exercise picker sheet, which needs the full exercise catalog (not just
      *  this workout's), loaded once per dialog open rather than kept live. */
     public LiveData<List<Exercise>> loadAllExercises() {
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, container.exerciseRepository::getAll);
     }
 
-    public void addExercise(Exercise exercise, int durationSeconds) {
+    /** Appends the exercises after the existing ones, in the given order (the order they
+     *  were ticked), each with {@link #NEW_EXERCISE_SECONDS}; one write, one reload. */
+    public void addExercises(List<Exercise> toAdd) {
+        if (toAdd.isEmpty()) return;
         writeThenReload(() -> {
             createIfNew(DEFAULT_NAME);
-            WorkoutExercise workoutExercise = new WorkoutExercise();
-            workoutExercise.workoutId = workoutId;
-            workoutExercise.exerciseId = exercise.id;
-            workoutExercise.position = container.workoutExerciseRepository.getByWorkout(workoutId).size();
-            workoutExercise.durationSeconds = durationSeconds;
-            container.workoutExerciseRepository.save(workoutExercise);
+            int position = container.workoutExerciseRepository.getByWorkout(workoutId).size();
+            List<WorkoutExercise> added = new ArrayList<>();
+            for (Exercise exercise : toAdd) {
+                WorkoutExercise workoutExercise = new WorkoutExercise();
+                workoutExercise.workoutId = workoutId;
+                workoutExercise.exerciseId = exercise.id;
+                workoutExercise.position = position++;
+                workoutExercise.durationSeconds = NEW_EXERCISE_SECONDS;
+                added.add(workoutExercise);
+            }
+            container.workoutExerciseRepository.saveAll(added);
         });
     }
 

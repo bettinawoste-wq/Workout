@@ -10,6 +10,10 @@ public interface WorkoutExerciseDao {
     @Insert
     long insert(WorkoutExercise workoutExercise);
 
+    /** All or none, in one transaction. */
+    @Insert
+    void insertAll(List<WorkoutExercise> workoutExercises);
+
     @Update
     void update(WorkoutExercise workoutExercise);
 
