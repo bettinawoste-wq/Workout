@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.wob.workout.player.PlayerViewModel;
+import com.wob.workout.ui.HomeViewModel;
 import com.wob.workout.ui.exercise.ExerciseEditViewModel;
 import com.wob.workout.ui.exercise.ExerciseListViewModel;
 import com.wob.workout.ui.history.HistoryDetailViewModel;
@@ -39,6 +40,9 @@ public class WorkoutViewModelFactory implements ViewModelProvider.Factory {
     @Override
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+        if (modelClass.isAssignableFrom(HomeViewModel.class)) {
+            return (T) new HomeViewModel(container);
+        }
         if (modelClass.isAssignableFrom(WorkoutListViewModel.class)) {
             return (T) new WorkoutListViewModel(container);
         }

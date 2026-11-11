@@ -10,6 +10,7 @@ import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutSession;
 
 import java.util.concurrent.TimeUnit;
 
@@ -126,6 +127,17 @@ public class MigrationTestHelper {
         workoutExercise.position = position;
         workoutExercise.durationSeconds = durationSeconds;
         return appContainer.workoutExerciseRepository.save(workoutExercise);
+    }
+
+    /** Records a workout session that started at {@code startedAt}, as the player would. */
+    public long insertSession(long workoutId, long startedAt, boolean completed) {
+        WorkoutSession session = new WorkoutSession();
+        session.workoutId = workoutId;
+        session.workoutName = "Session of " + workoutId;
+        session.startedAt = startedAt;
+        session.finishedAt = startedAt + 60_000;
+        session.completed = completed;
+        return database.workoutSessionDao().insert(session);
     }
 
     /** Stops the container's executor, closes the database and restores

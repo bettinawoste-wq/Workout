@@ -2,6 +2,8 @@
     <string name="app_name">Workout</string>
     <string name="workout_builder">Workout Builder</string>
     <string name="workouts">Workouts</string>
+    <string name="alle">Alle</string>
+    <string name="alle_workouts">Alle Workouts</string>
     <string name="exercises">Übungen</string>
     <string name="no_exercises">Keine Übungen vorhanden</string>
     <string name="neue_uebung">Neue Übung</string>
