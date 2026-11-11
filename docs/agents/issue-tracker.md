@@ -13,6 +13,7 @@
 
 ## Pull requests
 
+- Changes are built with the `implement` skill (test-first, then `code-review`), one pull request per issue.
 - One pull request per issue, always against `master`, with "Fixes #<n>" in the body.
 - An issue that waits for another starts once that issue's pull request is merged, from the updated `master`. Building on the other pull request's branch instead lands its merge in that branch, not in `master`.
 
