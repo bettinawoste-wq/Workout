@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.wob.workout.AppContainer;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
+import com.wob.workout.ui.ScreenToolbar;
 import com.wob.workout.databinding.FragmentHistoryDetailBinding;
 
 import java.text.SimpleDateFormat;
@@ -41,6 +42,7 @@ public class HistoryDetailFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
         binding = FragmentHistoryDetailBinding.inflate(inflater, container, false);
+        ScreenToolbar.setUp(this, binding.toolbar);
 
         long sessionId = getArguments() != null
                 ? getArguments().getLong(ARG_SESSION_ID, -1)
@@ -57,7 +59,7 @@ public class HistoryDetailFragment extends Fragment {
         binding.recyclerExercises.setAdapter(adapter);
 
         viewModel.getDetail().observe(getViewLifecycleOwner(), detail -> {
-            binding.txtName.setText(
+            binding.toolbar.setTitle(
                     detail.session.workoutName != null ? detail.session.workoutName : "Workout");
             binding.txtInfo.setText(
                     dateFormat.format(new Date(detail.session.startedAt))

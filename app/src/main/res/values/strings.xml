@@ -13,4 +13,9 @@
     <string name="uebungen">Übungen</string>
     <string name="history">Verlauf</string>
     <string name="no_history">Noch keine Workouts absolviert</string>
+    <string name="neues_workout">Neues Workout</string>
+    <string name="workout_bearbeiten">Workout bearbeiten</string>
+    <string name="zurueck">Zurück</string>
+    <string name="duplizieren">Duplizieren</string>
+    <string name="loeschen">Löschen</string>
 </resources>

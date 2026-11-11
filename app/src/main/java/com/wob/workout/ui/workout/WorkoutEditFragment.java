@@ -1,12 +1,15 @@
 package com.wob.workout.ui.workout;
 
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.*;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,6 +24,7 @@ import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
+import com.wob.workout.ui.ScreenToolbar;
 
 import java.util.function.Consumer;
 
@@ -77,14 +81,39 @@ public class WorkoutEditFragment extends Fragment {
         binding.listExercises.setAdapter(adapter);
         itemTouchHelper.attachToRecyclerView(binding.listExercises);
 
-        binding.btnDelete.setVisibility(viewModel.isNew() ? View.GONE : View.VISIBLE);
+        ScreenToolbar.setUp(this, binding.toolbar);
+        binding.toolbar.setTitle(viewModel.isNew() ? R.string.neues_workout : R.string.workout_bearbeiten);
+        binding.toolbar.setOnMenuItemClickListener(this::onMenuItemClick);
+        setWorkoutActionsEnabled(!viewModel.isNew());
 
         // Only seed the field the first time — if the screen was recreated (e.g. rotation),
         // the EditText has already restored whatever the user had typed via Android's own
         // view-state saving, and this async load could otherwise land after that and stomp it.
+        // Also fires when a new workout gets created by its first change.
         viewModel.getWorkout().observe(getViewLifecycleOwner(), workout -> {
-            if (workout != null && TextUtils.isEmpty(binding.edtName.getText())) {
+            if (workout == null) return;
+            // Remembered so a recreated screen (e.g. after process death) edits this
+            // workout rather than starting yet another new one.
+            requireArguments().putLong(ARG_WORKOUT_ID, workout.id);
+            setWorkoutActionsEnabled(true);
+            if (TextUtils.isEmpty(binding.edtName.getText())) {
                 binding.edtName.setText(workout.name);
+            }
+        });
+        // Added after the seeding above has had its chance, but a restored or seeded text
+        // still reaches it later; saving the same name again is harmless.
+        binding.edtName.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                viewModel.changeName(s.toString());
             }
         });
         viewModel.getExercises().observe(getViewLifecycleOwner(), items -> {
@@ -97,8 +126,6 @@ public class WorkoutEditFragment extends Fragment {
         // screen's own writes.
         viewModel.refreshExercises();
 
-        binding.btnSave.setOnClickListener(v -> save());
-        binding.btnDelete.setOnClickListener(v -> confirmDelete());
         binding.btnAddExercise.setOnClickListener(v -> showExercisePicker());
 
         return binding.getRoot();
@@ -108,6 +135,11 @@ public class WorkoutEditFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    /** Opens the editor on a new workout, saved as soon as anything is entered. */
+    public static WorkoutEditFragment create() {
+        return edit(-1);
     }
 
     public static WorkoutEditFragment edit(long workoutId) {
@@ -121,25 +153,37 @@ public class WorkoutEditFragment extends Fragment {
         return fragment;
     }
 
-    private void save() {
-        String name = binding.edtName.getText().toString().trim();
+    /** Duplicating or deleting only makes sense once the workout exists. */
+    private void setWorkoutActionsEnabled(boolean enabled) {
+        binding.toolbar.getMenu().findItem(R.id.action_duplicate).setEnabled(enabled);
+        binding.toolbar.getMenu().findItem(R.id.action_delete).setEnabled(enabled);
+    }
 
-        if (name.isEmpty()) {
-            Snackbar.make(binding.getRoot(), "Name erforderlich", Snackbar.LENGTH_SHORT).show();
-            return;
+    private boolean onMenuItemClick(MenuItem item) {
+        if (item.getItemId() == R.id.action_duplicate) {
+            duplicate();
+            return true;
         }
+        if (item.getItemId() == R.id.action_delete) {
+            confirmDelete();
+            return true;
+        }
+        return false;
+    }
 
-        // Disable immediately so a second tap before the async write returns can't insert a
-        // duplicate workout.
-        binding.btnSave.setEnabled(false);
-
-        viewModel.save(name).observe(getViewLifecycleOwner(), saved -> {
-            if (saved != null && saved) {
-                requireActivity().getSupportFragmentManager().popBackStack();
-            } else if (binding != null) {
-                binding.btnSave.setEnabled(true);
-                Snackbar.make(binding.getRoot(), "Speichern fehlgeschlagen", Snackbar.LENGTH_SHORT).show();
+    /** Opens the copy in place of this editor, so back still leads to the workout list. */
+    private void duplicate() {
+        viewModel.duplicate().observe(getViewLifecycleOwner(), copyId -> {
+            if (copyId == null) {
+                Snackbar.make(binding.getRoot(), "Duplizieren fehlgeschlagen", Snackbar.LENGTH_SHORT).show();
+                return;
             }
+            FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
+            fragmentManager.popBackStack();
+            fragmentManager.beginTransaction()
+                    .replace(R.id.main, edit(copyId))
+                    .addToBackStack(null)
+                    .commit();
         });
     }
 
@@ -165,13 +209,6 @@ public class WorkoutEditFragment extends Fragment {
     }
 
     private void showExercisePicker() {
-
-        if (viewModel.isNew()) {
-            Snackbar.make(binding.getRoot(),
-                    "Workout zuerst speichern",
-                    Snackbar.LENGTH_SHORT).show();
-            return;
-        }
 
         viewModel.loadAllExercises().observe(getViewLifecycleOwner(), exercises -> {
             if (exercises == null) return;

@@ -1,97 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="?attr/actionBarSize"/>
 
-        <TextView
-            android:id="@+id/txtHeading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/neue_uebung"
-            android:textSize="24sp"
-            android:textStyle="bold"/>
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-        <EditText
-            android:id="@+id/edtTitle"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:hint="@string/titel"/>
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <EditText
-            android:id="@+id/edtDescription"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:layout_marginTop="16dp"
-            android:gravity="top"
-            android:hint="@string/description"/>
-        <Button
-            android:id="@+id/btnSelectMedia"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Medium auswählen"/>
-
-        <com.wob.workout.media.PictureFrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp">
-
-            <com.wob.workout.media.FramedImageView
-                android:id="@+id/imgMediaPreview"
+            <EditText
+                android:id="@+id/edtTitle"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:src="@drawable/exercise_placeholder"
-                android:contentDescription="@null"/>
-        </com.wob.workout.media.PictureFrameLayout>
+                android:layout_height="wrap_content"
+                android:hint="@string/titel"/>
 
-        <TextView
-            android:id="@+id/txtMedia"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Kein Medium ausgewählt"/>
+            <EditText
+                android:id="@+id/edtDescription"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:layout_marginTop="16dp"
+                android:gravity="top"
+                android:hint="@string/description"/>
+            <Button
+                android:id="@+id/btnSelectMedia"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Medium auswählen"/>
 
-        <Button
-            android:id="@+id/btnResetFraming"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Ausschnitt zurücksetzen"
-            android:visibility="gone"/>
+            <com.wob.workout.media.PictureFrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp">
 
-        <Button
-            android:id="@+id/btnRemoveMedia"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Bild entfernen"
-            android:visibility="gone"/>
+                <com.wob.workout.media.FramedImageView
+                    android:id="@+id/imgMediaPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/exercise_placeholder"
+                    android:contentDescription="@null"/>
+            </com.wob.workout.media.PictureFrameLayout>
 
-        <Button
-            android:id="@+id/btnSave"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/speichern"/>
+            <TextView
+                android:id="@+id/txtMedia"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Kein Medium ausgewählt"/>
 
-        <Button
-            android:id="@+id/btnDelete"
-            style="@style/Widget.Workout.DeleteButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Löschen"/>
+            <Button
+                android:id="@+id/btnResetFraming"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ausschnitt zurücksetzen"
+                android:visibility="gone"/>
 
-    </LinearLayout>
+            <Button
+                android:id="@+id/btnRemoveMedia"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Bild entfernen"
+                android:visibility="gone"/>
 
-</ScrollView>
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/speichern"/>
+
+            <Button
+                android:id="@+id/btnDelete"
+                style="@style/Widget.Workout.DeleteButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Löschen"/>
+
+        </LinearLayout>
+
+    </ScrollView>
+</LinearLayout>

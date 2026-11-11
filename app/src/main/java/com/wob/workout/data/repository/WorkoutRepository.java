@@ -2,8 +2,10 @@ package com.wob.workout.data.repository;
 
 import android.content.Context;
 
+import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.Workout;
+import com.wob.workout.data.entity.WorkoutExercise;
 
 import java.util.List;
 
@@ -38,6 +40,25 @@ public class WorkoutRepository {
         DatabaseProvider.get(context)
                 .workoutDao()
                 .delete(workout);
+    }
+
+    /** Copies the workout and its workout exercises (positions and durations) under
+     *  {@code name}, in one transaction. Its history stays with the original.
+     *  @return the copy's id. */
+    public long duplicate(long id, String name) {
+        AppDatabase db = DatabaseProvider.get(context);
+        return db.runInTransaction(() -> {
+            Workout copy = db.workoutDao().getById(id);
+            copy.id = 0;
+            copy.name = name;
+            long copyId = db.workoutDao().insert(copy);
+            for (WorkoutExercise workoutExercise : db.workoutExerciseDao().getByWorkout(id)) {
+                workoutExercise.id = 0;
+                workoutExercise.workoutId = copyId;
+                db.workoutExerciseDao().insert(workoutExercise);
+            }
+            return copyId;
+        });
     }
 
     public Workout getById(long id) {
