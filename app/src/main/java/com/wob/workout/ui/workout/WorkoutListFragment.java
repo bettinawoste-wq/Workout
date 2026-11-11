@@ -47,9 +47,7 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
 
         viewModel.getWorkouts().observe(getViewLifecycleOwner(), items -> {
             adapter.setData(items);
-            // The empty state's button takes over from the add button, so there's only one.
-            binding.emptyState.getRoot().setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
-            binding.btnAdd.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
+            EmptyState.show(binding.emptyState, items.isEmpty(), binding.btnAdd);
         });
 
         return binding.getRoot();

@@ -53,14 +53,7 @@ public class ExerciseListFragment extends Fragment {
 
         viewModel.getExercises().observe(getViewLifecycleOwner(), exercises -> {
             adapter.setData(exercises);
-            // The empty state's button takes over from the FAB, so there's only one.
-            if (exercises.isEmpty()) {
-                binding.emptyState.getRoot().setVisibility(View.VISIBLE);
-                binding.fabAddExercise.hide();
-            } else {
-                binding.emptyState.getRoot().setVisibility(View.GONE);
-                binding.fabAddExercise.show();
-            }
+            EmptyState.show(binding.emptyState, exercises.isEmpty(), binding.fabAddExercise);
         });
 
         return binding.getRoot();

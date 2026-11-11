@@ -130,9 +130,7 @@ public class WorkoutEditFragment extends Fragment {
         viewModel.getExercises().observe(getViewLifecycleOwner(), items -> {
             if (items == null) return;
             adapter.setData(items);
-            // The empty state's button takes over from the add button, so there's only one.
-            binding.emptyState.getRoot().setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
-            binding.btnAddExercise.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
+            EmptyState.show(binding.emptyState, items.isEmpty(), binding.btnAddExercise);
         });
 
         // Not just the first creation: this Fragment can sit on the back stack while the
