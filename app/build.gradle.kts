@@ -86,4 +86,13 @@ dependencies {
     implementation(libs.recyclerview)
     implementation(libs.room.runtime)
     testImplementation(libs.junit)
+
+    constraints {
+        // The test APK must use the app's library versions, and the app gets 1.7.3 through
+        // navigation. room-testing reads the exported schemas with kotlinx-serialization-json
+        // 1.8.1, which fails at runtime (AbstractMethodError) against an older core.
+        implementation(libs.kotlinx.serialization.core) {
+            because("room-testing's MigrationTestHelper needs serialization-core 1.8.1")
+        }
+    }
 }
