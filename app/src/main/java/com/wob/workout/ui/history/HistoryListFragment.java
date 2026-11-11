@@ -18,6 +18,7 @@ import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentHistoryListBinding;
+import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.ScreenToolbar;
 
 public class HistoryListFragment extends Fragment {
@@ -66,9 +67,11 @@ public class HistoryListFragment extends Fragment {
         binding.recyclerHistory.setAdapter(adapter);
         itemTouchHelper.attachToRecyclerView(binding.recyclerHistory);
 
+        // No button: the history fills itself as workouts are run.
+        EmptyState.setUp(binding.emptyState, R.drawable.ic_history, R.string.no_history);
         viewModel.getHistory().observe(getViewLifecycleOwner(), items -> {
             adapter.setData(items);
-            binding.txtEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
+            binding.emptyState.getRoot().setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
         });
 
         return binding.getRoot();

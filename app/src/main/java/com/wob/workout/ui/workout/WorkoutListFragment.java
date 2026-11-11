@@ -16,6 +16,7 @@ import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.FragmentWorkoutListBinding;
 import com.wob.workout.player.PlayerFragment;
+import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.ScreenToolbar;
 
 public class WorkoutListFragment extends Fragment implements WorkoutAdapter.Listener {
@@ -40,19 +41,26 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
         binding.recyclerWorkouts.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerWorkouts.setAdapter(adapter);
 
-        binding.btnAdd.setOnClickListener(v ->
-                requireActivity().getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.main, WorkoutEditFragment.create())
-                        .addToBackStack(null)
-                        .commit());
+        binding.btnAdd.setOnClickListener(v -> openNewWorkout());
+        EmptyState.setUp(binding.emptyState, R.drawable.ic_play, R.string.noch_keine_workouts,
+                R.string.workout_anlegen, v -> openNewWorkout());
 
         viewModel.getWorkouts().observe(getViewLifecycleOwner(), items -> {
             adapter.setData(items);
-            binding.txtEmpty.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
+            // The empty state's button takes over from the add button, so there's only one.
+            binding.emptyState.getRoot().setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
+            binding.btnAdd.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
         });
 
         return binding.getRoot();
+    }
+
+    private void openNewWorkout() {
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.main, WorkoutEditFragment.create())
+                .addToBackStack(null)
+                .commit();
     }
 
     @Override

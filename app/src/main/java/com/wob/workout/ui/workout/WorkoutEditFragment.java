@@ -23,6 +23,7 @@ import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
+import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.ScreenToolbar;
 
 import java.util.function.Consumer;
@@ -124,8 +125,14 @@ public class WorkoutEditFragment extends Fragment {
                 viewModel.changeName(s.toString());
             }
         });
+        EmptyState.setUp(binding.emptyState, R.drawable.ic_list, R.string.workout_ohne_uebungen,
+                R.string.uebungen_hinzufuegen, v -> ExercisePickerSheet.show(this));
         viewModel.getExercises().observe(getViewLifecycleOwner(), items -> {
-            if (items != null) adapter.setData(items);
+            if (items == null) return;
+            adapter.setData(items);
+            // The empty state's button takes over from the add button, so there's only one.
+            binding.emptyState.getRoot().setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
+            binding.btnAddExercise.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
         });
 
         // Not just the first creation: this Fragment can sit on the back stack while the
