@@ -51,12 +51,16 @@ Install to a connected device/emulator:
 ./gradlew installDebug
 ```
 
-Run the unit and instrumented test suites:
+Run the unit tests, and the instrumented tests on a connected device or emulator:
 
 ```bash
 ./gradlew testDebugUnitTest
-./gradlew connectedDebugAndroidTest   # needs a connected device/emulator; uninstalls the debug app afterwards
+python scripts/device-test.py
 ```
+
+`device-test.py` installs over the existing debug app and keeps its data, unlike
+`./gradlew connectedDebugAndroidTest`, which uninstalls it afterwards.
+`python scripts/readme-screenshots.py` renews the screenshots above from a release build.
 
 Signed release APKs are attached to each [GitHub Release](https://github.com/bettinawoste-wq/Workout/releases); how they are built
 is described in [`docs/releasing.md`](docs/releasing.md).
