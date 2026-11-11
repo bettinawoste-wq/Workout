@@ -35,10 +35,22 @@ public class WorkoutSummaryRepository {
         this.workoutDao = database.workoutDao();
     }
 
+    /** How many recent workouts the home screen shows. */
+    public static final int RECENT_COUNT = 3;
+
+    /** All workouts, most recently run first, then the never-run ones newest created
+     *  first (see {@link WorkoutDao#getAllWithExercises()}). */
     public LiveData<List<WorkoutListItem>> observeAll() {
         return Transformations.map(
                 workoutDao.getAllWithExercises(),
                 WorkoutSummaryRepository::toListItems);
+    }
+
+    /** The recent workouts: the first {@link #RECENT_COUNT} of {@link #observeAll()}. */
+    public LiveData<List<WorkoutListItem>> observeRecent() {
+        return Transformations.map(
+                observeAll(),
+                items -> new ArrayList<>(items.subList(0, Math.min(RECENT_COUNT, items.size()))));
     }
 
     private static List<WorkoutListItem> toListItems(List<WorkoutWithExercises> rows) {

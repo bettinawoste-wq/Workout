@@ -6,15 +6,25 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.wob.workout.AppContainer;
 import com.wob.workout.R;
+import com.wob.workout.WorkoutApplication;
+import com.wob.workout.WorkoutViewModelFactory;
+import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.FragmentHomeBinding;
+import com.wob.workout.player.PlayerFragment;
 import com.wob.workout.ui.exercise.ExerciseListFragment;
 import com.wob.workout.ui.history.HistoryListFragment;
+import com.wob.workout.ui.workout.WorkoutAdapter;
+import com.wob.workout.ui.workout.WorkoutEditFragment;
 import com.wob.workout.ui.workout.WorkoutListFragment;
 
-public class HomeFragment extends Fragment {
+public class HomeFragment extends Fragment implements WorkoutAdapter.Listener {
 
     private FragmentHomeBinding binding;
 
@@ -30,37 +40,42 @@ public class HomeFragment extends Fragment {
                         container,
                         false);
 
-        binding.btnExercises.setOnClickListener(v -> {
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(
-                            R.id.main,
-                            new ExerciseListFragment())
-                    .addToBackStack(null)
-                    .commit();
-        });
+        AppContainer appContainer =
+                ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
+        HomeViewModel viewModel =
+                new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer))
+                        .get(HomeViewModel.class);
 
-        binding.btnWorkouts.setOnClickListener(v ->
-                requireActivity()
-                        .getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(
-                                R.id.main,
-                                new WorkoutListFragment())
-                        .addToBackStack(null)
-                        .commit());
+        ViewCompat.setAccessibilityHeading(binding.txtWorkoutsHeading, true);
+        WorkoutAdapter adapter = new WorkoutAdapter(this, appContainer.thumbnails);
+        binding.recyclerRecentWorkouts.setLayoutManager(
+                new LinearLayoutManager(requireContext()));
+        binding.recyclerRecentWorkouts.setAdapter(adapter);
+        viewModel.getRecentWorkouts().observe(getViewLifecycleOwner(), adapter::setData);
 
-        binding.btnHistory.setOnClickListener(v ->
-                requireActivity()
-                        .getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(
-                                R.id.main,
-                                new HistoryListFragment())
-                        .addToBackStack(null)
-                        .commit());
+        binding.btnAllWorkouts.setOnClickListener(v -> open(new WorkoutListFragment()));
+        binding.btnExercises.setOnClickListener(v -> open(new ExerciseListFragment()));
+        binding.btnHistory.setOnClickListener(v -> open(new HistoryListFragment()));
         return binding.getRoot();
+    }
+
+    @Override
+    public void onWorkoutClicked(Workout workout) {
+        open(WorkoutEditFragment.edit(workout.id));
+    }
+
+    @Override
+    public void onWorkoutStartClicked(Workout workout) {
+        open(PlayerFragment.create(workout.id, workout.name));
+    }
+
+    private void open(Fragment screen) {
+        requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.main, screen)
+                .addToBackStack(null)
+                .commit();
     }
 
     @Override

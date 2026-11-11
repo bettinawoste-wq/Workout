@@ -30,7 +30,15 @@ public interface WorkoutDao {
     @Query("SELECT * FROM Workout ORDER BY id DESC")
     List<Workout> getAll();
 
+    /** All workouts, most recently run first (by the start of their latest workout session,
+     *  completed or aborted), then the never-run ones newest created first. Room re-queries
+     *  when WorkoutSession changes, so a new session reorders the list live. */
     @Transaction
-    @Query("SELECT * FROM Workout ORDER BY id DESC")
+    @Query("SELECT Workout.* FROM Workout"
+            + " LEFT JOIN (SELECT workoutId, MAX(startedAt) AS lastStartedAt"
+            + " FROM WorkoutSession GROUP BY workoutId) AS lastRun"
+            + " ON lastRun.workoutId = Workout.id"
+            + " ORDER BY lastRun.lastStartedAt IS NULL, lastRun.lastStartedAt DESC,"
+            + " Workout.id DESC")
     LiveData<List<WorkoutWithExercises>> getAllWithExercises();
 }
