@@ -21,3 +21,4 @@ DEVELOPMENT.md
 /skills-lock.json
 *.jks
 *.keystore
+__pycache__/

@@ -8,7 +8,6 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-DEBUG_PACKAGE = "com.wob.workout.debug"
 TEST_PACKAGE = "com.wob.workout.debug.test"
 RELEASE_PACKAGE = "com.wob.workout"
 ANDROID_STUDIO_JDK = Path(r"C:\Program Files\Android\Android Studio\jbr")
@@ -20,10 +19,15 @@ def fail(message):
 
 
 def sdk_dir():
-    for line in (REPO / "local.properties").read_text(encoding="utf-8").splitlines():
-        if line.startswith("sdk.dir="):
-            return Path(line.split("=", 1)[1].replace("\\:", ":").replace("\\\\", "\\"))
-    fail("no sdk.dir in local.properties")
+    local = REPO / "local.properties"
+    if local.exists():
+        for line in local.read_text(encoding="utf-8").splitlines():
+            if line.startswith("sdk.dir="):
+                return Path(line.split("=", 1)[1].replace("\\:", ":").replace("\\\\", "\\"))
+    for variable in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        if os.environ.get(variable):
+            return Path(os.environ[variable])
+    fail("no Android SDK: set sdk.dir in local.properties or ANDROID_HOME")
 
 
 def adb_path():
@@ -76,9 +80,18 @@ def install(apk):
     adb("install", "-r", "-t", str(apk))
 
 
+def is_installed(package):
+    return ("package:" + package) in adb_text("shell", "pm", "list", "packages", package).split()
+
+
 def screenshot(path):
     Path(path).write_bytes(adb("exec-out", "screencap", "-p"))
     print("saved " + str(path))
+
+
+def density():
+    match = re.search(r"(\d+)\s*$", adb_text("shell", "wm", "density").strip())
+    return int(match.group(1)) / 160
 
 
 def screen_size():
@@ -110,14 +123,27 @@ def centre(node):
     return (x1 + x2) // 2, (y1 + y2) // 2
 
 
+def find_all(package, *resource_ids):
+    """The views with these ids (in the app's package), read from a single dump."""
+    found = {}
+    for node in ui_nodes():
+        resource_id = node.get("resource-id", "").rpartition(":id/")[2]
+        if node.get("resource-id", "").startswith(package + ":id/") and resource_id in resource_ids:
+            found.setdefault(resource_id, node)
+    missing = [resource_id for resource_id in resource_ids if resource_id not in found]
+    if missing:
+        fail("not on screen: " + ", ".join(missing))
+    return found
+
+
 def find(package, resource_id=None, text=None):
     """Centre of the first view with this id (in the app's package) or this text."""
+    if resource_id:
+        return centre(find_all(package, resource_id)[resource_id])
     for node in ui_nodes():
-        if resource_id and node.get("resource-id") == package + ":id/" + resource_id:
+        if node.get("text") == text:
             return centre(node)
-        if text and node.get("text") == text:
-            return centre(node)
-    fail("not on screen: " + (resource_id or text))
+    fail("not on screen: " + text)
 
 
 def tap_view(package, resource_id=None, text=None):
