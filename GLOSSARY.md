@@ -21,7 +21,7 @@ The choice, made when editing an exercise, of how large its photo appears in the
 _Avoid_: Crop, zoom
 
 **Workout**:
-A named, ordered sequence of exercises, each with its own duration, plus a pause length between exercises and a switch for the start countdown.
+A named, ordered sequence of exercises, each with its own duration.
 _Avoid_: Routine, plan, training
 
 **Workout exercise**:
@@ -29,7 +29,7 @@ One exercise's place inside a workout: its position and how long it lasts there.
 _Avoid_: Step, item, entry
 
 **Transition**:
-The pause between two exercises of a workout, before the next one starts.
+The pause between two exercises of a workout, before the next one starts. It is the same length in every workout.
 _Avoid_: Break, rest
 
 **Workout session**:
@@ -43,6 +43,10 @@ _Avoid_: Set, rep
 **Skipped exercise**:
 An exercise session that ended before its planned duration was up.
 _Avoid_: Incomplete, missed
+
+**Recent workouts**:
+The up to three workouts with the newest workout session, aborted ones included. While fewer than three workouts have been run, the most recently created ones fill the remaining places.
+_Avoid_: Favourites, last used
 
 **History**:
 The list of workout sessions, newest first. Survives deletion of the workout it was recorded against.
