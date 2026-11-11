@@ -101,6 +101,8 @@ def main():
     probe = REPO / "app" / "build" / "screenshot-probe.png"
 
     try:
+        # An open notification shade would end up in the screenshots, notifications and all.
+        adb("shell", "cmd", "statusbar", "collapse")
         adb("shell", "am", "start", "-W", "-n", PKG + "/com.wob.workout.MainActivity")
         time.sleep(2.5)
         save_shot(SHOTS / "home.png")
