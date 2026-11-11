@@ -18,4 +18,6 @@
     <string name="zurueck">Zurück</string>
     <string name="duplizieren">Duplizieren</string>
     <string name="loeschen">Löschen</string>
+    <string name="uebungen_hinzufuegen">Übungen hinzufügen</string>
+    <string name="anzahl_hinzufuegen">%1$d hinzufügen</string>
 </resources>

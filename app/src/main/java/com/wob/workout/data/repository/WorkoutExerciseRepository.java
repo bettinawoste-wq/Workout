@@ -21,6 +21,13 @@ public class WorkoutExerciseRepository {
                 .insert(workoutExercise);
     }
 
+    /** Saves them all in one transaction. */
+    public void saveAll(List<WorkoutExercise> workoutExercises) {
+        DatabaseProvider.get(context)
+                .workoutExerciseDao()
+                .insertAll(workoutExercises);
+    }
+
     public void update(WorkoutExercise workoutExercise) {
         DatabaseProvider.get(context)
                 .workoutExerciseDao()

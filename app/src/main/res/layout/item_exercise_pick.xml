@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One exercise in the picker sheet: the whole row ticks it. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp">
+
+    <com.wob.workout.media.PictureFrameLayout
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp">
+
+        <com.wob.workout.media.FramedImageView
+            android:id="@+id/imgThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"/>
+    </com.wob.workout.media.PictureFrameLayout>
+
+    <TextView
+        android:id="@+id/txtTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="18sp"
+        android:textStyle="bold"/>
+
+    <!-- Shows the state only; the row handles the tap and speaks for it. -->
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/checkPicked"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:focusable="false"
+        android:importantForAccessibility="no"/>
+</LinearLayout>
