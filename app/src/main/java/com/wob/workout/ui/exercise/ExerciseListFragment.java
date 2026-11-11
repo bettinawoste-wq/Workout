@@ -17,6 +17,7 @@ import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentExerciseListBinding;
+import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.ScreenToolbar;
 
 public class ExerciseListFragment extends Fragment {
@@ -46,20 +47,13 @@ public class ExerciseListFragment extends Fragment {
         binding.recyclerExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerExercises.setAdapter(adapter);
 
-        binding.fabAddExercise.setOnClickListener(v -> {
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(
-                            R.id.main,
-                            new ExerciseEditFragment())
-                    .addToBackStack(null)
-                    .commit();
-        });
+        binding.fabAddExercise.setOnClickListener(v -> openNewExercise());
+        EmptyState.setUp(binding.emptyState, R.drawable.ic_list, R.string.noch_keine_uebungen,
+                R.string.uebung_anlegen, v -> openNewExercise());
 
         viewModel.getExercises().observe(getViewLifecycleOwner(), exercises -> {
             adapter.setData(exercises);
-            binding.txtEmpty.setVisibility(exercises.isEmpty() ? View.VISIBLE : View.GONE);
+            EmptyState.show(binding.emptyState, exercises.isEmpty(), binding.fabAddExercise);
         });
 
         return binding.getRoot();
@@ -69,6 +63,15 @@ public class ExerciseListFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    private void openNewExercise() {
+        requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.main, new ExerciseEditFragment())
+                .addToBackStack(null)
+                .commit();
     }
 
     private void openExercise(Exercise exercise) {

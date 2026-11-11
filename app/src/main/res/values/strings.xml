@@ -11,10 +11,9 @@
     <string name="titel">Titel</string>
     <string name="description">Beschreibung</string>
     <string name="speichern">Speichern</string>
-    <string name="keine_uebungen_vorhanden">Keine Übungen vorhanden</string>
     <string name="uebungen">Übungen</string>
     <string name="history">Verlauf</string>
-    <string name="no_history">Noch keine Workouts absolviert</string>
+    <string name="no_history">Noch keine Workouts absolviert.\nStarte ein Workout, dann steht es hier.</string>
     <string name="neues_workout">Neues Workout</string>
     <string name="workout_bearbeiten">Workout bearbeiten</string>
     <string name="zurueck">Zurück</string>
@@ -22,4 +21,9 @@
     <string name="loeschen">Löschen</string>
     <string name="uebungen_hinzufuegen">Übungen hinzufügen</string>
     <string name="anzahl_hinzufuegen">%1$d hinzufügen</string>
+    <string name="noch_keine_workouts">Noch keine Workouts</string>
+    <string name="workout_anlegen">Workout anlegen</string>
+    <string name="noch_keine_uebungen">Noch keine Übungen</string>
+    <string name="uebung_anlegen">Übung anlegen</string>
+    <string name="workout_ohne_uebungen">Noch keine Übungen in diesem Workout</string>
 </resources>

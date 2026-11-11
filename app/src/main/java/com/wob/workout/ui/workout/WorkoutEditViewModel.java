@@ -52,6 +52,9 @@ public class WorkoutEditViewModel extends ViewModel {
                     container.ioExecutor, () -> container.workoutRepository.getById(workoutId),
                     workout::setValue);
             refreshExercises();
+        } else {
+            // Nothing to load: a new workout has no exercises yet.
+            exercises.setValue(new ArrayList<>());
         }
     }
 

@@ -229,7 +229,7 @@ public class WorkoutEditViewModelTest {
     }
 
     @Test
-    public void newWorkoutSkipsTheInitialLoad() throws Exception {
+    public void newWorkoutStartsWithNoExercisesWithoutLoading() throws Exception {
         // isNew() is "workoutId <= 0", so both 0 and a negative id count as new.
         for (long newWorkoutId : new long[] {0, -1}) {
             WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, newWorkoutId);
@@ -241,7 +241,8 @@ public class WorkoutEditViewModelTest {
             container.ioExecutor.submit(() -> { }).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             assertNull(viewModel.getWorkout().getValue());
-            assertNull(viewModel.getExercises().getValue());
+            // Empty rather than unset, so the editor shows its empty state right away.
+            assertEquals(new ArrayList<ExerciseItem>(), viewModel.getExercises().getValue());
         }
     }
 

@@ -55,6 +55,14 @@
         android:layout_marginBottom="16dp"
         android:nestedScrollingEnabled="false"/>
 
+    <include
+        android:id="@+id/emptyState"
+        layout="@layout/view_empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone"/>
+
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/btnExercises"
         style="@style/Widget.Workout.ListCard"
