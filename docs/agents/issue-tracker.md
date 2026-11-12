@@ -14,6 +14,7 @@
 ## Pull requests
 
 - Changes are built with the `implement` skill: test-first, then `code-review`.
+- Work that has no issue yet, coming straight from a grilling, gets one before it is implemented. Write it from the agreed summary, with the decisions as acceptance criteria, so its pull request can say "Fixes #<n>".
 - One pull request per issue, always against `master`, with "Fixes #<n>" in the body.
 - An issue that waits for another starts once that issue's pull request is merged, from the updated `master`. Building on the other pull request's branch instead lands its merge in that branch, not in `master`.
 
