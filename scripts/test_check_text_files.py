@@ -2,6 +2,7 @@
 
     python -m unittest discover -s scripts -p 'test_*.py'
 """
+import os
 import subprocess
 import sys
 import tempfile
@@ -31,7 +32,10 @@ class CheckTextFilesTest(unittest.TestCase):
         self.git("add", path)
 
     def check(self):
-        result = subprocess.run([sys.executable, str(SCRIPT)], cwd=self.repo,
+        # Without these, Python picks the platform's encoding for piped output, as by hand.
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("PYTHONIOENCODING", "PYTHONUTF8")}
+        result = subprocess.run([sys.executable, str(SCRIPT)], cwd=self.repo, env=env,
                                 capture_output=True, text=True, encoding="utf-8")
         return result.returncode, result.stdout.splitlines()
 
@@ -84,6 +88,15 @@ class CheckTextFilesTest(unittest.TestCase):
         self.add("app/schemas/1.json", long_line)
 
         self.assertEqual(self.check(), (0, []))
+
+    def test_non_ascii_path_is_printed_as_utf8(self):
+        # A path the Windows console code page cannot encode.
+        self.add("Übung✓.java", "v" * 101 + "\n")
+
+        code, lines = self.check()
+
+        self.assertNotEqual(code, 0)
+        self.assertEqual(lines, ["Übung✓.java:1: line is 101 characters, max 100"])
 
     def test_comment_cannot_exempt_a_line(self):
         self.add("app/Main.java", "q" * 101 + " // NOSONAR noqa checkstyle:off\n")

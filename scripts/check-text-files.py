@@ -41,6 +41,8 @@ def violations(path, content):
 
 
 def main():
+    # Piped output on Windows would otherwise use the code page and fail on some paths.
+    sys.stdout.reconfigure(encoding="utf-8")
     root = git("rev-parse", "--show-toplevel").decode("utf-8").strip()
     found = 0
     for path in text_files():
