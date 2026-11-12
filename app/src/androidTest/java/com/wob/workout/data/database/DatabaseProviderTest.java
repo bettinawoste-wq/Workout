@@ -16,7 +16,7 @@ import org.junit.runner.RunWith;
 import java.lang.reflect.Field;
 
 /**
- * Covers the test-only seam added for issue #10 (MigrationTestHelper's foundation) -
+ * Covers the test-only seam added for issue #10 (TestAppContainer's foundation) -
  * every other DatabaseProvider.get(context) call site is exercised, untouched, by the
  * app's existing tests, so this only needs to prove the seam itself behaves.
  */

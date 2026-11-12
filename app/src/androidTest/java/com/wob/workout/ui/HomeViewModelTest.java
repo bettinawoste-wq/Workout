@@ -6,7 +6,7 @@ import static org.junit.Assert.assertEquals;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.ui.workout.WorkoutListItem;
 
 import org.junit.After;
@@ -27,23 +27,23 @@ public class HomeViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer testContainer;
     private HomeViewModel viewModel;
 
     @Before
     public void setUp() {
-        helper = new MigrationTestHelper();
-        viewModel = new HomeViewModel(helper.getAppContainer());
+        testContainer = new TestAppContainer();
+        viewModel = new HomeViewModel(testContainer.getAppContainer());
     }
 
     @After
     public void tearDown() {
-        helper.close();
+        testContainer.close();
     }
 
     @Test
     public void aSingleNeverRunWorkoutIsShown() throws InterruptedException {
-        helper.insertWorkout("Ganzkörper");
+        testContainer.insertWorkout("Ganzkörper");
 
         assertEquals(Arrays.asList("Ganzkörper"),
                 names(getOrAwaitValue(viewModel.getRecentWorkouts())));
@@ -51,14 +51,14 @@ public class HomeViewModelTest {
 
     @Test
     public void showsTheThreeMostRecentlyRunIncludingAborted() throws InterruptedException {
-        long a = helper.insertWorkout("A");
-        long b = helper.insertWorkout("B");
-        long c = helper.insertWorkout("C");
-        long d = helper.insertWorkout("D");
-        helper.insertSession(a, 4_000, false);
-        helper.insertSession(b, 3_000, true);
-        helper.insertSession(c, 1_000, true);
-        helper.insertSession(d, 2_000, false);
+        long a = testContainer.insertWorkout("A");
+        long b = testContainer.insertWorkout("B");
+        long c = testContainer.insertWorkout("C");
+        long d = testContainer.insertWorkout("D");
+        testContainer.insertSession(a, 4_000, false);
+        testContainer.insertSession(b, 3_000, true);
+        testContainer.insertSession(c, 1_000, true);
+        testContainer.insertSession(d, 2_000, false);
 
         assertEquals(Arrays.asList("A", "B", "D"),
                 names(getOrAwaitValue(viewModel.getRecentWorkouts())));
@@ -67,11 +67,11 @@ public class HomeViewModelTest {
     @Test
     public void fillsUpWithTheNewestCreatedWhenFewerThanThreeWereRun()
             throws InterruptedException {
-        long ran = helper.insertWorkout("Ran");
-        helper.insertWorkout("Older");
-        helper.insertWorkout("Newer");
-        helper.insertWorkout("Newest");
-        helper.insertSession(ran, 1_000, true);
+        long ran = testContainer.insertWorkout("Ran");
+        testContainer.insertWorkout("Older");
+        testContainer.insertWorkout("Newer");
+        testContainer.insertWorkout("Newest");
+        testContainer.insertSession(ran, 1_000, true);
 
         assertEquals(Arrays.asList("Ran", "Newest", "Newer"),
                 names(getOrAwaitValue(viewModel.getRecentWorkouts())));

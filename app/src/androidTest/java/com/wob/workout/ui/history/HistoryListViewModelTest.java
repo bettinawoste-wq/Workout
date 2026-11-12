@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.dao.WorkoutSessionDao;
 import com.wob.workout.data.entity.WorkoutSession;
 import com.wob.workout.data.repository.WorkoutHistoryRepository;
@@ -43,20 +43,20 @@ public class HistoryListViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer testContainer;
     private WorkoutHistoryRepository history;
     private HistoryListViewModel viewModel;
 
     @Before
     public void setUp() {
-        helper = new MigrationTestHelper();
-        history = helper.getAppContainer().workoutHistoryRepository;
-        viewModel = new HistoryListViewModel(helper.getAppContainer());
+        testContainer = new TestAppContainer();
+        history = testContainer.getAppContainer().workoutHistoryRepository;
+        viewModel = new HistoryListViewModel(testContainer.getAppContainer());
     }
 
     @After
     public void tearDown() {
-        helper.close();
+        testContainer.close();
     }
 
     @Test
@@ -161,7 +161,7 @@ public class HistoryListViewModelTest {
     }
 
     private void setStartedAt(long sessionId, long startedAt) {
-        WorkoutSessionDao dao = helper.getDatabase().workoutSessionDao();
+        WorkoutSessionDao dao = testContainer.getDatabase().workoutSessionDao();
         WorkoutSession session = dao.getById(sessionId);
         session.startedAt = startedAt;
         dao.update(session);

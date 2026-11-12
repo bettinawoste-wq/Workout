@@ -8,7 +8,7 @@ import static org.junit.Assert.assertNotNull;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.wob.workout.MigrationTestHelper;
+import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.MediaType;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * Exercises WorkoutSummaryRepository directly rather than constructing
  * WorkoutListViewModel: the ViewModel is a one-line passthrough (getWorkouts() just
  * returns repository.observeAll()), so the repository's LiveData is exactly what the
- * ViewModel exposes. Database setup and seeding come from {@link MigrationTestHelper}.
+ * ViewModel exposes. Database setup and seeding come from {@link TestAppContainer}.
  */
 @RunWith(AndroidJUnit4.class)
 public class WorkoutListViewModelTest {
@@ -37,25 +37,25 @@ public class WorkoutListViewModelTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer testContainer;
     private WorkoutSummaryRepository repository;
 
     @Before
     public void setUp() {
-        helper = new MigrationTestHelper();
-        repository = helper.getAppContainer().workoutSummaryRepository;
+        testContainer = new TestAppContainer();
+        repository = testContainer.getAppContainer().workoutSummaryRepository;
     }
 
     @After
     public void tearDown() {
-        helper.close();
+        testContainer.close();
     }
 
     @Test
     public void workoutsReflectsSavedWorkoutAndItsExercises() throws InterruptedException {
-        long workoutId = helper.insertWorkout("Leg Day");
-        long exerciseId = helper.insertExercise("Squat");
-        helper.insertWorkoutExercise(workoutId, exerciseId, 0, 45);
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long exerciseId = testContainer.insertExercise("Squat");
+        testContainer.insertWorkoutExercise(workoutId, exerciseId, 0, 45);
 
         List<WorkoutListItem> items = getOrAwaitValue(repository.observeAll());
 
@@ -68,11 +68,12 @@ public class WorkoutListViewModelTest {
     @Test
     public void exercisesFollowTheWorkoutOrderWithOrWithoutMedia()
             throws InterruptedException {
-        long workoutId = helper.insertWorkout("Leg Day");
+        long workoutId = testContainer.insertWorkout("Leg Day");
         // Inserted in the opposite order to their positions.
-        helper.insertWorkoutExercise(workoutId, insertPictured("Second"), 2, 30);
-        helper.insertWorkoutExercise(workoutId, helper.insertExercise("No picture"), 1, 30);
-        helper.insertWorkoutExercise(workoutId, insertPictured("First"), 0, 30);
+        testContainer.insertWorkoutExercise(workoutId, insertPictured("Second"), 2, 30);
+        testContainer.insertWorkoutExercise(
+                workoutId, testContainer.insertExercise("No picture"), 1, 30);
+        testContainer.insertWorkoutExercise(workoutId, insertPictured("First"), 0, 30);
 
         WorkoutListItem item = getOrAwaitValue(repository.observeAll()).get(0);
 
@@ -85,8 +86,8 @@ public class WorkoutListViewModelTest {
 
     @Test
     public void workoutsUpdatesWhenAnExerciseIsAdded() throws InterruptedException {
-        long workoutId = helper.insertWorkout("Push Day");
-        long exerciseId = helper.insertExercise("Push-up");
+        long workoutId = testContainer.insertWorkout("Push Day");
+        long exerciseId = testContainer.insertExercise("Push-up");
 
         // One still-active observer across the mutation below - this is what actually
         // proves Room's invalidation tracking replaces the deleted onResume()/reload,
@@ -97,7 +98,7 @@ public class WorkoutListViewModelTest {
         List<WorkoutListItem> beforeAdding = values.poll(2, TimeUnit.SECONDS);
         assertEquals(0, beforeAdding.get(0).exerciseCount);
 
-        helper.insertWorkoutExercise(workoutId, exerciseId, 0, 30);
+        testContainer.insertWorkoutExercise(workoutId, exerciseId, 0, 30);
 
         List<WorkoutListItem> afterAdding = values.poll(2, TimeUnit.SECONDS);
         assertEquals(1, afterAdding.get(0).exerciseCount);
@@ -107,12 +108,12 @@ public class WorkoutListViewModelTest {
     @Test
     public void listStartsWithTheMostRecentlyRunThenTheNewestCreated()
             throws InterruptedException {
-        long oldest = helper.insertWorkout("Oldest, never run");
-        long ranLongAgo = helper.insertWorkout("Ran long ago");
-        long ranLately = helper.insertWorkout("Ran lately, aborted");
-        long newest = helper.insertWorkout("Newest, never run");
-        helper.insertSession(ranLongAgo, 1_000, true);
-        helper.insertSession(ranLately, 5_000, false);
+        long oldest = testContainer.insertWorkout("Oldest, never run");
+        long ranLongAgo = testContainer.insertWorkout("Ran long ago");
+        long ranLately = testContainer.insertWorkout("Ran lately, aborted");
+        long newest = testContainer.insertWorkout("Newest, never run");
+        testContainer.insertSession(ranLongAgo, 1_000, true);
+        testContainer.insertSession(ranLately, 5_000, false);
 
         List<WorkoutListItem> items = getOrAwaitValue(repository.observeAll());
 
@@ -124,11 +125,11 @@ public class WorkoutListViewModelTest {
 
     @Test
     public void aWorkoutRanksByItsLatestSession() throws InterruptedException {
-        long first = helper.insertWorkout("First");
-        long second = helper.insertWorkout("Second");
-        helper.insertSession(first, 1_000, true);
-        helper.insertSession(second, 2_000, true);
-        helper.insertSession(first, 3_000, true);
+        long first = testContainer.insertWorkout("First");
+        long second = testContainer.insertWorkout("Second");
+        testContainer.insertSession(first, 1_000, true);
+        testContainer.insertSession(second, 2_000, true);
+        testContainer.insertSession(first, 3_000, true);
 
         List<WorkoutListItem> items = getOrAwaitValue(repository.observeAll());
 
@@ -138,20 +139,20 @@ public class WorkoutListViewModelTest {
     @Test
     public void listReordersWhenASessionIsRecordedAndDropsADeletedWorkout()
             throws InterruptedException {
-        long older = helper.insertWorkout("Older");
-        helper.insertWorkout("Newer");
+        long older = testContainer.insertWorkout("Older");
+        testContainer.insertWorkout("Newer");
         BlockingQueue<List<WorkoutListItem>> values = observeValues(repository.observeAll());
         assertEquals(Arrays.asList("Newer", "Older"),
                 names(values.poll(2, TimeUnit.SECONDS)));
 
-        long session = helper.insertSession(older, 1_000, false);
+        long session = testContainer.insertSession(older, 1_000, false);
         assertEquals(Arrays.asList("Older", "Newer"),
                 names(values.poll(2, TimeUnit.SECONDS)));
 
-        helper.getAppContainer().workoutRepository.delete(
-                helper.getAppContainer().workoutRepository.getById(older));
+        testContainer.getAppContainer().workoutRepository.delete(
+                testContainer.getAppContainer().workoutRepository.getById(older));
         assertEquals(Arrays.asList("Newer"), names(values.poll(2, TimeUnit.SECONDS)));
-        assertNotNull(helper.getDatabase().workoutSessionDao().getById(session));
+        assertNotNull(testContainer.getDatabase().workoutSessionDao().getById(session));
     }
 
     private static List<String> names(List<WorkoutListItem> items) {
@@ -165,6 +166,6 @@ public class WorkoutListViewModelTest {
         exercise.title = title;
         exercise.mediaFile = title + ".jpg";
         exercise.mediaType = MediaType.IMAGE;
-        return helper.getAppContainer().exerciseRepository.save(exercise);
+        return testContainer.getAppContainer().exerciseRepository.save(exercise);
     }
 }

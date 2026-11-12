@@ -26,7 +26,7 @@ import com.wob.workout.data.entity.WorkoutSession;
                 ExerciseSession.class
         },
         version = 5,
-        exportSchema = false
+        exportSchema = true
 )
 @TypeConverters(MediaTypeConverter.class)
 public abstract class AppDatabase extends RoomDatabase { 
@@ -107,5 +107,13 @@ public abstract class AppDatabase extends RoomDatabase {
             db.execSQL("ALTER TABLE `Exercise` ADD COLUMN `framingOffsetX` REAL");
             db.execSQL("ALTER TABLE `Exercise` ADD COLUMN `framingOffsetY` REAL");
         }
+    };
+
+    /** Every migration, in order. {@link DatabaseProvider} registers exactly these, and
+     *  {@code AllMigrationsTest} checks they lead from version 4 to the current schema. */
+    public static final Migration[] ALL_MIGRATIONS = {
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5
     };
 }

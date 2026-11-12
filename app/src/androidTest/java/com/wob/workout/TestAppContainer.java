@@ -21,6 +21,10 @@ import java.util.concurrent.TimeUnit;
  * established inline, and additionally covers ViewModels that need a whole
  * {@code AppContainer} rather than one repository.
  *
+ * <p>Called {@code MigrationTestHelper} in issues #10 and #11 (after the MVVM migration);
+ * renamed so it is not confused with Room's {@code androidx.room.testing.MigrationTestHelper},
+ * which the migration tests use (ADR 0004).
+ *
  * <p>How it works: the in-memory database is installed into {@link DatabaseProvider} via
  * its test seam (issue #10) <em>before</em> the container is constructed, so every
  * repository - including the ones that call {@code DatabaseProvider.get(context)} on each
@@ -29,24 +33,25 @@ import java.util.concurrent.TimeUnit;
  * <p>Usage:
  * <pre>
  * &#64;Rule public InstantTaskExecutorRule rule = new InstantTaskExecutorRule();
- * private MigrationTestHelper helper;
+ * private TestAppContainer testContainer;
  *
- * &#64;Before public void setUp()    { helper = new MigrationTestHelper(); }
- * &#64;After  public void tearDown() { helper.close(); }
+ * &#64;Before public void setUp()    { testContainer = new TestAppContainer(); }
+ * &#64;After  public void tearDown() { testContainer.close(); }
  *
- * // new SomeViewModel(helper.getAppContainer()), seed with helper.insertWorkout(...)
+ * // new SomeViewModel(testContainer.getAppContainer()), seed with testContainer.insertWorkout(...)
  * </pre>
  *
  * <p><b>Always call {@link #close()} from {@code @After}</b> (JUnit runs it even when the
  * test fails): {@code DatabaseProvider}'s singleton is shared by the whole
  * instrumentation process, so skipping it would leak this database into the next test.
- * Construct at most one helper at a time for the same reason. {@code InstantTaskExecutorRule}
- * stays in the test class, since it is a JUnit rule and this is a plain object (like
+ * Construct at most one test container at a time for the same reason.
+ * {@code InstantTaskExecutorRule} stays in the test class, since it is a JUnit rule and this
+ * is a plain object (like
  * {@link LiveDataTestUtil}).
  */
-public class MigrationTestHelper {
+public class TestAppContainer {
 
-    /** Guards the one-helper-at-a-time rule: a second live helper would silently re-point
+    /** Guards the one-at-a-time rule: a second live test container would silently re-point
      *  the first one's per-call repositories at its own database. */
     private static boolean active;
 
@@ -54,12 +59,12 @@ public class MigrationTestHelper {
     private final AppContainer appContainer;
     private boolean closed;
 
-    /** @throws IllegalStateException if another helper hasn't been closed yet. */
-    public MigrationTestHelper() {
-        synchronized (MigrationTestHelper.class) {
+    /** @throws IllegalStateException if another test container hasn't been closed yet. */
+    public TestAppContainer() {
+        synchronized (TestAppContainer.class) {
             if (active) {
                 throw new IllegalStateException(
-                        "Another MigrationTestHelper is still open - close() it first.");
+                        "Another TestAppContainer is still open - close() it first.");
             }
             active = true;
         }

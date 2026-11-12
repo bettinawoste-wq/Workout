@@ -26,34 +26,34 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 /**
- * Smoke test for {@link MigrationTestHelper} itself (issue #11): proves the container it
+ * Smoke test for {@link TestAppContainer} itself (issue #11): proves the container it
  * builds shares one isolated in-memory database across all repositories, that close()
  * fully tears down and hands DatabaseProvider back its previous instance, and that only
- * one helper can be live at a time.
+ * one test container can be live at a time.
  */
 @RunWith(AndroidJUnit4.class)
-public class MigrationTestHelperTest {
+public class TestAppContainerTest {
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    private MigrationTestHelper helper;
+    private TestAppContainer testContainer;
 
     @After
     public void tearDown() {
-        if (helper != null) {
-            helper.close();
+        if (testContainer != null) {
+            testContainer.close();
         }
     }
 
     @Test
     public void repositoriesOnTheSameContainerShareOneDatabase() throws InterruptedException {
-        helper = new MigrationTestHelper();
-        AppContainer container = helper.getAppContainer();
+        testContainer = new TestAppContainer();
+        AppContainer container = testContainer.getAppContainer();
 
-        long workoutId = helper.insertWorkout("Leg Day");
-        long exerciseId = helper.insertExercise("Squat");
-        helper.insertWorkoutExercise(workoutId, exerciseId, 0, 45);
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long exerciseId = testContainer.insertExercise("Squat");
+        testContainer.insertWorkoutExercise(workoutId, exerciseId, 0, 45);
 
         // Written through the per-call repositories (workout/exercise/workoutExercise)...
         Exercise exercise = container.exerciseRepository.getById(exerciseId);
@@ -64,7 +64,7 @@ public class MigrationTestHelperTest {
         assertEquals("Leg Day", container.workoutRepository.getById(workoutId).name);
 
         // ...and read back through WorkoutSummaryRepository, which captures its database
-        // once at construction - the case that breaks if the helper wires things in the
+        // once at construction - the case that breaks if the test container wires things in the
         // wrong order.
         List<WorkoutListItem> summaries =
                 getOrAwaitValue(container.workoutSummaryRepository.observeAll());
@@ -75,21 +75,21 @@ public class MigrationTestHelperTest {
     @Test
     public void closeTearsDownAndRestoresTheProvidersPreviousInstance() throws Exception {
         Object before = readProviderInstance();
-        helper = new MigrationTestHelper();
-        assertSame(helper.getDatabase(), readProviderInstance());
+        testContainer = new TestAppContainer();
+        assertSame(testContainer.getDatabase(), readProviderInstance());
 
-        helper.close();
+        testContainer.close();
 
-        assertFalse(helper.getDatabase().isOpen());
-        assertTrue(helper.getAppContainer().ioExecutor.isShutdown());
+        assertFalse(testContainer.getDatabase().isOpen());
+        assertTrue(testContainer.getAppContainer().ioExecutor.isShutdown());
         assertSame(before, readProviderInstance());
-        helper.close(); // idempotent: a second call (e.g. from @After) must not throw
+        testContainer.close(); // idempotent: a second call (e.g. from @After) must not throw
     }
 
     @Test
     public void closedHelperLeavesNothingBehindForTheNextHelper() throws Exception {
         Object before = readProviderInstance();
-        MigrationTestHelper first = new MigrationTestHelper();
+        TestAppContainer first = new TestAppContainer();
         AppDatabase firstDatabase = first.getDatabase();
         try {
             first.insertWorkout("Only in first");
@@ -97,21 +97,21 @@ public class MigrationTestHelperTest {
             first.close();
         }
 
-        // The leak that matters is to code that does *not* use the helper.
+        // The leak that matters is to code that does *not* use the testContainer.
         assertNotSame(firstDatabase, readProviderInstance());
         assertSame(before, readProviderInstance());
 
-        helper = new MigrationTestHelper();
-        assertTrue(helper.getAppContainer().workoutRepository.getAll().isEmpty());
+        testContainer = new TestAppContainer();
+        assertTrue(testContainer.getAppContainer().workoutRepository.getAll().isEmpty());
     }
 
     @Test
     public void secondHelperWhileOneIsOpenIsRejected() throws Exception {
-        helper = new MigrationTestHelper();
+        testContainer = new TestAppContainer();
 
-        assertThrows(IllegalStateException.class, MigrationTestHelper::new);
-        // The rejected constructor must not have touched the live helper's wiring.
-        assertSame(helper.getDatabase(), readProviderInstance());
+        assertThrows(IllegalStateException.class, TestAppContainer::new);
+        // The rejected constructor must not have touched the live test container's wiring.
+        assertSame(testContainer.getDatabase(), readProviderInstance());
     }
 
     private static AppDatabase readProviderInstance() throws Exception {

@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.room)
 }
 
 android {
@@ -49,6 +50,9 @@ android {
         }
     }
 
+    // MigrationTestHelper reads the exported schemas (see room {} below) from the test APK.
+    sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
+
     buildFeatures {
         viewBinding = true
     }
@@ -59,10 +63,17 @@ android {
     }
 }
 
+// One JSON file per database version, committed, so MigrationTestHelper can open old
+// versions in migration tests (ADR 0004).
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.arch.core.testing)
+    androidTestImplementation(libs.room.testing)
     annotationProcessor(libs.room.compiler)
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)
@@ -75,4 +86,13 @@ dependencies {
     implementation(libs.recyclerview)
     implementation(libs.room.runtime)
     testImplementation(libs.junit)
+
+    constraints {
+        // The test APK must use the app's library versions, and the app gets 1.7.3 through
+        // navigation. room-testing reads the exported schemas with kotlinx-serialization-json
+        // 1.8.1, which fails at runtime (AbstractMethodError) against an older core.
+        implementation(libs.kotlinx.serialization.core) {
+            because("room-testing's MigrationTestHelper needs serialization-core 1.8.1")
+        }
+    }
 }
