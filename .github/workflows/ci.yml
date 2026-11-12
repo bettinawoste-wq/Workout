@@ -21,6 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          # Any Python 3 runs the script; pinned so CI doesn't change under it.
+          python-version: '3.12'
+
       - name: Test the check script
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
