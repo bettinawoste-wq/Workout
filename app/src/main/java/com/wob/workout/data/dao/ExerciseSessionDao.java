@@ -13,7 +13,7 @@ public interface ExerciseSessionDao {
     @Query("SELECT * FROM ExerciseSession WHERE sessionId = :sessionId ORDER BY position")
     List<ExerciseSession> getBySession(long sessionId);
 
-    @Query("SELECT COALESCE(SUM(actualDurationSeconds), 0) FROM ExerciseSession "
-            + "WHERE sessionId = :sessionId")
+    @Query("SELECT COALESCE(SUM(actualDurationSeconds), 0) FROM ExerciseSession"
+            + " WHERE sessionId = :sessionId")
     int getTotalActiveSeconds(long sessionId);
 }
