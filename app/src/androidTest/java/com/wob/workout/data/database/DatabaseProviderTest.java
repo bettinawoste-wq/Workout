@@ -56,7 +56,8 @@ public class DatabaseProviderTest {
     public void resetForTest_restoresTheInstanceFromBeforeTheOverride() throws Exception {
         AppDatabase before = readInstanceField();
         DatabaseProvider.setInstanceForTest(inMemory);
-        DatabaseProvider.setInstanceForTest(inMemory); // nested overrides still restore the original
+        // Nested overrides still restore the original.
+        DatabaseProvider.setInstanceForTest(inMemory);
 
         DatabaseProvider.resetForTest();
 

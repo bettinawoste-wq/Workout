@@ -55,10 +55,12 @@ public class HomeFragment extends Fragment implements WorkoutAdapter.Listener {
                 R.string.workout_anlegen, v -> open(WorkoutEditFragment.create()));
         viewModel.getRecentWorkouts().observe(getViewLifecycleOwner(), workouts -> {
             adapter.setData(workouts);
-            binding.emptyState.getRoot().setVisibility(workouts.isEmpty() ? View.VISIBLE : View.GONE);
+            binding.emptyState.getRoot()
+                    .setVisibility(workouts.isEmpty() ? View.VISIBLE : View.GONE);
             // "Alle" would only lead to the same empty list. Invisible rather than gone, so
             // the heading row keeps its height.
-            binding.btnAllWorkouts.setVisibility(workouts.isEmpty() ? View.INVISIBLE : View.VISIBLE);
+            binding.btnAllWorkouts.setVisibility(
+                    workouts.isEmpty() ? View.INVISIBLE : View.VISIBLE);
         });
 
         binding.btnAllWorkouts.setOnClickListener(v -> open(new WorkoutListFragment()));

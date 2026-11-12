@@ -48,9 +48,11 @@ public abstract class AppDatabase extends RoomDatabase {
                             "`finishedAt` INTEGER NOT NULL, " +
                             "`activeDurationSeconds` INTEGER NOT NULL, " +
                             "`completed` INTEGER NOT NULL, " +
-                            "FOREIGN KEY(`workoutId`) REFERENCES `Workout`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)");
+                            "FOREIGN KEY(`workoutId`) REFERENCES `Workout`(`id`) " +
+                            "ON UPDATE NO ACTION ON DELETE CASCADE)");
             db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS `index_WorkoutSession_workoutId` ON `WorkoutSession` (`workoutId`)");
+                    "CREATE INDEX IF NOT EXISTS `index_WorkoutSession_workoutId` " +
+                            "ON `WorkoutSession` (`workoutId`)");
 
             db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `ExerciseSession` (" +
@@ -63,9 +65,11 @@ public abstract class AppDatabase extends RoomDatabase {
                             "`actualDurationSeconds` INTEGER NOT NULL, " +
                             "`startedAt` INTEGER NOT NULL, " +
                             "`finishedAt` INTEGER NOT NULL, " +
-                            "FOREIGN KEY(`sessionId`) REFERENCES `WorkoutSession`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)");
+                            "FOREIGN KEY(`sessionId`) REFERENCES `WorkoutSession`(`id`) " +
+                            "ON UPDATE NO ACTION ON DELETE CASCADE)");
             db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS `index_ExerciseSession_sessionId` ON `ExerciseSession` (`sessionId`)");
+                    "CREATE INDEX IF NOT EXISTS `index_ExerciseSession_sessionId` " +
+                            "ON `ExerciseSession` (`sessionId`)");
         }
     };
 
@@ -88,14 +92,17 @@ public abstract class AppDatabase extends RoomDatabase {
 
             db.execSQL(
                     "INSERT INTO `WorkoutSession` " +
-                            "(`id`, `workoutId`, `workoutName`, `startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`) " +
-                            "SELECT `id`, `workoutId`, `workoutName`, `startedAt`, `finishedAt`, `activeDurationSeconds`, `completed` " +
+                            "(`id`, `workoutId`, `workoutName`, `startedAt`, `finishedAt`, " +
+                            "`activeDurationSeconds`, `completed`) " +
+                            "SELECT `id`, `workoutId`, `workoutName`, `startedAt`, `finishedAt`, " +
+                            "`activeDurationSeconds`, `completed` " +
                             "FROM `WorkoutSession_old`");
 
             db.execSQL("DROP TABLE `WorkoutSession_old`");
 
             db.execSQL(
-                    "CREATE INDEX IF NOT EXISTS `index_WorkoutSession_workoutId` ON `WorkoutSession` (`workoutId`)");
+                    "CREATE INDEX IF NOT EXISTS `index_WorkoutSession_workoutId` " +
+                            "ON `WorkoutSession` (`workoutId`)");
         }
     };
 

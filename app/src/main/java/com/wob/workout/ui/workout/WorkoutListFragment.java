@@ -26,7 +26,8 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
     private WorkoutListViewModel viewModel;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+            Bundle savedInstanceState) {
 
         binding = FragmentWorkoutListBinding.inflate(inflater, container, false);
         ScreenToolbar.setUp(this, binding.toolbar);

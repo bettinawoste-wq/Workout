@@ -50,7 +50,8 @@ public class PlayerFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+            Bundle savedInstanceState) {
         binding = FragmentPlayerBinding.inflate(inflater, container, false);
         ScreenToolbar.setUp(this, binding.toolbar);
         String workoutName = getArguments() != null
@@ -69,7 +70,8 @@ public class PlayerFragment extends Fragment {
 
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
-        viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, workoutId))
+        viewModel = new ViewModelProvider(
+                this, new WorkoutViewModelFactory(appContainer, workoutId))
                 .get(PlayerViewModel.class);
 
         audioManager = new AudioManager(requireContext());

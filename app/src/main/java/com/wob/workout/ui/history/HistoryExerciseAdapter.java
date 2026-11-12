@@ -12,7 +12,8 @@ import com.wob.workout.databinding.ItemHistoryExerciseBinding;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HistoryExerciseAdapter extends RecyclerView.Adapter<HistoryExerciseAdapter.ViewHolder> {
+public class HistoryExerciseAdapter
+        extends RecyclerView.Adapter<HistoryExerciseAdapter.ViewHolder> {
 
     private final List<ExerciseSession> exercises = new ArrayList<>();
 

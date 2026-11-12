@@ -72,7 +72,8 @@ public class WorkoutEditFragment extends Fragment {
                 : -1;
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
-        viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, workoutId))
+        viewModel = new ViewModelProvider(
+                this, new WorkoutViewModelFactory(appContainer, workoutId))
                 .get(WorkoutEditViewModel.class);
     }
 
@@ -92,8 +93,10 @@ public class WorkoutEditFragment extends Fragment {
 
         ScreenToolbar.setUp(this, binding.toolbar);
         // From how the screen was opened, so it doesn't change once the first edit saves it.
-        boolean openedAsNew = getArguments() != null && getArguments().getBoolean(ARG_OPENED_AS_NEW);
-        binding.toolbar.setTitle(openedAsNew ? R.string.neues_workout : R.string.workout_bearbeiten);
+        boolean openedAsNew =
+                getArguments() != null && getArguments().getBoolean(ARG_OPENED_AS_NEW);
+        binding.toolbar.setTitle(
+                openedAsNew ? R.string.neues_workout : R.string.workout_bearbeiten);
         binding.toolbar.setOnMenuItemClickListener(this::onMenuItemClick);
         setWorkoutActionsEnabled(!viewModel.isNew());
 
@@ -190,7 +193,8 @@ public class WorkoutEditFragment extends Fragment {
     private void duplicate() {
         viewModel.duplicate().observe(getViewLifecycleOwner(), copyId -> {
             if (copyId == null) {
-                Snackbar.make(binding.getRoot(), "Duplizieren fehlgeschlagen", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(binding.getRoot(), "Duplizieren fehlgeschlagen",
+                        Snackbar.LENGTH_SHORT).show();
                 return;
             }
             FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
