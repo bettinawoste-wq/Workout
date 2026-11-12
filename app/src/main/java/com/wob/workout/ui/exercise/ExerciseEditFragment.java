@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -32,7 +31,7 @@ public class ExerciseEditFragment extends Fragment {
 
     private final ActivityResultLauncher<PickVisualMediaRequest> mediaPicker =
             registerForActivityResult(
-                    new ActivityResultContracts.PickVisualMedia(),
+                    new PickVisualMedia(),
                     uri -> {
                         if (uri == null) return;
                         // Disabled here, re-enabled by whichever of getPreview()/getMediaError()
