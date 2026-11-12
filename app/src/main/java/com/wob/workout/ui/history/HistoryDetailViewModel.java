@@ -26,7 +26,8 @@ public class HistoryDetailViewModel extends ViewModel {
             WorkoutSession session = container.workoutHistoryRepository.getSession(sessionId);
             if (session == null) return null;
 
-            List<ExerciseSession> exercises = container.workoutHistoryRepository.getExercises(sessionId);
+            List<ExerciseSession> exercises =
+                    container.workoutHistoryRepository.getExercises(sessionId);
             return new HistoryDetail(session, exercises);
         }, result -> {
             if (result == null) return;

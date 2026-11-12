@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -65,7 +66,8 @@ public class ExerciseEditFragment extends Fragment {
 
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
-        viewModel = new ViewModelProvider(this, new WorkoutViewModelFactory(appContainer, exerciseId))
+        viewModel = new ViewModelProvider(
+                this, new WorkoutViewModelFactory(appContainer, exerciseId))
                 .get(ExerciseEditViewModel.class);
 
         ScreenToolbar.setUp(this, binding.toolbar);
@@ -120,7 +122,7 @@ public class ExerciseEditFragment extends Fragment {
         binding.btnSelectMedia.setOnClickListener(v ->
                 mediaPicker.launch(
                         new PickVisualMediaRequest.Builder()
-                                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE)
+                                .setMediaType(PickVisualMedia.ImageAndVideo.INSTANCE)
                                 .build()));
 
         return binding.getRoot();
@@ -172,7 +174,8 @@ public class ExerciseEditFragment extends Fragment {
                 requireActivity().getSupportFragmentManager().popBackStack();
             } else if (binding != null) {
                 binding.btnSave.setEnabled(true);
-                Snackbar.make(binding.getRoot(), "Speichern fehlgeschlagen", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(binding.getRoot(), "Speichern fehlgeschlagen",
+                        Snackbar.LENGTH_SHORT).show();
             }
         });
     }

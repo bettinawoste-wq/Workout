@@ -139,7 +139,8 @@ public class WorkoutEditViewModel extends ViewModel {
     /** For the exercise picker sheet, which needs the full exercise catalog (not just
      *  this workout's), loaded once per dialog open rather than kept live. */
     public LiveData<List<Exercise>> loadAllExercises() {
-        return LiveDataExecutor.runOnExecutor(container.ioExecutor, container.exerciseRepository::getAll);
+        return LiveDataExecutor.runOnExecutor(
+                container.ioExecutor, container.exerciseRepository::getAll);
     }
 
     /** Appends the exercises after the existing ones, in the given order (the order they
@@ -204,7 +205,8 @@ public class WorkoutEditViewModel extends ViewModel {
     private List<WorkoutExerciseAdapter.ExerciseItem> loadExerciseItems() {
         List<WorkoutExerciseAdapter.ExerciseItem> items = new ArrayList<>();
 
-        for (WorkoutExercise workoutExercise : container.workoutExerciseRepository.getByWorkout(workoutId)) {
+        for (WorkoutExercise workoutExercise
+                : container.workoutExerciseRepository.getByWorkout(workoutId)) {
             Exercise exercise = container.exerciseRepository.getById(workoutExercise.exerciseId);
             if (exercise != null) {
                 items.add(new WorkoutExerciseAdapter.ExerciseItem(exercise, workoutExercise));

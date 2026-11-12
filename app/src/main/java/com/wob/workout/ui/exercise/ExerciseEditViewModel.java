@@ -44,7 +44,8 @@ public class ExerciseEditViewModel extends ViewModel {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             Exercise loaded = container.exerciseRepository.getById(exerciseId);
             if (loaded == null) return null;
-            return new LoadResult(loaded, computePreview(container.appContext, loaded.mediaFile, loaded.mediaType));
+            return new LoadResult(loaded,
+                    computePreview(container.appContext, loaded.mediaFile, loaded.mediaType));
         }, result -> {
             if (result == null) return;
             // The media fields are set before any observer hears about the loaded exercise:
@@ -142,7 +143,8 @@ public class ExerciseEditViewModel extends ViewModel {
                     return MediaSelectionResult.error("Dateityp nicht unterstützt");
                 }
 
-                String mediaFile = MediaStorageManager.copyToExerciseFolder(container.appContext, uri);
+                String mediaFile =
+                        MediaStorageManager.copyToExerciseFolder(container.appContext, uri);
                 Preview loadedPreview = computePreview(container.appContext, mediaFile, mediaType);
                 return MediaSelectionResult.success(mediaFile, mediaType, loadedPreview);
             } catch (Exception e) {
@@ -164,7 +166,8 @@ public class ExerciseEditViewModel extends ViewModel {
         });
     }
 
-    private static Preview computePreview(Context appContext, String mediaFile, MediaType mediaType) {
+    private static Preview computePreview(
+            Context appContext, String mediaFile, MediaType mediaType) {
         if (mediaFile == null || mediaType == null) {
             return new Preview(null, "Kein Medium ausgewählt");
         }
@@ -207,14 +210,16 @@ public class ExerciseEditViewModel extends ViewModel {
         final Preview preview;
         final String error;
 
-        private MediaSelectionResult(String mediaFile, MediaType mediaType, Preview preview, String error) {
+        private MediaSelectionResult(
+                String mediaFile, MediaType mediaType, Preview preview, String error) {
             this.mediaFile = mediaFile;
             this.mediaType = mediaType;
             this.preview = preview;
             this.error = error;
         }
 
-        static MediaSelectionResult success(String mediaFile, MediaType mediaType, Preview preview) {
+        static MediaSelectionResult success(
+                String mediaFile, MediaType mediaType, Preview preview) {
             return new MediaSelectionResult(mediaFile, mediaType, preview, null);
         }
 

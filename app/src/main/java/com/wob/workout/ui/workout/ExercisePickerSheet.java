@@ -57,7 +57,8 @@ public class ExercisePickerSheet extends BottomSheetDialogFragment {
                 .get(WorkoutEditViewModel.class);
 
         adapter = new ExercisePickerAdapter(
-                ((WorkoutApplication) requireActivity().getApplication()).getAppContainer().thumbnails,
+                ((WorkoutApplication) requireActivity().getApplication())
+                        .getAppContainer().thumbnails,
                 this::showPickedCount);
         binding.listExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.listExercises.setAdapter(adapter);

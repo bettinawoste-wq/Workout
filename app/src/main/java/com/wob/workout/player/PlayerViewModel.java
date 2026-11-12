@@ -173,7 +173,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void loadExercises(AppContainer container, long workoutId) {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
-            List<PlayerExercise> loadedExercises = container.playerRepository.getExercises(workoutId);
+            List<PlayerExercise> loadedExercises =
+                    container.playerRepository.getExercises(workoutId);
             Workout workout = container.workoutRepository.getById(workoutId);
             return new LoadResult(
                     loadedExercises,

@@ -45,7 +45,8 @@ public class HistoryListFragment extends Fragment {
             });
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+            Bundle savedInstanceState) {
 
         binding = FragmentHistoryListBinding.inflate(inflater, container, false);
         ScreenToolbar.setUp(this, binding.toolbar);
@@ -93,7 +94,8 @@ public class HistoryListFragment extends Fragment {
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Verlaufseintrag löschen?")
-                .setMessage("Der Eintrag für \"" + displayName(item) + "\" wird endgültig gelöscht.")
+                .setMessage("Der Eintrag für \"" + displayName(item)
+                        + "\" wird endgültig gelöscht.")
                 .setNegativeButton("Abbrechen", (dialog, which) -> undoSwipe.run())
                 .setPositiveButton("Löschen", (dialog, which) -> viewModel.delete(item.session))
                 .setOnCancelListener(dialog -> undoSwipe.run())

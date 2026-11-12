@@ -98,7 +98,8 @@ public class WorkoutEditViewModelTest {
                 container.exerciseRepository.getById(plankId),
                 container.exerciseRepository.getById(dipId));
 
-        List<ExerciseItem> items = awaitEmissionAfter(viewModel, () -> viewModel.addExercises(ticked));
+        List<ExerciseItem> items =
+                awaitEmissionAfter(viewModel, () -> viewModel.addExercises(ticked));
 
         assertTitles(items, "Push-up", "Plank", "Dip");
         assertEquals(1, items.get(1).workoutExercise.position);
@@ -155,7 +156,8 @@ public class WorkoutEditViewModelTest {
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         ExerciseItem squat = getOrAwaitValue(viewModel.getExercises()).get(0);
 
-        List<ExerciseItem> items = awaitEmissionAfter(viewModel, () -> viewModel.removeExercise(squat));
+        List<ExerciseItem> items =
+                awaitEmissionAfter(viewModel, () -> viewModel.removeExercise(squat));
 
         assertTitles(items, "Row");
         assertNull(container.workoutExerciseRepository.getById(squat.workoutExercise.id));

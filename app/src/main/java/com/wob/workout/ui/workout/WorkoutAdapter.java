@@ -55,7 +55,8 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
 
         holder.binding.txtName.setText(item.workout.name);
         holder.binding.txtInfo.setText(
-                ExerciseCount.text(item.exerciseCount) + " • " + formatDuration(item.totalDurationSeconds));
+                ExerciseCount.text(item.exerciseCount)
+                        + " • " + formatDuration(item.totalDurationSeconds));
         showPictureStrip(holder, item);
 
         holder.itemView.setOnClickListener(

@@ -173,7 +173,8 @@ public class HistoryListViewModelTest {
                 return row.session;
             }
         }
-        throw new AssertionError("No row for session " + sessionId + " in " + rows.size() + " rows");
+        throw new AssertionError(
+                "No row for session " + sessionId + " in " + rows.size() + " rows");
     }
 
     private static List<WorkoutSessionSummary> poll(
