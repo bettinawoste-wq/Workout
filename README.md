@@ -14,27 +14,25 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
 
 ## Features
 
-- **Exercises** — title, description and an optional photo or video; photos are framed in the
-  editor without touching the original file, and exercises without one show a placeholder image.
+- **Exercises** — title, description and an optional photo or video; a photo is framed by zooming
+  with two fingers and moving with one, the file untouched; without a picture, a placeholder image.
 - **Workouts** — a named, ordered list of exercises with a duration each, reordered by drag and
   drop, saved as you edit, duplicable, and shown with a thumbnail of every exercise.
-- **Player** — countdowns into and out of every exercise, a soft start tone, a darkened preview
-  of the next exercise, a progress bar, skip and back, and a chime with a summary at the end.
-- **History** — every workout session, completed or aborted, with planned vs. actual duration
-  per exercise; it survives deleting the workout it was recorded against.
-- **Starter set** — a fresh install comes with 10 bodyweight exercises and a full-body workout,
-  which afterwards are ordinary data you can edit or delete.
+- **Player** — countdowns, a soft start tone, a quiet transition, the coming exercise darkened, skip and
+  back; a bar of exercise time left in the workout; a chime and a summary of total time and skipped exercises.
+- **History** — every workout session, completed or aborted, with planned vs. actual duration per
+  exercise; browse and delete sessions, which survive deleting the workout they were recorded against.
+- **Starter set** — a fresh install comes with 10 bodyweight exercises and a full-body workout at one
+  minute per exercise; afterwards they are ordinary data you can edit or delete.
 - **Design** — Material 3 with a petrol palette, following the system's light or dark mode.
 
 ## Architecture
 
-Every screen follows the same MVVM layering; the player is the one screen with real logic of
-its own. [`CONTEXT.md`](CONTEXT.md) describes it in detail.
+Every screen follows the same MVVM layering; the player is the screen with the most logic of its own.
 
 ```mermaid
 flowchart TD
-    App["WorkoutApplication"] --> AC["AppContainer (wiring)"]
-    AC -.->|repositories, ioExecutor| Factory["WorkoutViewModelFactory"]
+    AC["AppContainer (wiring)"]
 
     subgraph screens["Every screen"]
         Fragment["Fragment (view, navigation)"] --> ViewModel["ViewModel (LiveData state)"]
@@ -46,8 +44,8 @@ flowchart TD
         PVM --> Tracker["PlayerHistoryTracker"]
     end
 
-    Factory -.-> ViewModel
-    Factory -.-> PVM
+    AC -.-> ViewModel
+    AC -.-> PVM
     ViewModel --> Repository["Repository"]
     PVM --> Repository
     Tracker --> Repository
@@ -55,15 +53,11 @@ flowchart TD
     DAO --> Room[("Room: AppDatabase")]
 ```
 
-- **`AppContainer`** is a hand-written dependency container, built once in `WorkoutApplication`;
-  `WorkoutViewModelFactory` hands it to every ViewModel
-  ([ADR 0001](docs/adr/0001-manual-di-container.md)).
-- **Fragments** render state and navigate; **ViewModels** hold the screen state as `LiveData`
-  and do all database work off the main thread.
-- **Repositories** wrap the **DAOs**; **Room** stores everything, with explicit, tested
-  migrations between schema versions ([ADR 0004](docs/adr/0004-exported-room-schemas.md)).
-- **The player** keeps its state machine in `PlayerViewModel`, counts time in `PlayerTimer`
-  and writes the workout session and its exercise sessions through `PlayerHistoryTracker`.
+- ViewModels touch the database only off the main thread.
+- Migrations are tested from version 4, the oldest schema any release shipped
+  ([ADR 0004](docs/adr/0004-exported-room-schemas.md)).
+
+[`CONTEXT.md`](CONTEXT.md) describes the architecture in detail.
 
 ## Development approach
 
@@ -76,29 +70,30 @@ issues, reviews and accepts every pull request, tests on the device, and cuts th
 
 **Claude Code** implements test-first from those issues and reviews the code as a second check.
 
-Every change runs through the same workflow:
+The workflow:
 
 1. **Idea** — something the app should do, or do better.
-2. **Grilling** — the idea is questioned until the requirements and the domain terms are
-   settled; lasting decisions become an ADR.
-3. **Issue** — the result is cut into a GitHub issue with acceptance criteria.
-4. **TDD** — Claude Code implements it red → green against the issue.
-5. **Review** — the change is reviewed against the coding standards and the issue.
-6. **PR** — the owner tests it on the device, then accepts and merges the pull request.
+2. **Grilling** — questions until the requirements and domain terms are settled; a lasting
+   decision becomes an ADR.
+3. **Issue** — the outcome, with acceptance criteria.
+4. **TDD** — red → green against those criteria.
+5. **Review** — Claude Code's code review as a second check, then the owner's review.
+6. **PR** — merged once accepted.
 
-Examples from this repo:
+The full flow, on framing exercise photos: the grilling's decision became
+[ADR 0003](docs/adr/0003-non-destructive-framing.md), then
+[issue #31](https://github.com/bettinawoste-wq/Workout/issues/31), then
+[PR #36](https://github.com/bettinawoste-wq/Workout/pull/36).
 
-- Framing exercise photos: [ADR 0003](docs/adr/0003-non-destructive-framing.md) →
-  [issue #31](https://github.com/bettinawoste-wq/Workout/issues/31) →
-  [PR #36](https://github.com/bettinawoste-wq/Workout/pull/36).
-- A workout editor without a save button:
+More from this repo:
+
+- Issue to PR, for a workout editor without a save button:
   [issue #45](https://github.com/bettinawoste-wq/Workout/issues/45) →
   [PR #49](https://github.com/bettinawoste-wq/Workout/pull/49).
 - The MVVM migration: [issue #1](https://github.com/bettinawoste-wq/Workout/issues/1) as the
-  map, [issue #2](https://github.com/bettinawoste-wq/Workout/issues/2) and
-  [ADR 0001](docs/adr/0001-manual-di-container.md) for the wiring, and one issue per screen,
-  e.g. [issue #13](https://github.com/bettinawoste-wq/Workout/issues/13) →
-  [PR #16](https://github.com/bettinawoste-wq/Workout/pull/16) for the player's tests.
+  map, [issue #2](https://github.com/bettinawoste-wq/Workout/issues/2) for the wiring, and one
+  issue per screen, such as [issue #4](https://github.com/bettinawoste-wq/Workout/issues/4) for
+  the player, built in commits on `master` before every change went through a pull request.
 
 ## Tech stack
 
