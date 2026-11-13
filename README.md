@@ -73,3 +73,7 @@ is described in [`docs/releasing.md`](docs/releasing.md).
 - [`docs/adr/`](docs/adr/) — architecture decision records
 - [`docs/sounds.md`](docs/sounds.md) — where the app's sounds come from
 - [`docs/agents/`](docs/agents/) — conventions for AI coding agents working in this repo
+
+## License
+
+This project is licensed under the MIT License; see [`LICENSE`](LICENSE).
