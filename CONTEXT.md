@@ -27,10 +27,11 @@ lives in an on-device Room database.
   No DI framework — deliberately the smallest mechanism that fits a single-developer app this size.
 - **MVVM migration: every screen on the map is now migrated.** `WorkoutListFragment`, `PlayerFragment`,
   `WorkoutEditFragment`, `ExerciseListFragment`, `ExerciseEditFragment`, `HistoryListFragment`, and
-  `HistoryDetailFragment` all follow the new pattern (`HomeFragment` needed no ViewModel — pure
-  navigation, zero state, settled without a ticket). `WorkoutListViewModel` is a thin passthrough over
-  `WorkoutSummaryRepository`'s reactive `LiveData` (built via `LiveDataExecutor` running on
-  `AppContainer.ioExecutor`); `PlayerViewModel` owns the player's state machine, a consolidated
+  `HistoryDetailFragment` all follow the new pattern. `HomeFragment` was not on the map (pure
+  navigation then) and got `HomeViewModel` later, with issue #44. `WorkoutListViewModel` is a thin
+  passthrough over `WorkoutSummaryRepository`'s reactive Room `LiveData` (a `@Relation` query mapped
+  via `Transformations.map`); `HomeViewModel` is the same, over `observeRecent()` for the home
+  screen's recent workouts; `PlayerViewModel` owns the player's state machine, a consolidated
   `PlayerTimer`, and a standalone `PlayerHistoryTracker` for session bookkeeping;
   `WorkoutEditViewModel` deliberately does *not* use a reactive Room query — it re-runs a manual
   load-and-reload after each of its own writes, plus on every view creation (to pick up changes
