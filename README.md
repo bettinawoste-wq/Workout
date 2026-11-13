@@ -2,9 +2,11 @@
 
 [![CI](https://github.com/bettinawoste-wq/Workout/actions/workflows/ci.yml/badge.svg)](https://github.com/bettinawoste-wq/Workout/actions/workflows/ci.yml)
 
-A local-only Android app for building custom workouts, running them with a timer and
-audio cues, and reviewing past sessions afterward. Everything is stored on-device in
-Room — no account, no backend. The interface is in German.
+Workout is an Android app for building your own workouts from your own exercises, running
+them with a timer and audio cues, and looking back at what you actually did. It is made for
+people who train at home with bodyweight exercises and want a plain, focused tool instead of
+a fitness platform. Everything stays on the phone in a Room database: no account, no backend,
+no tracking, and nothing to lose when a service shuts down. The interface is in German.
 
 | Home | Workout editor | Player | History |
 | :---: | :---: | :---: | :---: |
@@ -12,24 +14,86 @@ Room — no account, no backend. The interface is in German.
 
 ## Features
 
-- **Exercises** — title, description and an optional photo or video. Photos are framed in
-  the editor: zoom with two fingers and move with one to decide how much of the edge is cut
-  off; the original file stays untouched. Exercises without a picture show a placeholder.
-- **Workouts** — a named, ordered list of exercises with a duration each, reordered by
-  drag-and-drop. The editor saves every change as you make it, and a workout can be
-  duplicated from its menu. The workout list shows a thumbnail of every exercise.
-- **Player** — counts down into the first exercise and out of every exercise, marks each
-  start with a soft tone, and keeps the pause between exercises quiet. While a countdown
-  runs, the coming exercise is shown darkened with its title. A progress bar shows the
-  exercise time left in the whole workout. Exercises can be skipped or revisited; a
-  finished workout ends with a chime and a summary of total time and skipped exercises.
-- **History** — every run is recorded (completed or aborted, with per-exercise actual vs.
-  planned duration), browsable and deletable independently of whether the source workout
-  still exists.
-- **Starter set** — a fresh install comes with 10 bodyweight exercises and a ready-made
-  full-body workout (one minute per exercise); afterwards they're ordinary data you can
-  edit or delete.
+- **Exercises** — title, description and an optional photo or video; a photo is framed by zooming
+  with two fingers and moving with one, the file untouched; without a picture, a placeholder image.
+- **Workouts** — a named, ordered list of exercises with a duration each, reordered by drag and
+  drop, saved as you edit, duplicable, and shown with a thumbnail of every exercise.
+- **Player** — countdowns, a soft start tone, a quiet transition, the coming exercise darkened, skip and
+  back; a bar of exercise time left in the workout; a chime and a summary of total time and skipped exercises.
+- **History** — every workout session, completed or aborted, with planned vs. actual duration per
+  exercise; browse and delete sessions, which survive deleting the workout they were recorded against.
+- **Starter set** — a fresh install comes with 10 bodyweight exercises and a full-body workout at one
+  minute per exercise; afterwards they are ordinary data you can edit or delete.
 - **Design** — Material 3 with a petrol palette, following the system's light or dark mode.
+
+## Architecture
+
+Every screen follows the same MVVM layering; the player is the screen with the most logic of its own.
+
+```mermaid
+flowchart TD
+    AC["AppContainer (wiring)"]
+
+    subgraph screens["Every screen"]
+        Fragment["Fragment (view, navigation)"] --> ViewModel["ViewModel (LiveData state)"]
+    end
+
+    subgraph player["Player: the special case"]
+        PF["PlayerFragment (sound, video)"] --> PVM["PlayerViewModel (state machine)"]
+        PVM --> Timer["PlayerTimer"]
+        PVM --> Tracker["PlayerHistoryTracker"]
+    end
+
+    AC -.-> ViewModel
+    AC -.-> PVM
+    ViewModel --> Repository["Repository"]
+    PVM --> Repository
+    Tracker --> Repository
+    Repository --> DAO["DAO"]
+    DAO --> Room[("Room: AppDatabase")]
+```
+
+- ViewModels touch the database only off the main thread.
+- Migrations are tested from version 4, the oldest schema any release shipped
+  ([ADR 0004](docs/adr/0004-exported-room-schemas.md)).
+
+[`CONTEXT.md`](CONTEXT.md) describes the architecture in detail.
+
+## Development approach
+
+This app was built by its owner together with [Claude Code](https://claude.com/claude-code),
+with a clear split of roles.
+
+**The owner** brings the product idea and the requirements, makes the decisions in grillings,
+keeps the domain model ([`GLOSSARY.md`](GLOSSARY.md) and the [ADRs](docs/adr/)), cuts the
+issues, reviews and accepts every pull request, tests on the device, and cuts the releases.
+
+**Claude Code** implements test-first from those issues and reviews the code as a second check.
+
+The workflow:
+
+1. **Idea** — something the app should do, or do better.
+2. **Grilling** — questions until the requirements and domain terms are settled; a lasting
+   decision becomes an ADR.
+3. **Issue** — the outcome, with acceptance criteria.
+4. **TDD** — red → green against those criteria.
+5. **Review** — Claude Code's code review as a second check, then the owner's review.
+6. **PR** — merged once accepted.
+
+The full flow, on framing exercise photos: the grilling's decision became
+[ADR 0003](docs/adr/0003-non-destructive-framing.md), then
+[issue #31](https://github.com/bettinawoste-wq/Workout/issues/31), then
+[PR #36](https://github.com/bettinawoste-wq/Workout/pull/36).
+
+More from this repo:
+
+- Issue to PR, for a workout editor without a save button:
+  [issue #45](https://github.com/bettinawoste-wq/Workout/issues/45) →
+  [PR #49](https://github.com/bettinawoste-wq/Workout/pull/49).
+- The MVVM migration: [issue #1](https://github.com/bettinawoste-wq/Workout/issues/1) as the
+  map, [issue #2](https://github.com/bettinawoste-wq/Workout/issues/2) for the wiring, and one
+  issue per screen, such as [issue #4](https://github.com/bettinawoste-wq/Workout/issues/4) for
+  the player, built in commits on `master` before every change went through a pull request.
 
 ## Tech stack
 
