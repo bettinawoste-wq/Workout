@@ -1,14 +1,10 @@
 name: CI
 
+# Changes land on master directly (docs/agents/issue-tracker.md), so every push gets its own
+# full run: no concurrency group, which would cancel or drop the runs of earlier commits.
 on:
   push:
     branches: [master]
-  pull_request:
-
-# A newer push to the same branch/PR makes the older run obsolete.
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read

@@ -66,7 +66,7 @@ with a clear split of roles.
 
 **The owner** brings the product idea and the requirements, makes the decisions in grillings,
 keeps the domain model ([`GLOSSARY.md`](GLOSSARY.md) and the [ADRs](docs/adr/)), cuts the
-issues, reviews and accepts every pull request, tests on the device, and cuts the releases.
+issues, reviews and accepts every change before it lands, tests on the device, and cuts the releases.
 
 **Claude Code** implements test-first from those issues and reviews the code as a second check.
 
@@ -78,7 +78,10 @@ The workflow:
 3. **Issue** — the outcome, with acceptance criteria.
 4. **TDD** — red → green against those criteria.
 5. **Review** — Claude Code's code review as a second check, then the owner's review.
-6. **PR** — merged once accepted.
+6. **Land** — pushed straight to `master` once accepted, keeping the history linear; CI runs on
+   every push.
+
+Until November 2026, changes landed through pull requests, so the examples below link them.
 
 The full flow, on framing exercise photos: the grilling's decision became
 [ADR 0003](docs/adr/0003-non-destructive-framing.md), then
@@ -93,7 +96,7 @@ More from this repo:
 - The MVVM migration: [issue #1](https://github.com/bettinawoste-wq/Workout/issues/1) as the
   map, [issue #2](https://github.com/bettinawoste-wq/Workout/issues/2) for the wiring, and one
   issue per screen, such as [issue #4](https://github.com/bettinawoste-wq/Workout/issues/4) for
-  the player, built in commits on `master` before every change went through a pull request.
+  the player, built in commits straight on `master`.
 
 ## Tech stack
 

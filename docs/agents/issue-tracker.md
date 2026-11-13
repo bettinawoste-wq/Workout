@@ -11,13 +11,17 @@
 - Close issues with `gh issue close <number> --repo bettinawoste-wq/Workout --comment "..."`.
 - Child-issue / blocking relationships: use GitHub's native "Development" sub-issue and "Blocked by" linking where available; otherwise note the relationship in the issue body.
 
-## Pull requests
+## Landing changes
+
+No pull requests: changes land on `master` directly, so its history stays linear, with no merge commits.
 
 - Changes are built with the `implement` skill: test-first, then `code-review` against the judgement rules in `CODING_STANDARDS.md`.
 - Work that has no issue yet, coming straight from a grilling, gets one before it is implemented. Write it from the agreed summary, with the decisions as acceptance criteria.
-- One pull request per issue, always against `master`, with "Fixes #<n>" in the body.
-- An issue that waits for another starts once that issue's pull request is merged, from the updated `master`. Building on the other pull request's branch instead lands its merge in that branch, not in `master`.
-- `implement-spec` follows the same rules: each issue's own pull request branch is its integration branch, a dependent issue starts after its blocker's pull request merges, and there is no combined pull request.
+- Each issue is built on a local branch off `master`, and its commit message carries "Fixes #<n>", so the push closes the issue. Review-fix commits are squashed into the commit they fix.
+- CI runs only after the push, so the branch must pass CI's checks locally first: `python scripts/check-text-files.py`, `./gradlew assembleDebug lintDebug testDebugUnitTest`, and the instrumented tests via `python scripts/device-test.py` on the attached phone. If no phone is attached, say so instead of skipping silently.
+- Nothing is pushed until the owner has reviewed the local diff and says so. Then rebase the branch onto `master`, fast-forward `master`, push `master`, and delete the branch.
+- An issue that waits for another starts once that issue has landed on `master`.
+- `implement-spec` follows the same rules: each issue gets its own local branch, a dependent issue starts after its blocker has landed, and nothing lands as a combined change.
 
 ## PRs as a request surface
 
