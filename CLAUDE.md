@@ -16,4 +16,4 @@ Device tests and README screenshots on the attached phone: `scripts/` (`device-t
 
 ### Text-file check
 
-Run `python scripts/check-text-files.py` (UTF-8, line width 100) before pushing; CI checks the same.
+Run `python scripts/check-text-files.py` (UTF-8 everywhere, line width 100 in `.java` and `.kts` files) before pushing; CI checks the same.
