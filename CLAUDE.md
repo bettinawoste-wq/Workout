@@ -13,3 +13,7 @@ Single-context layout at the repo root: `GLOSSARY.md` (domain terms), `CONTEXT.m
 ### Device
 
 Device tests and README screenshots on the attached phone: `scripts/` (`device-test.py`, `readme-screenshots.py`).
+
+### Text-file check
+
+Run `python scripts/check-text-files.py` (UTF-8 everywhere, line width 100 in `.java` and `.kts` files) before pushing; CI checks the same.
