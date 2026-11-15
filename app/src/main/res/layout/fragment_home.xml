@@ -12,18 +12,6 @@
     android:orientation="vertical"
     android:padding="24dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/workout_builder"
-        android:textColor="?attr/colorPrimary"
-        android:textSize="28sp"
-        android:textStyle="bold"/>
-
-    <Space
-        android:layout_width="match_parent"
-        android:layout_height="24dp"/>
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -36,7 +24,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/workouts"
-            android:textSize="20sp"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="28sp"
             android:textStyle="bold"/>
 
         <Button
@@ -101,7 +90,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Anlegen und bebildern"/>
+                    android:text="@string/uebungen_untertitel"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -143,7 +132,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Was du schon geschafft hast"/>
+                    android:text="@string/verlauf_untertitel"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
