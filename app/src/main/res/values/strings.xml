@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Workout</string>
-    <string name="workout_builder">Workout Builder</string>
     <string name="workouts">Workouts</string>
     <string name="alle">Alle</string>
     <string name="alle_workouts">Alle Workouts</string>
@@ -13,6 +12,8 @@
     <string name="speichern">Speichern</string>
     <string name="uebungen">Übungen</string>
     <string name="history">Verlauf</string>
+    <string name="verlauf_untertitel">Absolvierte Workouts anzeigen</string>
+    <string name="uebungen_untertitel">Anlegen &amp; bearbeiten</string>
     <string name="no_history">Noch keine Workouts absolviert.\nStarte ein Workout, dann steht es hier.</string>
     <string name="neues_workout">Neues Workout</string>
     <string name="workout_bearbeiten">Workout bearbeiten</string>
