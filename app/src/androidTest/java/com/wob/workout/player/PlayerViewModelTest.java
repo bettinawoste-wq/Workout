@@ -286,6 +286,57 @@ public class PlayerViewModelTest {
     }
 
     @Test
+    public void soundIsOnByDefault() {
+        assertTrue(onMain(() -> viewModel.isSoundOn().getValue()));
+    }
+
+    @Test
+    public void noSoundsWhileSoundIsOff() {
+        runOnMain(viewModel::toggleSound);
+        assertFalse(onMain(() -> viewModel.isSoundOn().getValue()));
+
+        PlayerTick countdownBeep = tickAt(1500);
+        assertTrue(countdownBeep.shouldBeep);
+        assertFalse(onMain(() -> viewModel.shouldPlayBeep(countdownBeep)));
+
+        PlayerExerciseState active = finishCurrentPhase(); // READY -> ACTIVE (0)
+        assertFalse(onMain(() -> viewModel.shouldPlayStartSound(active)));
+
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
+        PlayerExerciseState finished = finishCurrentPhase();
+        assertFalse(onMain(() -> viewModel.shouldPlaySuccessSound(finished)));
+    }
+
+    @Test
+    public void soundsPlayAgainOnceSwitchedBackOn() {
+        runOnMain(viewModel::toggleSound);
+        runOnMain(viewModel::toggleSound);
+        assertTrue(onMain(() -> viewModel.isSoundOn().getValue()));
+
+        PlayerTick countdownBeep = tickAt(1500);
+        assertTrue(onMain(() -> viewModel.shouldPlayBeep(countdownBeep)));
+        PlayerExerciseState active = finishCurrentPhase(); // READY -> ACTIVE (0)
+        assertTrue(onMain(() -> viewModel.shouldPlayStartSound(active)));
+    }
+
+    @Test
+    public void soundSwitchedOffStaysOffForTheNextWorkout() {
+        runOnMain(viewModel::toggleSound);
+        AppContainer container = testContainer.getAppContainer();
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        testContainer.insertWorkoutExercise(
+                workoutId, testContainer.insertExercise("Lunge"), 0, LONG_DURATION_SECONDS);
+
+        PlayerViewModel next = onMain(() -> new PlayerViewModel(container, workoutId));
+        try {
+            assertFalse(onMain(() -> next.isSoundOn().getValue()));
+        } finally {
+            runOnMain(next::onCleared);
+        }
+    }
+
+    @Test
     public void summaryCountsAnExerciseSteppedAwayFromAsSkipped() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         runOnMain(viewModel::next); // skips exercise 0

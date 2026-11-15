@@ -1,6 +1,7 @@
 package com.wob.workout;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
@@ -55,7 +56,11 @@ public class TestAppContainer {
      *  the first one's per-call repositories at its own database. */
     private static boolean active;
 
+    /** Stands in for the app's settings file; emptied on open and on close. */
+    private static final String SETTINGS_FILE = "test-settings";
+
     private final AppDatabase database;
+    private final SharedPreferences settings;
     private final AppContainer appContainer;
     private boolean closed;
 
@@ -69,6 +74,8 @@ public class TestAppContainer {
             active = true;
         }
         Context context = ApplicationProvider.getApplicationContext();
+        settings = context.getSharedPreferences(SETTINGS_FILE, Context.MODE_PRIVATE);
+        settings.edit().clear().commit();
         AppDatabase db = null;
         try {
             // No allowMainThreadQueries(), same as production since issue #21: a ViewModel
@@ -79,7 +86,7 @@ public class TestAppContainer {
             // Must precede the container: WorkoutSummaryRepository/WorkoutHistoryRepository
             // capture DatabaseProvider.get() once, at construction.
             DatabaseProvider.setInstanceForTest(db);
-            appContainer = new AppContainer(context);
+            appContainer = new AppContainer(context, settings);
         } catch (RuntimeException | Error e) {
             // No object reaches the caller, so nobody could close() it - undo here.
             if (db != null) {
@@ -169,6 +176,7 @@ public class TestAppContainer {
             }
             database.close();
         } finally {
+            settings.edit().clear().commit();
             DatabaseProvider.resetForTest();
             release();
         }

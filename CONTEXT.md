@@ -65,6 +65,9 @@ lives in an on-device Room database.
   `PlayerHistoryTracker`'s three history writes) or on Room's own query executor behind reactive
   `LiveData`. ViewModel tests built on `TestAppContainer`'s in-memory database fail with
   `IllegalStateException` if code touches it from the main thread, so a regression shows up there.
+- **Settings**: the few app-wide choices that aren't data, so far only the player's sound switch
+  (`SoundSetting`, issue #71), live in a `SharedPreferences` file that `AppContainer` opens.
+  `TestAppContainer` hands the container a test-only file instead, emptied on open and close.
 - **Schema and migration tests** (ADR 0004): Room exports one schema per database version to
   `app/schemas/`, committed and shipped in the test APK. Every `version` bump commits the new
   JSON, adds its `Migration` to `AppDatabase.ALL_MIGRATIONS` (which `DatabaseProvider`
