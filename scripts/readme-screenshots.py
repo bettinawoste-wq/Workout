@@ -138,7 +138,7 @@ def main():
         tap(*buttons["btnPause"])
         print("waiting %d s for the last exercise to run out" % left)
         time.sleep(left)
-        wait_for_text("GESAMTZEIT", 15)
+        wait_for_text("Fertig", 15)
         tap_view(PKG, "btnCancel")
         time.sleep(1.5)
 

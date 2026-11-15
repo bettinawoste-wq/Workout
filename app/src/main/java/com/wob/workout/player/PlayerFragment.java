@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.fragment.app.Fragment;
@@ -61,9 +60,6 @@ public class PlayerFragment extends Fragment {
         requireActivity().getOnBackPressedDispatcher()
                 .addCallback(getViewLifecycleOwner(), confirmAbortOnBack);
 
-        requireActivity().getWindow().addFlags(
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         long workoutId = getArguments() != null
                 ? getArguments().getLong(ARG_WORKOUT_ID, -1)
                 : -1;
@@ -103,13 +99,11 @@ public class PlayerFragment extends Fragment {
 
         switch (state.phase) {
             case READY:
-                binding.txtState.setText("BEREIT");
                 showPreviewLabel("ERSTE ÜBUNG", state.exercise);
                 showExerciseInfo(state.exercise);
                 setTransportEnabled(false);
                 break;
             case ACTIVE:
-                binding.txtState.setText("AKTUELLE ÜBUNG");
                 showPreviewLabel(null, null);
                 showExerciseInfo(state.exercise);
                 setTransportEnabled(true);
@@ -122,7 +116,6 @@ public class PlayerFragment extends Fragment {
                 }
                 break;
             case TRANSITION:
-                binding.txtState.setText("NÄCHSTE ÜBUNG");
                 showPreviewLabel("NÄCHSTE ÜBUNG", state.exercise);
                 showExerciseInfo(state.exercise);
                 setTransportEnabled(false);
@@ -164,15 +157,13 @@ public class PlayerFragment extends Fragment {
     }
 
     private void showFinished(PlayerWorkoutSummary summary) {
-        binding.txtState.setText("GESAMTZEIT");
         binding.txtTimer.setText(formatTime(summary.activeSeconds * 1000L));
         binding.txtTitle.setText("Gut gemacht 💪");
         binding.txtDescription.setText(summary.resultText());
 
-        binding.txtProgress.setVisibility(View.GONE);
-        binding.rowTransport.setVisibility(View.GONE);
         binding.progressWorkout.setVisibility(View.GONE);
-        binding.txtWorkoutRemaining.setVisibility(View.GONE);
+        binding.rowWorkoutProgress.setVisibility(View.GONE);
+        binding.rowTransport.setVisibility(View.GONE);
 
         // The session is already completed, so "Workout abbrechen" and its "saved as aborted"
         // dialog no longer apply: turn the button into a plain way out.
@@ -214,9 +205,6 @@ public class PlayerFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        requireActivity().getWindow().clearFlags(
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         super.onDestroyView();
         binding = null;
     }
