@@ -21,25 +21,6 @@ public class WorkoutExerciseRepository {
                 .insert(workoutExercise);
     }
 
-    /** Saves them all in one transaction. */
-    public void saveAll(List<WorkoutExercise> workoutExercises) {
-        DatabaseProvider.get(context)
-                .workoutExerciseDao()
-                .insertAll(workoutExercises);
-    }
-
-    public void update(WorkoutExercise workoutExercise) {
-        DatabaseProvider.get(context)
-                .workoutExerciseDao()
-                .update(workoutExercise);
-    }
-
-    public void delete(WorkoutExercise workoutExercise) {
-        DatabaseProvider.get(context)
-                .workoutExerciseDao()
-                .delete(workoutExercise);
-    }
-
     public List<WorkoutExercise> getByWorkout(long workoutId) {
         return DatabaseProvider.get(context)
                 .workoutExerciseDao()

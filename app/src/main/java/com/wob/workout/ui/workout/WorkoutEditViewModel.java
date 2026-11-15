@@ -11,36 +11,47 @@ import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExercise;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
- * An explicit exception to the reactive-LiveData pattern {@link WorkoutListViewModel}
- * established: every mutation to this screen's exercise list originates from this screen
- * itself, so there's no external-staleness problem a Room-native reactive query would be
- * solving — and a fresh reactive emission racing a drag gesture's own optimistic reorder
- * would be a real interaction wrinkle for no benefit. Instead, {@link #exercises} is a
- * plain one-shot-per-write LiveData: each mutating method performs its write, then re-runs
- * the same load composition to refresh it. The Fragment also calls {@link #refreshExercises()}
- * on every view creation (not just the first), since this Fragment instance can survive on
- * the back stack while the user edits or deletes an {@code Exercise} from the catalog on a
- * different screen — a real external staleness source the original "self-contained" framing
- * missed. See wayfinder ticket #5.
+ * The workout editor works on a {@link WorkoutDraft}: every change stays in it until
+ * {@link #save()} writes it, all at once; leaving without saving throws it away, and a new
+ * workout left that way is not created at all.
+ *
+ * <p>The workout is loaded once, with a one-shot load rather than a reactive Room query:
+ * while the editor is open the draft, not the database, is what it shows. The Fragment
+ * still calls {@link #refreshExercises()} on every view creation, since this Fragment
+ * instance can survive on the back stack while the user edits or deletes an
+ * {@code Exercise} from the catalog on a different screen (see wayfinder ticket #5); the
+ * draft takes those over without losing its own changes.
+ *
+ * <p>The draft lives on the main thread; only loads and the save itself run on the io
+ * executor.
  */
 public class WorkoutEditViewModel extends ViewModel {
 
-    /** Stored in place of an empty name, so a workout never shows up nameless. */
-    public static final String DEFAULT_NAME = "Neues Workout";
-    /** What an added exercise lasts until its duration is changed. */
-    public static final int NEW_EXERCISE_SECONDS = 60;
-
     private final AppContainer container;
-    /** Starts at -1 for a new workout and is set once, on the io executor, when the first
-     *  change creates the workout; read from both threads, hence volatile. */
+    /** Starts at -1 for a new workout and is set once, on the io executor, when saving
+     *  creates the workout; read from both threads, hence volatile. */
     private volatile long workoutId;
+
+    /** Null while an existing workout is still loading. */
+    private WorkoutDraft draft;
 
     private final MutableLiveData<Workout> workout = new MutableLiveData<>();
     private final MutableLiveData<List<WorkoutExerciseAdapter.ExerciseItem>> exercises =
             new MutableLiveData<>();
+    private final MutableLiveData<String> summary = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> unsavedChanges = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> ready = new MutableLiveData<>(false);
+
+    /** A new workout has no stored name to show; an existing one shows it only once. */
+    private boolean nameShown;
 
     public WorkoutEditViewModel(AppContainer container, long workoutId) {
         this.container = container;
@@ -48,18 +59,22 @@ public class WorkoutEditViewModel extends ViewModel {
         this.nameShown = isNew();
 
         if (!isNew()) {
-            LiveDataExecutor.runOnExecutorOnce(
-                    container.ioExecutor, () -> container.workoutRepository.getById(workoutId),
-                    workout::setValue);
-            refreshExercises();
+            LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, this::load, loaded -> {
+                if (loaded == null) return;
+                // Before the workout goes out: its observer fills the name field, which
+                // reaches changeName() and needs the draft to compare against.
+                draft = new WorkoutDraft(loaded.workout.name, loaded.items);
+                publish();
+                workout.setValue(loaded.workout);
+                ready.setValue(true);
+            });
         } else {
-            // Nothing to load: a new workout has no exercises yet.
-            exercises.setValue(new ArrayList<>());
+            // Nothing to load. The transition is what a new workout gets by default.
+            draft = new WorkoutDraft("", new ArrayList<>());
+            publish();
+            ready.setValue(true);
         }
     }
-
-    /** A new workout has no stored name to show; an existing one shows it only once. */
-    private boolean nameShown;
 
     public boolean isNew() {
         return workoutId <= 0;
@@ -67,55 +82,113 @@ public class WorkoutEditViewModel extends ViewModel {
 
     /** True the first time only, for an existing workout: whether the screen should fill
      *  its name field from {@link #getWorkout()}. Afterwards the field itself is the truth
-     *  (Android restores it on rotation and on return from the back stack), and the loaded
-     *  name may be stale, e.g. after the field was cleared and "Neues Workout" saved. */
+     *  (Android restores it on rotation and on return from the back stack). */
     public boolean takeNameToShow() {
         boolean show = !nameShown;
         nameShown = true;
         return show;
     }
 
-    /** Saves the name right away; an empty one is saved as {@link #DEFAULT_NAME}. A new
-     *  workout is created by its first non-empty name, not by an empty one. */
-    public void changeName(String name) {
-        String trimmed = name.trim();
-        String toSave = trimmed.isEmpty() ? DEFAULT_NAME : trimmed;
-        // Checked on the executor, behind any creation still queued there.
-        container.ioExecutor.execute(() -> {
-            if (trimmed.isEmpty() && isNew()) return;
-            if (!createIfNew(toSave)) {
-                container.workoutRepository.updateName(workoutId, toSave);
-            }
-        });
-    }
-
-    /** Runs on the io executor. Creates the workout if it doesn't exist yet, so the first
-     *  change to a new workout saves it, and publishes it through {@link #getWorkout()}.
-     *  @return true if this call created it. */
-    private boolean createIfNew(String name) {
-        if (!isNew()) return false;
-        Workout created = new Workout();
-        created.name = name;
-        created.id = container.workoutRepository.save(created);
-        workoutId = created.id;
-        workout.postValue(created);
-        return true;
-    }
-
+    /** The workout as loaded; stays empty for a new one. */
     public LiveData<Workout> getWorkout() {
         return workout;
     }
 
+    /** The draft's workout exercises, in order. */
     public LiveData<List<WorkoutExerciseAdapter.ExerciseItem>> getExercises() {
         return exercises;
+    }
+
+    /** The draft's exercise count and run time, e.g. "10 Übungen · 10:27". */
+    public LiveData<String> getSummary() {
+        return summary;
+    }
+
+    /** Whether the draft is ready to edit and save: at once for a new workout, once loaded
+     *  for an existing one. */
+    public LiveData<Boolean> getReady() {
+        return ready;
+    }
+
+    /** Whether leaving now would throw changes away. */
+    public LiveData<Boolean> getUnsavedChanges() {
+        return unsavedChanges;
+    }
+
+    public boolean hasUnsavedChanges() {
+        return draft != null && draft.hasUnsavedChanges();
+    }
+
+    public void changeName(String name) {
+        if (draft == null) return;
+        draft.changeName(name);
+        publish();
+    }
+
+    /** Appends the exercises after the existing ones, in the given order (the order they
+     *  were ticked), each with {@link WorkoutDraft#NEW_EXERCISE_SECONDS}. */
+    public void addExercises(List<Exercise> toAdd) {
+        if (draft == null || toAdd.isEmpty()) return;
+        draft.add(toAdd);
+        publish();
+    }
+
+    public void changeDuration(WorkoutExerciseAdapter.ExerciseItem item, int durationSeconds) {
+        if (draft == null) return;
+        draft.changeDuration(item, durationSeconds);
+        publish();
+    }
+
+    public void removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
+        if (draft == null) return;
+        draft.remove(item);
+        publish();
+    }
+
+    /** @param newOrder the adapter's items as a drag left them */
+    public void reorder(List<WorkoutExerciseAdapter.ExerciseItem> newOrder) {
+        if (draft == null) return;
+        draft.reorder(new ArrayList<>(newOrder));
+        publish();
     }
 
     /** Safe to call every time the Fragment's view is (re)created, not just once — this is
      *  how a change made on another screen (e.g. deleting the Exercise this workout uses)
      *  while this Fragment sat on the back stack gets picked up on return. */
     public void refreshExercises() {
-        if (isNew()) return;
-        writeThenReload(() -> { });
+        if (draft == null || draft.items().isEmpty()) return;
+        // Exercises added while this runs are not in here, so the draft keeps them.
+        Set<Long> exerciseIds = new HashSet<>();
+        for (WorkoutExerciseAdapter.ExerciseItem item : draft.items()) {
+            exerciseIds.add(item.workoutExercise.exerciseId);
+        }
+        LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
+            Map<Long, Exercise> found = new HashMap<>();
+            for (long exerciseId : exerciseIds) {
+                Exercise exercise = container.exerciseRepository.getById(exerciseId);
+                if (exercise != null) found.put(exerciseId, exercise);
+            }
+            return found;
+        }, found -> {
+            if (found == null) return;
+            draft.updateExercises(exerciseIds, found);
+            publish();
+        });
+    }
+
+    /** Writes the draft: the name (an empty one as {@link WorkoutDraft#DEFAULT_NAME}) and
+     *  the workout exercises; creates a new workout.
+     *  @return true once saved, null if not saved: still loading, or saving failed. */
+    public LiveData<Boolean> save() {
+        return saveDraftThen(name -> true);
+    }
+
+    /** Saves the draft first, so the copy matches what the editor shows, then copies the
+     *  workout as "<name> (Kopie)" with the same exercises and durations.
+     *  @return the copy's id, or null if still loading or saving or copying failed. */
+    public LiveData<Long> duplicate() {
+        return saveDraftThen(name ->
+                container.workoutRepository.duplicate(workoutId, name + " (Kopie)"));
     }
 
     public LiveData<Boolean> delete() {
@@ -127,15 +200,6 @@ public class WorkoutEditViewModel extends ViewModel {
         });
     }
 
-    /** Copies this workout as "<name> (Kopie)" with the same exercises and durations.
-     *  @return the copy's id, or null if copying failed. */
-    public LiveData<Long> duplicate() {
-        return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
-            Workout source = container.workoutRepository.getById(workoutId);
-            return container.workoutRepository.duplicate(workoutId, source.name + " (Kopie)");
-        });
-    }
-
     /** For the exercise picker sheet, which needs the full exercise catalog (not just
      *  this workout's), loaded once per dialog open rather than kept live. */
     public LiveData<List<Exercise>> loadAllExercises() {
@@ -143,68 +207,29 @@ public class WorkoutEditViewModel extends ViewModel {
                 container.ioExecutor, container.exerciseRepository::getAll);
     }
 
-    /** Appends the exercises after the existing ones, in the given order (the order they
-     *  were ticked), each with {@link #NEW_EXERCISE_SECONDS}; one write, one reload. */
-    public void addExercises(List<Exercise> toAdd) {
-        if (toAdd.isEmpty()) return;
-        writeThenReload(() -> {
-            createIfNew(DEFAULT_NAME);
-            int position = container.workoutExerciseRepository.getByWorkout(workoutId).size();
-            List<WorkoutExercise> added = new ArrayList<>();
-            for (Exercise exercise : toAdd) {
-                WorkoutExercise workoutExercise = new WorkoutExercise();
-                workoutExercise.workoutId = workoutId;
-                workoutExercise.exerciseId = exercise.id;
-                workoutExercise.position = position++;
-                workoutExercise.durationSeconds = NEW_EXERCISE_SECONDS;
-                added.add(workoutExercise);
-            }
-            container.workoutExerciseRepository.saveAll(added);
+    /** Writes the draft on the io executor, then runs {@code then} there with the saved
+     *  name. Delivers null without writing while the draft is still loading. */
+    private <T> LiveData<T> saveDraftThen(Function<String, T> then) {
+        if (draft == null) return new MutableLiveData<>(null);
+        String name = draft.nameToSave();
+        List<WorkoutExercise> toSave = draft.workoutExercisesToSave();
+        return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
+            workoutId = container.workoutRepository.saveWithExercises(workoutId, name, toSave);
+            return then.apply(name);
         });
     }
 
-    public void changeDuration(WorkoutExerciseAdapter.ExerciseItem item, int durationSeconds) {
-        // Mutate on the caller's (main) thread — item.workoutExercise is the same object the
-        // adapter's ViewHolder may be reading right now; only the DB write itself belongs
-        // on the background executor.
-        item.workoutExercise.durationSeconds = durationSeconds;
-        writeThenReload(() -> container.workoutExerciseRepository.update(item.workoutExercise));
+    private void publish() {
+        exercises.setValue(new ArrayList<>(draft.items()));
+        summary.setValue(draft.summaryText());
+        unsavedChanges.setValue(draft.hasUnsavedChanges());
     }
 
-    public void removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
-        writeThenReload(() -> container.workoutExerciseRepository.delete(item.workoutExercise));
-    }
-
-    public void reorder(List<WorkoutExerciseAdapter.ExerciseItem> newOrder) {
-        // Renumber synchronously here, on the caller's (main) thread, for the same reason as
-        // changeDuration() above — these WorkoutExercise objects are adapter-owned, and
-        // newOrder is the adapter's own live list, not a snapshot.
-        List<WorkoutExercise> toUpdate = new ArrayList<>();
-        for (int i = 0; i < newOrder.size(); i++) {
-            WorkoutExercise workoutExercise = newOrder.get(i).workoutExercise;
-            if (workoutExercise.position != i) {
-                workoutExercise.position = i;
-                toUpdate.add(workoutExercise);
-            }
-        }
-
-        writeThenReload(() -> {
-            for (WorkoutExercise workoutExercise : toUpdate) {
-                container.workoutExerciseRepository.update(workoutExercise);
-            }
-        });
-    }
-
-    private void writeThenReload(Runnable write) {
-        LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
-            write.run();
-            return loadExerciseItems();
-        }, exercises::setValue);
-    }
-
-    private List<WorkoutExerciseAdapter.ExerciseItem> loadExerciseItems() {
+    /** Runs on the io executor. */
+    private Loaded load() {
+        Workout loadedWorkout = container.workoutRepository.getById(workoutId);
+        if (loadedWorkout == null) return null;
         List<WorkoutExerciseAdapter.ExerciseItem> items = new ArrayList<>();
-
         for (WorkoutExercise workoutExercise
                 : container.workoutExerciseRepository.getByWorkout(workoutId)) {
             Exercise exercise = container.exerciseRepository.getById(workoutExercise.exerciseId);
@@ -212,7 +237,16 @@ public class WorkoutEditViewModel extends ViewModel {
                 items.add(new WorkoutExerciseAdapter.ExerciseItem(exercise, workoutExercise));
             }
         }
+        return new Loaded(loadedWorkout, items);
+    }
 
-        return items;
+    private static class Loaded {
+        final Workout workout;
+        final List<WorkoutExerciseAdapter.ExerciseItem> items;
+
+        Loaded(Workout workout, List<WorkoutExerciseAdapter.ExerciseItem> items) {
+            this.workout = workout;
+            this.items = items;
+        }
     }
 }

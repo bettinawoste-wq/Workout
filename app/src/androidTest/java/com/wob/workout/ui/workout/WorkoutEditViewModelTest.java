@@ -28,13 +28,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Covers {@link WorkoutEditViewModel}'s non-reactive "write, then reload" design: every
- * mutation re-runs the load and emits a fresh list, and {@code refreshExercises()} is the
- * only way a change made elsewhere (another screen editing the catalog while this
- * Fragment sat on the back stack) reaches it. See the ViewModel's class Javadoc.
+ * Covers {@link WorkoutEditViewModel}'s draft: changes show at once but are written only by
+ * {@code save()}; leaving without it keeps the stored workout as it was, and a new workout
+ * isn't created. What is stored is checked the way the user would see it, by opening the
+ * workout in a fresh editor.
  *
  * <p>{@code exercises} is a plain {@code MutableLiveData} that keeps its last value, so a
  * fresh {@code getOrAwaitValue} after a mutation could return the stale list immediately.
@@ -83,34 +84,98 @@ public class WorkoutEditViewModelTest {
         assertTitles(items, "Squat", "Lunge");
         assertEquals(45, items.get(0).workoutExercise.durationSeconds);
         assertEquals(30, items.get(1).workoutExercise.durationSeconds);
+        assertFalse(getOrAwaitValue(viewModel.getUnsavedChanges()));
     }
 
     @Test
-    public void addExercisesAppendsThemInTickOrderWith60SecondsEach() throws InterruptedException {
-        long workoutId = testContainer.insertWorkout("Push Day");
-        long pushUpId = testContainer.insertExercise("Push-up");
-        long dipId = testContainer.insertExercise("Dip");
+    public void nothingIsWrittenBeforeSave() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
         long plankId = testContainer.insertExercise("Plank");
-        testContainer.insertWorkoutExercise(workoutId, pushUpId, 0, 30);
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
-        // Ticked in this order, not in catalog order.
-        List<Exercise> ticked = Arrays.asList(
-                container.exerciseRepository.getById(plankId),
-                container.exerciseRepository.getById(dipId));
+        List<ExerciseItem> loaded = getOrAwaitValue(viewModel.getExercises());
 
-        List<ExerciseItem> items =
-                awaitEmissionAfter(viewModel, () -> viewModel.addExercises(ticked));
+        viewModel.changeName("Arm Day");
+        viewModel.changeDuration(loaded.get(0), 90);
+        viewModel.reorder(Arrays.asList(loaded.get(1), loaded.get(0)));
+        viewModel.removeExercise(loaded.get(1));
+        List<ExerciseItem> shown = awaitEmissionAfter(viewModel, () -> viewModel.addExercises(
+                Arrays.asList(container.exerciseRepository.getById(plankId))));
+        testContainer.drainIoExecutor();
 
-        assertTitles(items, "Push-up", "Plank", "Dip");
-        assertEquals(1, items.get(1).workoutExercise.position);
-        assertEquals(2, items.get(2).workoutExercise.position);
-        assertEquals(30, items.get(0).workoutExercise.durationSeconds);
-        assertEquals(60, items.get(1).workoutExercise.durationSeconds);
-        assertEquals(60, items.get(2).workoutExercise.durationSeconds);
+        assertTitles(shown, "Squat", "Plank");
+        assertTrue(viewModel.hasUnsavedChanges());
+        assertEquals("Leg Day", nameInFreshEditor(workoutId));
+        List<ExerciseItem> stored = exercisesInFreshEditor(workoutId);
+        assertTitles(stored, "Squat", "Lunge");
+        assertEquals(45, stored.get(0).workoutExercise.durationSeconds);
     }
 
     @Test
-    public void addingTheSameExerciseTwiceKeepsBothInOrder() throws InterruptedException {
+    public void saveWritesNameOrderAndDurations() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
+        long plankId = testContainer.insertExercise("Plank");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        List<ExerciseItem> loaded = getOrAwaitValue(viewModel.getExercises());
+        ExerciseItem squat = loaded.get(0);
+        ExerciseItem lunge = loaded.get(1);
+
+        viewModel.changeName("  Leg Day Heavy ");
+        viewModel.changeDuration(squat, 90);
+        List<ExerciseItem> added = awaitEmissionAfter(viewModel, () -> viewModel.addExercises(
+                Arrays.asList(container.exerciseRepository.getById(plankId))));
+        viewModel.reorder(Arrays.asList(lunge, squat, added.get(2)));
+        assertTrue(getOrAwaitValue(viewModel.save()));
+
+        assertEquals("Leg Day Heavy", nameInFreshEditor(workoutId));
+        List<ExerciseItem> stored = exercisesInFreshEditor(workoutId);
+        assertTitles(stored, "Lunge", "Squat", "Plank");
+        for (int i = 0; i < stored.size(); i++) {
+            assertEquals(i, stored.get(i).workoutExercise.position);
+        }
+        assertEquals(30, stored.get(0).workoutExercise.durationSeconds);
+        assertEquals(90, stored.get(1).workoutExercise.durationSeconds);
+        assertEquals(60, stored.get(2).workoutExercise.durationSeconds);
+        // The kept rows keep their id.
+        assertEquals(lunge.workoutExercise.id, stored.get(0).workoutExercise.id);
+    }
+
+    @Test
+    public void nothingIsSavedWhileTheWorkoutIsStillLoading() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        // Holds the io executor, so the editor's load can't run yet.
+        CountDownLatch release = new CountDownLatch(1);
+        container.ioExecutor.execute(() -> {
+            try {
+                release.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+
+        try {
+            assertFalse(getOrAwaitValue(viewModel.getReady()));
+            assertNull(getOrAwaitValue(viewModel.save()));
+            assertNull(getOrAwaitValue(viewModel.duplicate()));
+        } finally {
+            release.countDown();
+        }
+
+        assertNotNull(getOrAwaitValue(viewModel.getWorkout()));
+        assertTrue(getOrAwaitValue(viewModel.getReady()));
+        assertEquals(1, container.workoutRepository.getAll().size());
+    }
+
+    @Test
+    public void addingTheSameExerciseTwiceKeepsBothInOrder() throws Exception {
         long workoutId = testContainer.insertWorkout("Core");
         long plankId = testContainer.insertExercise("Plank");
         long crunchId = testContainer.insertExercise("Crunch");
@@ -120,34 +185,18 @@ public class WorkoutEditViewModelTest {
         Exercise crunch = container.exerciseRepository.getById(crunchId);
 
         awaitEmissionAfter(viewModel, () -> viewModel.addExercises(Arrays.asList(crunch)));
-        List<ExerciseItem> items =
-                awaitEmissionAfter(viewModel, () -> viewModel.addExercises(Arrays.asList(plank)));
+        awaitEmissionAfter(viewModel, () -> viewModel.addExercises(Arrays.asList(plank)));
+        assertTrue(getOrAwaitValue(viewModel.save()));
 
-        assertTitles(items, "Plank", "Crunch", "Plank");
-        for (int i = 0; i < items.size(); i++) {
-            assertEquals(i, items.get(i).workoutExercise.position);
+        List<ExerciseItem> stored = exercisesInFreshEditor(workoutId);
+        assertTitles(stored, "Plank", "Crunch", "Plank");
+        for (int i = 0; i < stored.size(); i++) {
+            assertEquals(i, stored.get(i).workoutExercise.position);
         }
     }
 
     @Test
-    public void changeDurationIsPersistedAndReloaded() throws InterruptedException {
-        long workoutId = testContainer.insertWorkout("Core");
-        long plankId = testContainer.insertExercise("Plank");
-        testContainer.insertWorkoutExercise(workoutId, plankId, 0, 30);
-        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
-        ExerciseItem plank = getOrAwaitValue(viewModel.getExercises()).get(0);
-
-        List<ExerciseItem> items =
-                awaitEmissionAfter(viewModel, () -> viewModel.changeDuration(plank, 90));
-
-        assertEquals(1, items.size());
-        assertEquals(90, items.get(0).workoutExercise.durationSeconds);
-        assertEquals(90, container.workoutExerciseRepository
-                .getById(plank.workoutExercise.id).durationSeconds);
-    }
-
-    @Test
-    public void removeExerciseDropsItFromTheList() throws InterruptedException {
+    public void savingWithAnExerciseRemovedDeletesItsRow() throws Exception {
         long workoutId = testContainer.insertWorkout("Full Body");
         long squatId = testContainer.insertExercise("Squat");
         long rowId = testContainer.insertExercise("Row");
@@ -156,38 +205,50 @@ public class WorkoutEditViewModelTest {
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
         ExerciseItem squat = getOrAwaitValue(viewModel.getExercises()).get(0);
 
-        List<ExerciseItem> items =
+        List<ExerciseItem> shown =
                 awaitEmissionAfter(viewModel, () -> viewModel.removeExercise(squat));
+        assertTrue(getOrAwaitValue(viewModel.save()));
 
-        assertTitles(items, "Row");
+        assertTitles(shown, "Row");
         assertNull(container.workoutExerciseRepository.getById(squat.workoutExercise.id));
+        assertTitles(exercisesInFreshEditor(workoutId), "Row");
     }
 
     @Test
-    public void reorderPersistsTheNewPositions() throws InterruptedException {
-        long workoutId = testContainer.insertWorkout("Circuit");
-        long aId = testContainer.insertExercise("A");
-        long bId = testContainer.insertExercise("B");
-        long cId = testContainer.insertExercise("C");
-        testContainer.insertWorkoutExercise(workoutId, aId, 0, 10);
-        testContainer.insertWorkoutExercise(workoutId, bId, 1, 20);
-        testContainer.insertWorkoutExercise(workoutId, cId, 2, 30);
+    public void unsavedChangesFollowTheDraft() throws Exception {
+        long workoutId = testContainer.insertWorkout("Core");
+        long plankId = testContainer.insertExercise("Plank");
+        testContainer.insertWorkoutExercise(workoutId, plankId, 0, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
-        List<ExerciseItem> loaded = getOrAwaitValue(viewModel.getExercises());
+        ExerciseItem plank = getOrAwaitValue(viewModel.getExercises()).get(0);
+        assertFalse(viewModel.hasUnsavedChanges());
 
-        // What a drag of "C" to the top leaves in the adapter's list.
-        List<ExerciseItem> newOrder = new ArrayList<>();
-        newOrder.add(loaded.get(2));
-        newOrder.add(loaded.get(0));
-        newOrder.add(loaded.get(1));
-        List<ExerciseItem> items = awaitEmissionAfter(viewModel, () -> viewModel.reorder(newOrder));
+        viewModel.changeDuration(plank, 90);
+        assertTrue(getOrAwaitValue(viewModel.getUnsavedChanges()));
 
-        assertTitles(items, "C", "A", "B");
-        for (int i = 0; i < items.size(); i++) {
-            assertEquals(i, items.get(i).workoutExercise.position);
-        }
-        // Durations travel with their exercise rather than staying in their old slot.
-        assertEquals(30, items.get(0).workoutExercise.durationSeconds);
+        viewModel.changeDuration(plank, 30);
+        assertFalse(getOrAwaitValue(viewModel.getUnsavedChanges()));
+    }
+
+    @Test
+    public void theSummaryAddsUpTheExerciseDurations() throws Exception {
+        Workout stored = new Workout();
+        stored.name = "Core";
+        long workoutId = container.workoutRepository.save(stored);
+        long plankId = testContainer.insertExercise("Plank");
+        long crunchId = testContainer.insertExercise("Crunch");
+        testContainer.insertWorkoutExercise(workoutId, plankId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, crunchId, 1, 30);
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getExercises());
+
+        // 45 + 30 seconds, no transitions.
+        assertEquals("2 Übungen · 1:15", getOrAwaitValue(viewModel.getSummary()));
+
+        awaitEmissionAfter(viewModel, () -> viewModel.addExercises(
+                Arrays.asList(container.exerciseRepository.getById(plankId))));
+        // Plus 60 seconds.
+        assertEquals("3 Übungen · 2:15", getOrAwaitValue(viewModel.getSummary()));
     }
 
     @Test
@@ -218,16 +279,19 @@ public class WorkoutEditViewModelTest {
         testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
         testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
-        assertTitles(getOrAwaitValue(viewModel.getExercises()), "Squat", "Lunge");
+        List<ExerciseItem> loaded = getOrAwaitValue(viewModel.getExercises());
+        assertTitles(loaded, "Squat", "Lunge");
+        // A change of the draft's own, which the refresh must keep.
+        viewModel.changeDuration(loaded.get(1), 50);
 
         // Out of band: the catalog screen deletes an exercise this workout uses. The
-        // WorkoutExercise FK cascades, so this does not reach loadExerciseItems()'s
-        // null-exercise guard - it mirrors what production actually does.
+        // WorkoutExercise FK cascades, so its stored row goes with it.
         container.exerciseRepository.delete(container.exerciseRepository.getById(squatId));
 
         List<ExerciseItem> items = awaitEmissionAfter(viewModel, viewModel::refreshExercises);
 
         assertTitles(items, "Lunge");
+        assertEquals(50, items.get(0).workoutExercise.durationSeconds);
     }
 
     @Test
@@ -245,61 +309,56 @@ public class WorkoutEditViewModelTest {
             assertNull(viewModel.getWorkout().getValue());
             // Empty rather than unset, so the editor shows its empty state right away.
             assertEquals(new ArrayList<ExerciseItem>(), viewModel.getExercises().getValue());
+            assertEquals("0 Übungen · 0:00", viewModel.getSummary().getValue());
+            assertFalse(viewModel.hasUnsavedChanges());
         }
     }
 
     @Test
-    public void typingANameSavesANewWorkoutRightAway() throws Exception {
+    public void aNewWorkoutLeftWithoutSavingIsNotCreated() throws Exception {
+        long squatId = testContainer.insertExercise("Squat");
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
 
         viewModel.changeName("Leg Day");
-
-        Workout created = getOrAwaitValue(viewModel.getWorkout());
-        assertFalse(viewModel.isNew());
-        assertEquals("Leg Day", nameInFreshEditor(created.id));
-
-        viewModel.changeName("Leg Day Heavy");
+        viewModel.addExercises(Arrays.asList(container.exerciseRepository.getById(squatId)));
         testContainer.drainIoExecutor();
 
-        assertEquals("Leg Day Heavy", nameInFreshEditor(created.id));
-        assertEquals(1, container.workoutRepository.getAll().size());
-    }
-
-    @Test
-    public void clearingTheNameSavesNeuesWorkout() throws Exception {
-        long workoutId = testContainer.insertWorkout("Leg Day");
-        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
-
-        viewModel.changeName("   ");
-        testContainer.drainIoExecutor();
-
-        assertEquals("Neues Workout", nameInFreshEditor(workoutId));
-    }
-
-    @Test
-    public void anEmptyNameDoesNotCreateANewWorkout() throws Exception {
-        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
-
-        viewModel.changeName("");
-        testContainer.drainIoExecutor();
-
-        assertTrue(viewModel.isNew());
+        assertTrue(viewModel.hasUnsavedChanges());
         assertTrue(container.workoutRepository.getAll().isEmpty());
     }
 
     @Test
-    public void addingAnExerciseToANewWorkoutSavesItAsNeuesWorkout() throws Exception {
+    public void savingANewWorkoutCreatesItWithItsExercises() throws Exception {
         long squatId = testContainer.insertExercise("Squat");
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
 
+        viewModel.changeName("Leg Day");
         viewModel.addExercises(Arrays.asList(container.exerciseRepository.getById(squatId)));
+        assertTrue(getOrAwaitValue(viewModel.save()));
 
-        Workout created = getOrAwaitValue(viewModel.getWorkout());
-        assertEquals("Neues Workout", nameInFreshEditor(created.id));
-        List<ExerciseItem> items = getOrAwaitValue(
-                new WorkoutEditViewModel(container, created.id).getExercises());
+        List<Workout> all = container.workoutRepository.getAll();
+        assertEquals(1, all.size());
+        assertEquals("Leg Day", nameInFreshEditor(all.get(0).id));
+        List<ExerciseItem> items = exercisesInFreshEditor(all.get(0).id);
         assertTitles(items, "Squat");
         assertEquals(60, items.get(0).workoutExercise.durationSeconds);
+    }
+
+    @Test
+    public void anEmptyNameIsSavedAsNeuesWorkout() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getWorkout());
+
+        viewModel.changeName("   ");
+        assertTrue(getOrAwaitValue(viewModel.save()));
+        WorkoutEditViewModel fresh = new WorkoutEditViewModel(container, -1);
+        assertTrue(getOrAwaitValue(fresh.save()));
+
+        assertEquals("Neues Workout", nameInFreshEditor(workoutId));
+        for (Workout workout : container.workoutRepository.getAll()) {
+            assertEquals("Neues Workout", workout.name);
+        }
     }
 
     @Test
@@ -310,16 +369,54 @@ public class WorkoutEditViewModelTest {
         testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
         testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getExercises());
 
         long copyId = getOrAwaitValue(viewModel.duplicate());
 
         assertTrue(copyId != workoutId);
         assertEquals("Leg Day (Kopie)", nameInFreshEditor(copyId));
-        List<ExerciseItem> items =
-                getOrAwaitValue(new WorkoutEditViewModel(container, copyId).getExercises());
+        List<ExerciseItem> items = exercisesInFreshEditor(copyId);
         assertTitles(items, "Squat", "Lunge");
         assertEquals(45, items.get(0).workoutExercise.durationSeconds);
         assertEquals(30, items.get(1).workoutExercise.durationSeconds);
+    }
+
+    @Test
+    public void duplicateSavesTheDraftFirst() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        List<ExerciseItem> loaded = getOrAwaitValue(viewModel.getExercises());
+
+        viewModel.changeName("Arm Day");
+        viewModel.changeDuration(loaded.get(0), 90);
+        viewModel.removeExercise(loaded.get(1));
+        long copyId = getOrAwaitValue(viewModel.duplicate());
+
+        // The copy matches what was on screen, and the original was saved that way first.
+        assertEquals("Arm Day (Kopie)", nameInFreshEditor(copyId));
+        assertEquals("Arm Day", nameInFreshEditor(workoutId));
+        for (long id : new long[] {copyId, workoutId}) {
+            List<ExerciseItem> items = exercisesInFreshEditor(id);
+            assertTitles(items, "Squat");
+            assertEquals(90, items.get(0).workoutExercise.durationSeconds);
+        }
+    }
+
+    @Test
+    public void duplicatingANewWorkoutCreatesItFirst() throws Exception {
+        long squatId = testContainer.insertExercise("Squat");
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
+        viewModel.addExercises(Arrays.asList(container.exerciseRepository.getById(squatId)));
+
+        long copyId = getOrAwaitValue(viewModel.duplicate());
+
+        assertEquals(2, container.workoutRepository.getAll().size());
+        assertEquals("Neues Workout (Kopie)", nameInFreshEditor(copyId));
+        assertTitles(exercisesInFreshEditor(copyId), "Squat");
     }
 
     @Test
@@ -329,20 +426,21 @@ public class WorkoutEditViewModelTest {
         long lungeId = testContainer.insertExercise("Lunge");
         testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
         testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
-        long copyId = getOrAwaitValue(new WorkoutEditViewModel(container, workoutId).duplicate());
+        WorkoutEditViewModel original = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(original.getExercises());
+        long copyId = getOrAwaitValue(original.duplicate());
 
         WorkoutEditViewModel copy = new WorkoutEditViewModel(container, copyId);
         List<ExerciseItem> copied = getOrAwaitValue(copy.getExercises());
-        awaitEmissionAfter(copy, () -> copy.changeDuration(copied.get(0), 99));
-        awaitEmissionAfter(copy, () -> copy.removeExercise(copied.get(1)));
+        copy.changeDuration(copied.get(0), 99);
+        copy.removeExercise(copied.get(1));
         copy.changeName("Arm Day");
-        testContainer.drainIoExecutor();
+        assertTrue(getOrAwaitValue(copy.save()));
 
         assertEquals("Leg Day", nameInFreshEditor(workoutId));
-        List<ExerciseItem> original =
-                getOrAwaitValue(new WorkoutEditViewModel(container, workoutId).getExercises());
-        assertTitles(original, "Squat", "Lunge");
-        assertEquals(45, original.get(0).workoutExercise.durationSeconds);
+        List<ExerciseItem> stored = exercisesInFreshEditor(workoutId);
+        assertTitles(stored, "Squat", "Lunge");
+        assertEquals(45, stored.get(0).workoutExercise.durationSeconds);
     }
 
     @Test
@@ -360,6 +458,11 @@ public class WorkoutEditViewModelTest {
     /** What the editor shows when the workout is opened again, e.g. after leaving it. */
     private String nameInFreshEditor(long workoutId) throws InterruptedException {
         return getOrAwaitValue(new WorkoutEditViewModel(container, workoutId).getWorkout()).name;
+    }
+
+    private List<ExerciseItem> exercisesInFreshEditor(long workoutId)
+            throws InterruptedException {
+        return getOrAwaitValue(new WorkoutEditViewModel(container, workoutId).getExercises());
     }
 
     /** Waits for the initial load, runs {@code mutation}, and returns the list it emits. */

@@ -14,12 +14,6 @@ public interface WorkoutExerciseDao {
     @Insert
     void insertAll(List<WorkoutExercise> workoutExercises);
 
-    @Update
-    void update(WorkoutExercise workoutExercise);
-
-    @Delete
-    void delete(WorkoutExercise workoutExercise);
-
     @Query("SELECT * FROM WorkoutExercise WHERE workoutId = :workoutId ORDER BY position")
     List<WorkoutExercise> getByWorkout(long workoutId);
 
