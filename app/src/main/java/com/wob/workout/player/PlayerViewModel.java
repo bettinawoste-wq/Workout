@@ -22,7 +22,8 @@ import java.util.Set;
  * <p>{@link #shouldPlayStartSound} / {@link #shouldPlayBeep} live here rather than as
  * Fragment-side fields: LiveData redelivers its last value to a freshly-registered
  * observer (e.g. after rotation recreates the Fragment), so a dedup guard only works if
- * it's kept on the object that survives the rotation.
+ * it's kept on the object that survives the rotation. They also answer false while the
+ * {@link SoundSetting} is off, which keeps every player sound behind one switch.
  */
 public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
@@ -30,10 +31,12 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private static final long COUNTDOWN_MILLIS = 3000;
 
     private final PlayerHistoryTracker historyTracker;
+    private final SoundSetting soundSetting;
     private final PlayerTimer timer = new PlayerTimer(this);
 
     private final MutableLiveData<PlayerExerciseState> exerciseState = new MutableLiveData<>();
     private final MutableLiveData<PlayerTick> tick = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> soundOn = new MutableLiveData<>();
 
     private List<PlayerExercise> exercises;
     private int index;
@@ -54,6 +57,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     public PlayerViewModel(AppContainer container, long workoutId) {
         historyTracker = new PlayerHistoryTracker(
                 container.workoutHistoryRepository, container.ioExecutor);
+        soundSetting = container.soundSetting;
+        soundOn.setValue(soundSetting.isOn());
         loadExercises(container, workoutId);
     }
 
@@ -65,27 +70,38 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         return tick;
     }
 
+    public LiveData<Boolean> isSoundOn() {
+        return soundOn;
+    }
+
+    /** Turns all player sounds off, or back on; remembered for every later workout. */
+    public void toggleSound() {
+        boolean on = !soundSetting.isOn();
+        soundSetting.setOn(on);
+        soundOn.setValue(on);
+    }
+
     /** The start sound belongs to an exercise that a countdown led into, not to one the user
      *  stepped to. Returns true at most once per such {@link PlayerExerciseState}, even across a
      *  Fragment recreation that re-observes and receives LiveData's redelivered value. */
     public boolean shouldPlayStartSound(PlayerExerciseState state) {
         if (state != startSoundState) return false;
         startSoundState = null;
-        return true;
+        return soundSetting.isOn();
     }
 
     /** Same idea as {@link #shouldPlayStartSound} for the per-second beep. */
     public boolean shouldPlayBeep(PlayerTick tick) {
         if (tick == lastConsumedTick) return false;
         lastConsumedTick = tick;
-        return tick.shouldBeep;
+        return tick.shouldBeep && soundSetting.isOn();
     }
 
     /** Same idea as {@link #shouldPlayStartSound}, for the sound of a completed workout. */
     public boolean shouldPlaySuccessSound(PlayerExerciseState state) {
         if (state.phase != PlayerExerciseState.Phase.FINISHED || successSoundPlayed) return false;
         successSoundPlayed = true;
-        return true;
+        return soundSetting.isOn();
     }
 
     public void togglePause() {

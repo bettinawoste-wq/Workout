@@ -2,6 +2,7 @@ package com.wob.workout.player;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -57,6 +58,7 @@ public class PlayerFragment extends Fragment {
                 ? getArguments().getString(ARG_WORKOUT_NAME)
                 : null;
         binding.toolbar.setTitle(workoutName != null ? workoutName : "Workout");
+        binding.toolbar.inflateMenu(R.menu.menu_player);
         requireActivity().getOnBackPressedDispatcher()
                 .addCallback(getViewLifecycleOwner(), confirmAbortOnBack);
 
@@ -77,6 +79,13 @@ public class PlayerFragment extends Fragment {
         binding.btnNext.setOnClickListener(v -> viewModel.next());
         binding.btnPrevious.setOnClickListener(v -> viewModel.previous());
         binding.btnCancel.setOnClickListener(v -> confirmCancelWorkout());
+        binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() != R.id.action_sound) return false;
+            viewModel.toggleSound();
+            return true;
+        });
+
+        viewModel.isSoundOn().observe(getViewLifecycleOwner(), this::showSound);
 
         viewModel.getExerciseState().observe(getViewLifecycleOwner(), this::showExerciseState);
         viewModel.getTick().observe(getViewLifecycleOwner(), this::showTick);
@@ -136,6 +145,13 @@ public class PlayerFragment extends Fragment {
         binding.mediaLabels.setVisibility(visibility);
         binding.txtMediaLabel.setText(label);
         binding.txtMediaTitle.setText(exercise != null ? exercise.exercise.title : null);
+    }
+
+    /** The speaker shows the current state; its label says what a tap does. */
+    private void showSound(boolean on) {
+        MenuItem item = binding.toolbar.getMenu().findItem(R.id.action_sound);
+        item.setIcon(on ? R.drawable.ic_volume_up : R.drawable.ic_volume_off);
+        item.setTitle(on ? R.string.ton_ausschalten : R.string.ton_einschalten);
     }
 
     private void showPauseButton(boolean running) {

@@ -1,6 +1,7 @@
 package com.wob.workout;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import com.wob.workout.data.repository.ExerciseRepository;
 import com.wob.workout.data.repository.WorkoutExerciseRepository;
@@ -9,6 +10,7 @@ import com.wob.workout.data.repository.WorkoutRepository;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
 import com.wob.workout.media.ExerciseThumbnails;
 import com.wob.workout.player.PlayerRepository;
+import com.wob.workout.player.SoundSetting;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,6 +20,9 @@ import java.util.concurrent.Executors;
  * process lifetime. Replaces scattered {@code new XRepository(context)} call sites.
  */
 public class AppContainer {
+
+    /** The app's preferences file, for the few settings that live outside the database. */
+    private static final String SETTINGS_FILE = "settings";
 
     public final Context appContext;
 
@@ -39,8 +44,17 @@ public class AppContainer {
 
     public final ExerciseThumbnails thumbnails;
 
+    public final SoundSetting soundSetting;
+
     public AppContainer(Context appContext) {
+        this(appContext, appContext.getSharedPreferences(SETTINGS_FILE, Context.MODE_PRIVATE));
+    }
+
+    /** Test seam: tests pass a preferences file of their own, so they never change the
+     *  settings of the app installed on the same device. */
+    public AppContainer(Context appContext, SharedPreferences settings) {
         this.appContext = appContext;
+        soundSetting = new SoundSetting(settings);
 
         thumbnails = new ExerciseThumbnails(appContext, mediaExecutor);
 
