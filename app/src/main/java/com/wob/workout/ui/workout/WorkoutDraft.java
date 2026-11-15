@@ -3,6 +3,7 @@ package com.wob.workout.ui.workout;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.WorkoutExercise;
 import com.wob.workout.ui.ExerciseCount;
+import com.wob.workout.ui.MinutesSeconds;
 import com.wob.workout.ui.workout.WorkoutExerciseAdapter.ExerciseItem;
 
 import java.util.ArrayList;
@@ -10,7 +11,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -137,9 +137,7 @@ public class WorkoutDraft {
 
     /** E.g. "10 Übungen · 10:00". */
     public String summaryText() {
-        int total = totalSeconds();
-        return ExerciseCount.text(items.size()) + " · "
-                + String.format(Locale.getDefault(), "%d:%02d", total / 60, total % 60);
+        return ExerciseCount.text(items.size()) + " · " + MinutesSeconds.text(totalSeconds());
     }
 
     /** What saving would write of the workout exercises, as comparable values: per workout

@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.wob.workout.databinding.ItemHistoryBinding;
 import com.wob.workout.ui.ExerciseCount;
+import com.wob.workout.ui.MinutesSeconds;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -75,7 +76,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
         holder.binding.txtInfo.setText(
                 dateFormat.format(new Date(item.session.startedAt))
                         + " • " + ExerciseCount.text(item.exerciseCount)
-                        + " • " + formatDuration(item.session.activeDurationSeconds));
+                        + " • " + MinutesSeconds.text(item.session.activeDurationSeconds));
 
         holder.itemView.setOnClickListener(v -> listener.onItemClicked(item));
     }
@@ -83,10 +84,6 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     @Override
     public int getItemCount() {
         return sessions.size();
-    }
-
-    private String formatDuration(int seconds) {
-        return String.format(Locale.getDefault(), "%d:%02d", seconds / 60, seconds % 60);
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
