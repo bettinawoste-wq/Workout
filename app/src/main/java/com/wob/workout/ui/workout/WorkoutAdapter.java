@@ -8,6 +8,7 @@ import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.ItemWorkoutBinding;
 import com.wob.workout.media.ExerciseThumbnails;
 import com.wob.workout.ui.ExerciseCount;
+import com.wob.workout.ui.MinutesSeconds;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,7 +57,7 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
         holder.binding.txtName.setText(item.workout.name);
         holder.binding.txtInfo.setText(
                 ExerciseCount.text(item.exerciseCount)
-                        + " • " + formatDuration(item.totalDurationSeconds));
+                        + " • " + MinutesSeconds.text(item.totalDurationSeconds));
         showPictureStrip(holder, item);
 
         holder.itemView.setOnClickListener(
@@ -78,10 +79,6 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
     @Override
     public int getItemCount() {
         return workouts.size();
-    }
-
-    private String formatDuration(int seconds) {
-        return String.format("%d:%02d", seconds / 60, seconds % 60);
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {

@@ -11,8 +11,9 @@ lives in an on-device Room database.
   video-frame preview).
 - **Workout** — a named, ordered list of exercises (`WorkoutExercise` is the join row,
   carrying `durationSeconds` and position). Built and reordered in `WorkoutEditFragment`, which
-  has no save button: every change is written at once, and `WorkoutEditViewModel` creates a new
-  workout on its first change (a name, or an exercise added under "Neues Workout").
+  works on a `WorkoutDraft`: every change stays in it until "Speichern" writes it in one
+  transaction (`WorkoutRepository.saveWithExercises`); Back with unsaved changes asks before
+  throwing it away, and a new workout is only created by saving.
 - **WorkoutSession / ExerciseSession** — a historical record of one run through a workout:
   when it started/finished, whether it was completed or aborted, and the actual vs. planned
   duration per exercise. Written by `PlayerFragment` as the player runs, read by the
@@ -33,10 +34,10 @@ lives in an on-device Room database.
   via `Transformations.map`); `HomeViewModel` is the same, over `observeRecent()` for the home
   screen's recent workouts; `PlayerViewModel` owns the player's state machine, a consolidated
   `PlayerTimer`, and a standalone `PlayerHistoryTracker` for session bookkeeping;
-  `WorkoutEditViewModel` deliberately does *not* use a reactive Room query — it re-runs a manual
-  load-and-reload after each of its own writes, plus on every view creation (to pick up changes
-  made elsewhere, e.g. an Exercise deleted from the catalog while this screen sat on the back
-  stack) — see the class doc on `WorkoutEditViewModel` for the full rationale; `ExerciseListViewModel`
+  `WorkoutEditViewModel` deliberately does *not* use a reactive Room query — it loads once into
+  its draft and, on every view creation, updates the draft's exercises from the catalog (to pick
+  up changes made elsewhere, e.g. an Exercise deleted while this screen sat on the back stack)
+  — see the class doc on `WorkoutEditViewModel` for the full rationale; `ExerciseListViewModel`
   is the same thin-passthrough shape as `WorkoutListViewModel`, over `ExerciseRepository.observeAll()`
   (a plain reactive query, no relation/mapping needed); `ExerciseEditViewModel` follows the same
   one-shot-load shape as `WorkoutEditViewModel` (manual load via `LiveDataExecutor`, not a

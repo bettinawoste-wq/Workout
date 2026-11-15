@@ -26,6 +26,10 @@
     <string name="workout_anlegen">Workout anlegen</string>
     <string name="noch_keine_uebungen">Noch keine Übungen</string>
     <string name="uebung_anlegen">Übung anlegen</string>
+    <string name="plus_uebung">+ Übung</string>
+    <string name="aenderungen_verwerfen">Änderungen verwerfen?</string>
+    <string name="verwerfen">Verwerfen</string>
+    <string name="weiter_bearbeiten">Weiter bearbeiten</string>
     <string name="workout_ohne_uebungen">Noch keine Übungen in diesem Workout</string>
     <string name="ton_ausschalten">Ton ausschalten</string>
     <string name="ton_einschalten">Ton einschalten</string>

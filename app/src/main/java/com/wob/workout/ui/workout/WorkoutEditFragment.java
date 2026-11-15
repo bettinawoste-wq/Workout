@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.*;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
@@ -35,6 +36,15 @@ public class WorkoutEditFragment extends Fragment {
     private FragmentWorkoutEditBinding binding;
     private WorkoutEditViewModel viewModel;
     private WorkoutExerciseAdapter adapter;
+
+    /** Enabled only while the draft has unsaved changes: then leaving asks first. Without
+     *  them, back closes the editor right away. */
+    private final OnBackPressedCallback confirmDiscardOnBack = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            confirmDiscard();
+        }
+    };
 
     private final ItemTouchHelper itemTouchHelper = new ItemTouchHelper(
             new ItemTouchHelper.SimpleCallback(
@@ -98,22 +108,22 @@ public class WorkoutEditFragment extends Fragment {
         binding.toolbar.setTitle(
                 openedAsNew ? R.string.neues_workout : R.string.workout_bearbeiten);
         binding.toolbar.setOnMenuItemClickListener(this::onMenuItemClick);
-        setWorkoutActionsEnabled(!viewModel.isNew());
+        // Only a stored workout can be deleted; duplicating saves the draft first.
+        binding.toolbar.getMenu().findItem(R.id.action_delete).setEnabled(!viewModel.isNew());
+        requireActivity().getOnBackPressedDispatcher()
+                .addCallback(getViewLifecycleOwner(), confirmDiscardOnBack);
+        viewModel.getUnsavedChanges().observe(getViewLifecycleOwner(),
+                unsaved -> confirmDiscardOnBack.setEnabled(Boolean.TRUE.equals(unsaved)));
 
-        // Fills the name field once for an existing workout (see takeNameToShow()). Also
-        // fires when a new workout gets created by its first change.
+        // Fills the name field once for an existing workout (see takeNameToShow()).
         viewModel.getWorkout().observe(getViewLifecycleOwner(), workout -> {
             if (workout == null) return;
-            // Remembered so a recreated screen (e.g. after process death) edits this
-            // workout rather than starting yet another new one.
-            requireArguments().putLong(ARG_WORKOUT_ID, workout.id);
-            setWorkoutActionsEnabled(true);
             if (viewModel.takeNameToShow() && TextUtils.isEmpty(binding.edtName.getText())) {
                 binding.edtName.setText(workout.name);
             }
         });
         // Added after the seeding above has had its chance, but a restored or seeded text
-        // still reaches it later; saving the same name again is harmless.
+        // still reaches it later; the same name again is no change to the draft.
         binding.edtName.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -135,6 +145,7 @@ public class WorkoutEditFragment extends Fragment {
             adapter.setData(items);
             EmptyState.show(binding.emptyState, items.isEmpty(), binding.btnAddExercise);
         });
+        viewModel.getSummary().observe(getViewLifecycleOwner(), binding.txtSummary::setText);
 
         // Not just the first creation: this Fragment can sit on the back stack while the
         // user edits or deletes an Exercise from the catalog on a different screen, so the
@@ -143,6 +154,13 @@ public class WorkoutEditFragment extends Fragment {
         viewModel.refreshExercises();
 
         binding.btnAddExercise.setOnClickListener(v -> ExercisePickerSheet.show(this));
+        binding.btnSave.setOnClickListener(v -> save());
+        // Nothing to save or copy until an existing workout has loaded into the draft.
+        viewModel.getReady().observe(getViewLifecycleOwner(), ready -> {
+            boolean enabled = Boolean.TRUE.equals(ready);
+            binding.btnSave.setEnabled(enabled);
+            binding.toolbar.getMenu().findItem(R.id.action_duplicate).setEnabled(enabled);
+        });
 
         return binding.getRoot();
     }
@@ -153,7 +171,7 @@ public class WorkoutEditFragment extends Fragment {
         binding = null;
     }
 
-    /** Opens the editor on a new workout, saved as soon as anything is entered. */
+    /** Opens the editor on a new workout, created only by "Speichern". */
     public static WorkoutEditFragment create() {
         WorkoutEditFragment fragment = edit(-1);
         fragment.requireArguments().putBoolean(ARG_OPENED_AS_NEW, true);
@@ -171,10 +189,28 @@ public class WorkoutEditFragment extends Fragment {
         return fragment;
     }
 
-    /** Duplicating or deleting only makes sense once the workout exists. */
-    private void setWorkoutActionsEnabled(boolean enabled) {
-        binding.toolbar.getMenu().findItem(R.id.action_duplicate).setEnabled(enabled);
-        binding.toolbar.getMenu().findItem(R.id.action_delete).setEnabled(enabled);
+    /** Saves the draft and closes the editor. */
+    private void save() {
+        // Once only: a quick second tap would otherwise save again.
+        binding.btnSave.setEnabled(false);
+        viewModel.save().observe(getViewLifecycleOwner(), saved -> {
+            if (saved == null) {
+                binding.btnSave.setEnabled(true);
+                Snackbar.make(binding.getRoot(), "Speichern fehlgeschlagen",
+                        Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            requireActivity().getSupportFragmentManager().popBackStack();
+        });
+    }
+
+    private void confirmDiscard() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.aenderungen_verwerfen)
+                .setNegativeButton(R.string.weiter_bearbeiten, null)
+                .setPositiveButton(R.string.verwerfen, (dialog, which) ->
+                        requireActivity().getSupportFragmentManager().popBackStack())
+                .show();
     }
 
     private boolean onMenuItemClick(MenuItem item) {
@@ -189,7 +225,8 @@ public class WorkoutEditFragment extends Fragment {
         return false;
     }
 
-    /** Opens the copy in place of this editor, so back still leads to the workout list. */
+    /** Saves the draft, then opens the copy in place of this editor, so back still leads
+     *  to the workout list. */
     private void duplicate() {
         viewModel.duplicate().observe(getViewLifecycleOwner(), copyId -> {
             if (copyId == null) {

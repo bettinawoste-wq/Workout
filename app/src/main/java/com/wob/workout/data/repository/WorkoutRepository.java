@@ -29,13 +29,6 @@ public class WorkoutRepository {
                 .update(workout);
     }
 
-    /** @return true if a row was actually updated (false if {@code id} no longer exists). */
-    public boolean updateName(long id, String name) {
-        return DatabaseProvider.get(context)
-                .workoutDao()
-                .updateName(id, name) > 0;
-    }
-
     public void delete(Workout workout) {
         DatabaseProvider.get(context)
                 .workoutDao()
@@ -58,6 +51,30 @@ public class WorkoutRepository {
                 db.workoutExerciseDao().insert(workoutExercise);
             }
             return copyId;
+        });
+    }
+
+    /** Saves a workout as the editor leaves it, in one transaction: its name and exactly
+     *  these workout exercises, in place of the stored ones. Ones with id 0 are added; the
+     *  others keep their id. Creates the workout if {@code id} is not positive.
+     *  @return the workout's id. */
+    public long saveWithExercises(long id, String name, List<WorkoutExercise> workoutExercises) {
+        AppDatabase db = DatabaseProvider.get(context);
+        return db.runInTransaction(() -> {
+            long workoutId = id;
+            if (workoutId > 0) {
+                db.workoutDao().updateName(workoutId, name);
+            } else {
+                Workout workout = new Workout();
+                workout.name = name;
+                workoutId = db.workoutDao().insert(workout);
+            }
+            db.workoutExerciseDao().deleteByWorkout(workoutId);
+            for (WorkoutExercise workoutExercise : workoutExercises) {
+                workoutExercise.workoutId = workoutId;
+            }
+            db.workoutExerciseDao().insertAll(workoutExercises);
+            return workoutId;
         });
     }
 

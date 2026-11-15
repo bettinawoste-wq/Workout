@@ -23,12 +23,27 @@
             android:layout_height="wrap_content"
             android:hint="Name"/>
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Übungen"
-            android:textStyle="bold"/>
+            android:baselineAligned="true"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/uebungen"
+                android:textStyle="bold"/>
+
+            <!-- Exercise count and run time, e.g. "10 Übungen · 10:27". -->
+            <TextView
+                android:id="@+id/txtSummary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodyMedium"/>
+        </LinearLayout>
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -50,11 +65,30 @@
                 android:visibility="gone"/>
         </FrameLayout>
 
-        <Button
-            android:id="@+id/btnAddExercise"
-            android:layout_width="wrap_content"
-            android:layout_gravity="center_horizontal"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Übung hinzufügen"/>
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnAddExercise"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/plus_uebung"/>
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/speichern"/>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>
