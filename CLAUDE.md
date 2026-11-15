@@ -2,9 +2,9 @@
 
 ## Agent skills
 
-### Issues and landing changes
+### Issues and pull requests
 
-Issues are tracked in GitHub Issues for [bettinawoste-wq/Workout](https://github.com/bettinawoste-wq/Workout), via the `gh` CLI. See `docs/agents/issue-tracker.md` for issues and how changes land on `master` (no pull requests).
+Issues are tracked in GitHub Issues for [bettinawoste-wq/Workout](https://github.com/bettinawoste-wq/Workout), via the `gh` CLI. See `docs/agents/issue-tracker.md` for issues and how changes land on `master` through pull requests.
 
 ### Domain docs
 
