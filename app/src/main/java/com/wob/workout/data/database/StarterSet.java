@@ -25,8 +25,8 @@ import java.io.IOException;
  * file is first created - so existing installs are untouched, and anything the user later
  * deletes stays deleted.
  *
- * <p>Content comes from {@code res/values/starter.xml}; the debug variant overrides it with a
- * small demo version. Rows are written with plain SQL because the DAOs can't be used from inside
+ * <p>Content comes from {@code res/values/starter.xml}; the debug variant only shortens the
+ * exercises. Rows are written with plain SQL because the DAOs can't be used from inside
  * {@code onCreate}.
  */
 public final class StarterSet {

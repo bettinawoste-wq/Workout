@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The starter set: created once, on the first launch of a fresh installation (see
-     StarterSet.java). The debug variant overrides every resource here with a tiny demo
-     version in app/src/debug/res/values/starter.xml. -->
+     StarterSet.java). The debug variant shortens the exercises to five seconds in
+     app/src/debug/res/values/starter.xml. -->
 <resources>
     <string name="starter_workout_name">Ganzkörper</string>
 
