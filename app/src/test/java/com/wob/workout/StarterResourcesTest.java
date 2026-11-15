@@ -11,6 +11,7 @@ import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,11 +19,11 @@ import java.util.Set;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 /**
- * The instrumented tests run against the debug variant, which overrides the starter set with a
- * tiny demo version - so nothing else can see what a release build actually ships. This parses
- * both resource files straight from disk (Gradle runs unit tests with the module directory as
- * working directory) and pins the shipped numbers, plus the one thing that would otherwise only
- * fail at first launch on a fresh install: titles and descriptions that don't line up.
+ * The instrumented tests run against the debug variant, which shortens every starter exercise to
+ * a few seconds - so nothing else can see what a release build actually ships. This parses both
+ * resource files straight from disk (Gradle runs unit tests with the module directory as working
+ * directory) and pins the shipped numbers, plus the one thing that would otherwise only fail at
+ * first launch on a fresh install: titles and descriptions that don't line up.
  */
 public class StarterResourcesTest {
 
@@ -43,23 +44,12 @@ public class StarterResourcesTest {
     }
 
     @Test
-    public void debug_isATwoExerciseFiveSecondDemo() throws Exception {
+    public void debug_shipsTheReleaseWorkoutWithFiveSecondExercises() throws Exception {
+        // Any other resource in the debug file would make the debug app differ from the real one.
         Document debug = parse(DEBUG);
 
-        assertEquals(2, stringArray(debug, "starter_exercise_titles").size());
+        assertEquals(Collections.singleton("starter_exercise_seconds"), resourceNames(debug));
         assertEquals(5, integer(debug, "starter_exercise_seconds"));
-    }
-
-    @Test
-    public void debug_titlesAndDescriptionsLineUp() throws Exception {
-        assertTitlesAndDescriptionsLineUp(parse(DEBUG));
-    }
-
-    @Test
-    public void debug_overridesEveryStarterResource() throws Exception {
-        // A resource the debug file forgets silently falls through to the release value -
-        // e.g. 2 demo titles next to 10 release descriptions.
-        assertEquals(resourceNames(parse(RELEASE)), resourceNames(parse(DEBUG)));
     }
 
     @Test
@@ -73,14 +63,6 @@ public class StarterResourcesTest {
             String expected = titles.get(i).equals("Kniebeugen") ? "@raw/starter_squat" : "@null";
             assertEquals(titles.get(i), expected, images.get(i));
         }
-    }
-
-    @Test
-    public void debug_imagesLineUpWithTitles() throws Exception {
-        Document debug = parse(DEBUG);
-
-        assertEquals(stringArray(debug, "starter_exercise_titles").size(),
-                array(debug, "starter_exercise_images").size());
     }
 
     private static void assertTitlesAndDescriptionsLineUp(Document document) {
