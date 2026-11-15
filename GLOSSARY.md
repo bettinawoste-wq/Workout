@@ -29,7 +29,7 @@ One exercise's place inside a workout: its position and how long it lasts there.
 _Avoid_: Step, item, entry
 
 **Transition**:
-The pause between two exercises of a workout, before the next one starts. It is the same length in every workout.
+The pause between two exercises of a workout, before the next one starts. It lasts 3 seconds in every workout and counts down into the next exercise with one beep per second.
 _Avoid_: Break, rest
 
 **Workout session**:

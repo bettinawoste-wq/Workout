@@ -25,7 +25,7 @@ import com.wob.workout.data.entity.WorkoutSession;
                 WorkoutSession.class,
                 ExerciseSession.class
         },
-        version = 5,
+        version = 6,
         exportSchema = true
 )
 @TypeConverters(MediaTypeConverter.class)
@@ -116,11 +116,20 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // The transition lasts 3 seconds in every workout (issue #67).
+            db.execSQL("UPDATE `Workout` SET `transitionSeconds` = 3");
+        }
+    };
+
     /** Every migration, in order. {@link DatabaseProvider} registers exactly these, and
      *  {@code AllMigrationsTest} checks they lead from version 4 to the current schema. */
     public static final Migration[] ALL_MIGRATIONS = {
             MIGRATION_2_3,
             MIGRATION_3_4,
-            MIGRATION_4_5
+            MIGRATION_4_5,
+            MIGRATION_5_6
     };
 }

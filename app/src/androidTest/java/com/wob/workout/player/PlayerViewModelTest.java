@@ -220,34 +220,54 @@ public class PlayerViewModelTest {
     }
 
     @Test
-    public void beepsCountDownOutOfEveryExerciseButThePauseStaysQuiet() {
-        // The real start countdown has already reported second 3, so check second 2.
-        assertTrue(tickAt(1500).shouldBeep); // READY, before the first exercise
+    public void theCountdownBeforeTheFirstExerciseBeeps() {
+        // The real start countdown has already reported second 3, so check seconds 2 and 1.
+        assertTrue(tickAt(1500).shouldBeep);
+        assertTrue(tickAt(500).shouldBeep);
+    }
 
+    @Test
+    public void theTransitionBeepsOnceForEachOfItsThreeSeconds() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
-        assertTrue(tickAt(2500).shouldBeep);
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+
+        // The real transition timer has already reported second 3, so check seconds 2 and 1.
+        assertTrue(tickAt(1900).shouldBeep);
+        assertFalse(tickAt(1100).shouldBeep); // still second 2
+        assertTrue(tickAt(900).shouldBeep);
+    }
+
+    @Test
+    public void noBeepInTheLastSecondsOfAnExercise() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        assertFalse(tickAt(2500).shouldBeep);
+        assertFalse(tickAt(1500).shouldBeep);
+        assertFalse(tickAt(500).shouldBeep);
 
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        finishCurrentPhase(); // TRANSITION -> ACTIVE (1), the last exercise
         assertFalse(tickAt(2500).shouldBeep);
+        assertFalse(tickAt(1500).shouldBeep);
+        assertFalse(tickAt(500).shouldBeep);
     }
 
     @Test
     public void shouldPlayBeepReturnsTrueOncePerBeepingTick() {
         finishCurrentPhase(); // READY -> ACTIVE (0)
         finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
-        finishCurrentPhase(); // TRANSITION -> ACTIVE (1), the last exercise
 
         PlayerTick silent = tickAt(10_000);
         assertFalse(onMain(() -> viewModel.shouldPlayBeep(silent)));
 
-        PlayerTick beeping = tickAt(2500);
+        // The real transition timer has already reported second 3.
+        PlayerTick beeping = tickAt(1500);
         assertTrue(beeping.shouldBeep);
         assertTrue(onMain(() -> viewModel.shouldPlayBeep(beeping)));
         // Simulates LiveData redelivering the same value to a recreated Fragment's observer.
         assertFalse(onMain(() -> viewModel.shouldPlayBeep(beeping)));
 
         // The next second's beep is a new value, so it plays again.
-        PlayerTick nextBeeping = tickAt(1500);
+        PlayerTick nextBeeping = tickAt(500);
         assertTrue(onMain(() -> viewModel.shouldPlayBeep(nextBeeping)));
     }
 
