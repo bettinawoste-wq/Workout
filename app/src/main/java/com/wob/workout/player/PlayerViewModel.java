@@ -147,7 +147,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
                 donePositions.add(index);
                 historyTracker.closeOutCurrentExercise(index, exercises.get(index));
                 if (index >= exercises.size() - 1) {
-                    // The exercise's own last seconds already counted down to the end.
+                    // No transition follows the last exercise: straight to the success sound.
                     finishWorkout();
                 } else {
                     index++;
@@ -238,11 +238,12 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     }
 
     /**
-     * Beeps count down into the first exercise and out of every exercise. The pause between two
-     * exercises stays quiet: its end is marked by the start sound alone.
+     * Beeps count down into every exercise: in the countdown before the first one and in the
+     * transition before each of the others. An exercise's own last seconds stay quiet.
      */
     private boolean countsDownAudibly() {
-        return currentPhase != PlayerExerciseState.Phase.TRANSITION;
+        return currentPhase == PlayerExerciseState.Phase.READY
+                || currentPhase == PlayerExerciseState.Phase.TRANSITION;
     }
 
     /** One beep for each of the last three seconds, however often a second is reported. */

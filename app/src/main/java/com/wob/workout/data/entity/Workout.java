@@ -11,7 +11,8 @@ public class Workout {
 
     public String name;
 
-    public int transitionSeconds = 5;
+    /** 3 for every workout; {@code AppDatabase.MIGRATION_5_6} set existing ones to it. */
+    public int transitionSeconds = 3;
 
     public boolean countdownEnabled = true;
 }

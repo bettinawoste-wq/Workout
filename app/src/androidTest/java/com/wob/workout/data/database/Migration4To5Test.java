@@ -47,9 +47,10 @@ public class Migration4To5Test {
         }
         helper.runMigrationsAndValidate(DB_NAME, 5, true, AppDatabase.MIGRATION_4_5).close();
 
+        // Room opens at the newest version, so the later migrations must be there too.
         database = Room.databaseBuilder(
                         ApplicationProvider.getApplicationContext(), AppDatabase.class, DB_NAME)
-                .addMigrations(AppDatabase.MIGRATION_4_5)
+                .addMigrations(AppDatabase.ALL_MIGRATIONS)
                 .allowMainThreadQueries()
                 .build();
         helper.closeWhenFinished(database);

@@ -18,7 +18,7 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
   with two fingers and moving with one, the file untouched; without a picture, a placeholder image.
 - **Workouts** — a named, ordered list of exercises with a duration each, reordered by drag and
   drop, saved as you edit, duplicable, and shown with a thumbnail of every exercise.
-- **Player** — countdowns, a soft start tone, a quiet transition, the coming exercise darkened, skip and
+- **Player** — countdowns, a soft start tone, a 3-second transition that beeps 3-2-1, the coming exercise darkened, skip and
   back; a bar of exercise time left in the workout; a chime and a summary of total time and skipped exercises.
 - **History** — every workout session, completed or aborted, with planned vs. actual duration per
   exercise; browse and delete sessions, which survive deleting the workout they were recorded against.
