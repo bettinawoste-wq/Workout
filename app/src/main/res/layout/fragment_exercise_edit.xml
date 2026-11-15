@@ -35,7 +35,8 @@
                 android:hint="@string/description"/>
             <Button
                 android:id="@+id/btnSelectMedia"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="Medium auswählen"/>
@@ -64,22 +65,25 @@
             <Button
                 android:id="@+id/btnResetFraming"
                 style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:text="Ausschnitt zurücksetzen"
                 android:visibility="gone"/>
 
             <Button
                 android:id="@+id/btnRemoveMedia"
                 style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:text="Bild entfernen"
                 android:visibility="gone"/>
 
             <Button
                 android:id="@+id/btnSave"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
                 android:text="@string/speichern"/>
@@ -87,7 +91,8 @@
             <Button
                 android:id="@+id/btnDelete"
                 style="@style/Widget.Workout.DeleteButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_gravity="center_horizontal"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="Löschen"/>
