@@ -13,16 +13,15 @@
 
 ## Landing changes
 
-Every change lands on `master` through a pull request, merged with a merge commit.
+Every change lands on `master` through one pull request per piece of work, merged as a rebase merge, so `master` stays a straight line without merge commits.
 
 - Changes are built with the `implement` skill: test-first, then `code-review` against the judgement rules in `CODING_STANDARDS.md`.
 - Work that has no issue yet, coming straight from a grilling, gets one before it is implemented. Write it from the agreed summary, with the decisions as acceptance criteria.
-- Each issue is built on its own branch off `master`. Before the push, clean up its commits: squash review-fix and fixup commits into the commit they fix, and rebase onto the current `master`, so each commit stands on its own.
+- Each issue ends as one self-standing commit whose message carries "Fixes #<n>", so the issue closes when the commit reaches `master`. Before the push, squash review-fix and fixup commits into the commit they fix, and rebase onto the current `master`.
 - Run CI's checks locally before the push: `python scripts/check-text-files.py`, `./gradlew assembleDebug lintDebug testDebugUnitTest`, and the instrumented tests via `python scripts/device-test.py` on the attached phone. If no phone is attached, say so instead of skipping silently.
-- After `implement`, push the branch and open the pull request without waiting; its body carries "Fixes #<n>", so the merge closes the issue.
-- Merge only after CI is green and the owner says so: `gh pr merge <n> --merge --delete-branch`. Then update the local `master`.
-- An issue that waits for another starts once that issue's pull request is merged.
-- `implement-spec` follows the same rules: each issue gets its own branch and pull request, a dependent issue starts after its blocker is merged, and nothing lands as a combined change.
+- After `implement`, push the branch and open the pull request without waiting.
+- Merge only after CI is green and the owner says so: `gh pr merge <n> --rebase --delete-branch`. Then update the local `master`.
+- `implement-spec` builds a whole batch of issues on one branch, a dependent issue on top of its blocker's commit, and lands it as one pull request: one commit per issue, no stacked pull requests.
 
 ## PRs as a request surface
 

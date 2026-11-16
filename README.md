@@ -79,7 +79,8 @@ The workflow:
 3. **Issue** — the outcome, with acceptance criteria.
 4. **TDD** — red → green against those criteria.
 5. **Review** — Claude Code's code review as a second check, then the owner's review.
-6. **PR** — commits cleaned up, then merged once CI is green and the owner accepts it.
+6. **PR** — one commit per issue, rebased onto `master` once CI is green and the owner accepts
+   it, so the history stays a straight line.
 
 The full flow, on framing exercise photos: the grilling's decision became
 [ADR 0003](docs/adr/0003-non-destructive-framing.md), then
