@@ -11,6 +11,7 @@ import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +30,7 @@ public class StarterResourcesTest {
 
     private static final File RELEASE = new File("src/main/res/values/starter.xml");
     private static final File DEBUG = new File("src/debug/res/values/starter.xml");
+    private static final File RAW = new File("src/main/res/raw");
 
     @Test
     public void release_shipsTenExercisesOfSixtySeconds() throws Exception {
@@ -53,15 +55,27 @@ public class StarterResourcesTest {
     }
 
     @Test
-    public void release_onlyKniebeugenHasAnImage() throws Exception {
+    public void release_shipsTheExercisesInWorkoutOrder() throws Exception {
+        assertEquals(
+                Arrays.asList("Hampelmänner", "Kniebeugen", "Ausfallschritte", "Wandsitzen",
+                        "Glute Bridge", "Sit-Ups", "Liegestütze", "Mountain Climber", "Plank",
+                        "Superman"),
+                stringArray(parse(RELEASE), "starter_exercise_titles"));
+    }
+
+    @Test
+    public void release_everyExerciseHasItsOwnPicture() throws Exception {
         Document release = parse(RELEASE);
         List<String> titles = stringArray(release, "starter_exercise_titles");
         List<String> images = array(release, "starter_exercise_images");
 
         assertEquals(titles.size(), images.size());
+        assertEquals("one picture per exercise", images.size(), new HashSet<>(images).size());
         for (int i = 0; i < titles.size(); i++) {
-            String expected = titles.get(i).equals("Kniebeugen") ? "@raw/starter_squat" : "@null";
-            assertEquals(titles.get(i), expected, images.get(i));
+            String image = images.get(i);
+            assertTrue(titles.get(i) + ": " + image, image.startsWith("@raw/starter_"));
+            String name = image.substring("@raw/".length());
+            assertTrue(titles.get(i) + " has no file", new File(RAW, name + ".webp").isFile());
         }
     }
 

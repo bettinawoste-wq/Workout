@@ -91,6 +91,16 @@ public class StarterSetTest {
     }
 
     @Test
+    public void starterPicture_keepsTheFileNameAndFormatItShipsWith() {
+        Exercise squat = database.exerciseDao().getAll().stream()
+                .filter(exercise -> exercise.title.equals("Kniebeugen"))
+                .findFirst()
+                .orElseThrow(AssertionError::new);
+
+        assertEquals("starter_squat.webp", squat.mediaFile);
+    }
+
+    @Test
     public void freshDatabase_getsOneStarterWorkoutWithTheDefaultTransition() {
         List<Workout> workouts = database.workoutDao().getAll();
 

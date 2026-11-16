@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
@@ -107,7 +108,7 @@ public final class StarterSet {
     private static String copyImage(Context context, int imageResource) {
         if (imageResource == 0) return null;
 
-        String fileName = context.getResources().getResourceEntryName(imageResource) + ".png";
+        String fileName = shippedFileName(context.getResources(), imageResource);
         try {
             MediaStorageManager.copyResourceToExerciseFolder(context, imageResource, fileName);
             return fileName;
@@ -115,5 +116,14 @@ public final class StarterSet {
             Log.e(TAG, "Could not copy starter image " + fileName, e);
             return null;
         }
+    }
+
+    /** The raw resource's own file name, e.g. "starter_squat.webp", so the copy keeps its
+     *  format's extension. */
+    private static String shippedFileName(Resources resources, int imageResource) {
+        TypedValue value = new TypedValue();
+        resources.getValue(imageResource, value, true);
+        String path = value.string.toString();
+        return path.substring(path.lastIndexOf('/') + 1);
     }
 }
