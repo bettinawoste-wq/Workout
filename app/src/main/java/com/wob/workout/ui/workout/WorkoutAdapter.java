@@ -63,6 +63,7 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
         holder.itemView.setOnClickListener(
                 v -> listener.onWorkoutClicked(item.workout));
 
+        holder.binding.btnStart.setEnabled(item.canStart());
         holder.binding.btnStart.setOnClickListener(
                 v -> listener.onWorkoutStartClicked(item.workout));
     }
