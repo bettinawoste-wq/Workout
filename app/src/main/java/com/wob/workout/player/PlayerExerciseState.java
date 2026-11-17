@@ -1,5 +1,7 @@
 package com.wob.workout.player;
 
+import com.wob.workout.data.WorkoutExercise;
+
 /**
  * Emitted only when the screen moves to a new exercise/transition/finish — the Fragment's
  * media-display observer watches this. {@code exercise} is null during {@link Phase#FINISHED}.
@@ -10,18 +12,18 @@ public class PlayerExerciseState {
     /** FINISHED follows the last exercise directly: its own last seconds are the countdown. */
     public enum Phase { READY, ACTIVE, TRANSITION, FINISHED }
 
-    public final PlayerExercise exercise;
+    public final WorkoutExercise exercise;
     public final int index;
     public final int total;
     public final Phase phase;
     /** Only set during {@link Phase#FINISHED}. */
     public final PlayerWorkoutSummary summary;
 
-    public PlayerExerciseState(PlayerExercise exercise, int index, int total, Phase phase) {
+    public PlayerExerciseState(WorkoutExercise exercise, int index, int total, Phase phase) {
         this(exercise, index, total, phase, null);
     }
 
-    public PlayerExerciseState(PlayerExercise exercise, int index, int total, Phase phase,
+    public PlayerExerciseState(WorkoutExercise exercise, int index, int total, Phase phase,
                                PlayerWorkoutSummary summary) {
         this.exercise = exercise;
         this.index = index;

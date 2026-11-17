@@ -16,7 +16,7 @@ import com.wob.workout.R;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.MediaType;
 import com.wob.workout.data.entity.Workout;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
 import com.wob.workout.media.MediaStorageManager;
 
 import org.junit.After;
@@ -117,11 +117,11 @@ public class StarterSetTest {
         String[] titles = resources.getStringArray(R.array.starter_exercise_titles);
         Workout workout = database.workoutDao().getAll().get(0);
 
-        List<WorkoutExercise> entries = database.workoutExerciseDao().getByWorkout(workout.id);
+        List<WorkoutExerciseRow> entries = database.workoutExerciseDao().getByWorkout(workout.id);
 
         assertEquals(titles.length, entries.size());
         for (int i = 0; i < entries.size(); i++) {
-            WorkoutExercise entry = entries.get(i);
+            WorkoutExerciseRow entry = entries.get(i);
             assertEquals(i, entry.position);
             assertEquals(seconds, entry.durationSeconds);
             assertEquals(titles[i], database.exerciseDao().getById(entry.exerciseId).title);

@@ -1,5 +1,6 @@
 package com.wob.workout.player;
 
+import com.wob.workout.data.WorkoutExercise;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
@@ -72,7 +73,7 @@ public class PlayerHistoryTrackerTest {
         Exercise exercise = new Exercise();
         exercise.id = sessionExerciseId;
         exercise.title = "Push-up";
-        PlayerExercise current = new PlayerExercise(exercise, 60);
+        WorkoutExercise current = new WorkoutExercise(1, exercise, 60);
 
         onMain(tracker::startExercise);
         Thread.sleep(1100);

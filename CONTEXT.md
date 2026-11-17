@@ -9,11 +9,18 @@ lives in an on-device Room database.
 - **Exercise** — a single movement, with an optional photo/video demo (`MediaStorageManager`
   copies the picked file into app storage; `MediaThumbnailLoader` handles EXIF rotation and
   video-frame preview).
-- **Workout** — a named, ordered list of exercises (`WorkoutExercise` is the join row,
-  carrying `durationSeconds` and position). Built and reordered in `WorkoutEditFragment`, which
-  works on a `WorkoutDraft`: every change stays in it until "Speichern" writes it in one
-  transaction (`WorkoutRepository.saveWithExercises`); Back with unsaved changes asks before
-  throwing it away, and a new workout is only created by saving.
+- **Workout** — a named, ordered list of exercises. A **workout exercise** is the immutable
+  value `data.WorkoutExercise`: the exercise, its duration and the stored row's id (0 while
+  unsaved); its position is its place in the list. The stored row is the Room entity
+  `WorkoutExerciseRow` (table `WorkoutExercise`, carrying `durationSeconds` and `position`).
+  Both the editor and the player load a workout's exercises through one method,
+  `WorkoutRepository.getWorkoutExercises`, built on the `WorkoutWithExercises` relation; it is
+  the only place that leaves out a workout exercise whose exercise is missing. Built and
+  reordered in `WorkoutEditFragment`, which works on a `WorkoutDraft`: the draft owns its
+  workout exercises (a change replaces a value, a drag step moves one from a position to
+  another; the list adapter only renders), and every change stays in it until "Speichern"
+  writes it in one transaction (`WorkoutRepository.saveWithExercises`); Back with unsaved
+  changes asks before throwing it away, and a new workout is only created by saving.
 - **WorkoutSession / ExerciseSession** — a historical record of one run through a workout:
   when it started/finished, whether it was completed or aborted, and the actual vs. planned
   duration per exercise. Written by `PlayerFragment` as the player runs, read by the

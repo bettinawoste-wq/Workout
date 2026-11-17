@@ -3,7 +3,7 @@ package com.wob.workout.data.repository;
 import android.content.Context;
 
 import com.wob.workout.data.database.DatabaseProvider;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
 
 import java.util.List;
 
@@ -15,19 +15,19 @@ public class WorkoutExerciseRepository {
         this.context = context.getApplicationContext();
     }
 
-    public long save(WorkoutExercise workoutExercise) {
+    public long save(WorkoutExerciseRow row) {
         return DatabaseProvider.get(context)
                 .workoutExerciseDao()
-                .insert(workoutExercise);
+                .insert(row);
     }
 
-    public List<WorkoutExercise> getByWorkout(long workoutId) {
+    public List<WorkoutExerciseRow> getByWorkout(long workoutId) {
         return DatabaseProvider.get(context)
                 .workoutExerciseDao()
                 .getByWorkout(workoutId);
     }
 
-    public WorkoutExercise getById(long id) {
+    public WorkoutExerciseRow getById(long id) {
         return DatabaseProvider.get(context)
                 .workoutExerciseDao()
                 .getById(id);
@@ -35,7 +35,7 @@ public class WorkoutExerciseRepository {
 
     public int getTotalDuration(long workoutId) {
         int total = 0;
-        for (WorkoutExercise e : getByWorkout(workoutId))
+        for (WorkoutExerciseRow e : getByWorkout(workoutId))
             total += e.durationSeconds;
         return total;
     }

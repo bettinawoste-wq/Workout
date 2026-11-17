@@ -14,7 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.Exercise;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
 import com.wob.workout.ui.workout.WorkoutListItem;
 
 import org.junit.After;
@@ -57,7 +57,7 @@ public class TestAppContainerTest {
 
         // Written through the per-call repositories (workout/exercise/workoutExercise)...
         Exercise exercise = container.exerciseRepository.getById(exerciseId);
-        List<WorkoutExercise> workoutExercises =
+        List<WorkoutExerciseRow> workoutExercises =
                 container.workoutExerciseRepository.getByWorkout(workoutId);
         assertEquals("Squat", exercise.title);
         assertEquals(1, workoutExercises.size());

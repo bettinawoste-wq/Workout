@@ -30,6 +30,11 @@ public interface WorkoutDao {
     @Query("SELECT * FROM Workout ORDER BY id DESC")
     List<Workout> getAll();
 
+    /** One workout with its workout exercises and their exercises; null if it is gone. */
+    @Transaction
+    @Query("SELECT * FROM Workout WHERE id = :id LIMIT 1")
+    WorkoutWithExercises getWithExercises(long id);
+
     /** All workouts, most recently run first (by the start of their latest workout session,
      *  completed or aborted), then the never-run ones newest created first. Room re-queries
      *  when WorkoutSession changes, so a new session reorders the list live. */

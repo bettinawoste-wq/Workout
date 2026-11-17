@@ -6,7 +6,7 @@ import androidx.room.Relation;
 
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -26,7 +26,7 @@ public class WorkoutWithExercises {
      *  order. Use {@link #exercisesInOrder()} wherever the workout's configured
      *  exercise order matters. */
     @Relation(parentColumn = "id", entityColumn = "workoutId")
-    public List<WorkoutExercise> exercises;
+    public List<WorkoutExerciseRow> exercises;
 
     /** The exercises behind {@link #exercises}: one per distinct exercise, in no particular
      *  order. Look them up by id when walking {@link #exercisesInOrder()}. */
@@ -34,13 +34,13 @@ public class WorkoutWithExercises {
             parentColumn = "id",
             entityColumn = "id",
             associateBy = @Junction(
-                    value = WorkoutExercise.class,
+                    value = WorkoutExerciseRow.class,
                     parentColumn = "workoutId",
                     entityColumn = "exerciseId"))
     public List<Exercise> exerciseDetails;
 
-    public List<WorkoutExercise> exercisesInOrder() {
-        List<WorkoutExercise> sorted = new ArrayList<>(exercises);
+    public List<WorkoutExerciseRow> exercisesInOrder() {
+        List<WorkoutExerciseRow> sorted = new ArrayList<>(exercises);
         sorted.sort(Comparator.comparingInt(exercise -> exercise.position));
         return sorted;
     }

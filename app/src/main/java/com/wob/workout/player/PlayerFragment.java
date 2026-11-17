@@ -1,5 +1,6 @@
 package com.wob.workout.player;
 
+import com.wob.workout.data.WorkoutExercise;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -155,7 +156,7 @@ public class PlayerFragment extends Fragment {
     }
 
     /** Darkens the picture and names it while it only previews the coming exercise. */
-    private void showPreviewLabel(String label, PlayerExercise exercise) {
+    private void showPreviewLabel(String label, WorkoutExercise exercise) {
         int visibility = label != null ? View.VISIBLE : View.GONE;
         binding.mediaScrim.setVisibility(visibility);
         binding.mediaLabels.setVisibility(visibility);
@@ -181,7 +182,7 @@ public class PlayerFragment extends Fragment {
         binding.btnPrevious.setEnabled(enabled);
     }
 
-    private void showExerciseInfo(PlayerExercise exercise) {
+    private void showExerciseInfo(WorkoutExercise exercise) {
         if (exercise == null) return;
         binding.txtTitle.setText(exercise.exercise.title);
         binding.txtDescription.setText(exercise.exercise.description);

@@ -5,7 +5,12 @@ import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+/**
+ * The stored row behind a {@link com.wob.workout.data.WorkoutExercise}: one exercise's place
+ * in a workout. Keeps the table name {@code WorkoutExercise}, so the schema is unchanged.
+ */
 @Entity(
+        tableName = "WorkoutExercise",
         foreignKeys = {
                 @ForeignKey(
                         entity = Workout.class,
@@ -25,7 +30,7 @@ import androidx.room.PrimaryKey;
                 @Index("exerciseId")
         }
 )
-public class WorkoutExercise {
+public class WorkoutExerciseRow {
 
     @PrimaryKey(autoGenerate = true)
     public long id;

@@ -1,10 +1,9 @@
 package com.wob.workout.ui.workout;
 
+import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.entity.Exercise;
-import com.wob.workout.data.entity.WorkoutExercise;
 import com.wob.workout.ui.ExerciseCount;
 import com.wob.workout.ui.MinutesSeconds;
-import com.wob.workout.ui.workout.WorkoutExerciseAdapter.ExerciseItem;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +17,8 @@ import java.util.Map;
  * workout exercises in their order, with their durations. Knows whether it differs from
  * what was loaded, so leaving can ask before throwing changes away.
  *
- * <p>Main thread only: its items are the same objects the editor's adapter shows.
+ * <p>It owns its workout exercises: they are immutable values, so a change replaces one,
+ * and they are addressed by their position in the list. Main thread only.
  */
 public class WorkoutDraft {
 
@@ -28,23 +28,23 @@ public class WorkoutDraft {
     /** What an added exercise lasts until its duration is changed. */
     public static final int NEW_EXERCISE_SECONDS = 60;
 
-    private final List<ExerciseItem> items;
+    private final List<WorkoutExercise> workoutExercises;
     private String name;
     /** What was loaded, to compare against: the trimmed name and {@link #rows()}. */
     private final String loadedName;
     private final List<List<Long>> loadedRows;
 
     /** @param name the stored name, empty for a new workout */
-    public WorkoutDraft(String name, List<ExerciseItem> items) {
+    public WorkoutDraft(String name, List<WorkoutExercise> workoutExercises) {
         this.name = name;
-        this.items = new ArrayList<>(items);
+        this.workoutExercises = new ArrayList<>(workoutExercises);
         this.loadedName = name.trim();
         this.loadedRows = rows();
     }
 
-    /** The workout exercises in their current order; not to be changed by the caller. */
-    public List<ExerciseItem> items() {
-        return Collections.unmodifiableList(items);
+    /** The workout exercises in their current order, as they would be saved. */
+    public List<WorkoutExercise> workoutExercises() {
+        return Collections.unmodifiableList(workoutExercises);
     }
 
     public void changeName(String name) {
@@ -55,34 +55,35 @@ public class WorkoutDraft {
      *  were ticked), each with {@link #NEW_EXERCISE_SECONDS}. */
     public void add(List<Exercise> exercises) {
         for (Exercise exercise : exercises) {
-            WorkoutExercise workoutExercise = new WorkoutExercise();
-            workoutExercise.exerciseId = exercise.id;
-            workoutExercise.durationSeconds = NEW_EXERCISE_SECONDS;
-            items.add(new ExerciseItem(exercise, workoutExercise));
+            workoutExercises.add(WorkoutExercise.added(exercise, NEW_EXERCISE_SECONDS));
         }
     }
 
-    /** @return where it was, for {@link #restore}; -1 if it wasn't in the draft */
-    public int remove(ExerciseItem item) {
-        int position = items.indexOf(item);
-        if (position >= 0) items.remove(position);
-        return position;
+    /** @return the removed one, for {@link #restore}; null if there is none at
+     *          {@code position} */
+    public WorkoutExercise remove(int position) {
+        if (!isAt(position)) return null;
+        return workoutExercises.remove(position);
     }
 
     /** Puts a removed workout exercise back where it was, or at the end if the draft has
      *  since become shorter. */
-    public void restore(ExerciseItem item, int position) {
-        items.add(Math.min(Math.max(position, 0), items.size()), item);
+    public void restore(int position, WorkoutExercise workoutExercise) {
+        workoutExercises.add(
+                Math.min(Math.max(position, 0), workoutExercises.size()), workoutExercise);
     }
 
-    public void changeDuration(ExerciseItem item, int durationSeconds) {
-        item.workoutExercise.durationSeconds = durationSeconds;
+    public void changeDuration(int position, int durationSeconds) {
+        if (!isAt(position)) return;
+        workoutExercises.set(
+                position, workoutExercises.get(position).withDuration(durationSeconds));
     }
 
-    /** @param newOrder the same items, e.g. as a drag left them in the adapter */
-    public void reorder(List<ExerciseItem> newOrder) {
-        items.clear();
-        items.addAll(newOrder);
+    /** Takes the workout exercise at {@code from} out and puts it in at {@code to}; the
+     *  ones in between shift by one, as in a drag. */
+    public void move(int from, int to) {
+        if (!isAt(from) || !isAt(to)) return;
+        workoutExercises.add(to, workoutExercises.remove(from));
     }
 
     /** Takes over exercises changed in the catalog since loading, e.g. while the editor sat
@@ -92,17 +93,17 @@ public class WorkoutDraft {
      *  @param lookedUp the exercise ids the catalog was asked for
      *  @param found    those of them still in the catalog, by id */
     public void updateExercises(Collection<Long> lookedUp, Map<Long, Exercise> found) {
-        List<ExerciseItem> updated = new ArrayList<>();
-        for (ExerciseItem item : items) {
-            long exerciseId = item.workoutExercise.exerciseId;
+        List<WorkoutExercise> updated = new ArrayList<>();
+        for (WorkoutExercise workoutExercise : workoutExercises) {
+            long exerciseId = workoutExercise.exerciseId();
             if (!lookedUp.contains(exerciseId)) {
-                updated.add(item);
+                updated.add(workoutExercise);
             } else if (found.containsKey(exerciseId)) {
-                updated.add(new ExerciseItem(found.get(exerciseId), item.workoutExercise));
+                updated.add(workoutExercise.withExercise(found.get(exerciseId)));
             }
         }
-        items.clear();
-        items.addAll(updated);
+        workoutExercises.clear();
+        workoutExercises.addAll(updated);
         loadedRows.removeIf(row -> lookedUp.contains(row.get(1))
                 && !found.containsKey(row.get(1)));
     }
@@ -114,22 +115,6 @@ public class WorkoutDraft {
         return trimmed.isEmpty() ? DEFAULT_NAME : trimmed;
     }
 
-    /** Copies of the workout exercises, numbered in their current order, for saving off
-     *  the main thread; new ones still have id 0. */
-    public List<WorkoutExercise> workoutExercisesToSave() {
-        List<WorkoutExercise> toSave = new ArrayList<>();
-        for (ExerciseItem item : items) {
-            WorkoutExercise copy = new WorkoutExercise();
-            copy.id = item.workoutExercise.id;
-            copy.workoutId = item.workoutExercise.workoutId;
-            copy.exerciseId = item.workoutExercise.exerciseId;
-            copy.durationSeconds = item.workoutExercise.durationSeconds;
-            copy.position = toSave.size();
-            toSave.add(copy);
-        }
-        return toSave;
-    }
-
     public boolean hasUnsavedChanges() {
         return !name.trim().equals(loadedName) || !rows().equals(loadedRows);
     }
@@ -138,24 +123,29 @@ public class WorkoutDraft {
      *  remaining time the player starts from. */
     public int totalSeconds() {
         int total = 0;
-        for (ExerciseItem item : items) {
-            total += item.workoutExercise.durationSeconds;
+        for (WorkoutExercise workoutExercise : workoutExercises) {
+            total += workoutExercise.durationSeconds;
         }
         return total;
     }
 
     /** E.g. "10 Übungen · 10:00". */
     public String summaryText() {
-        return ExerciseCount.text(items.size()) + " · " + MinutesSeconds.text(totalSeconds());
+        return ExerciseCount.text(workoutExercises.size()) + " · "
+                + MinutesSeconds.text(totalSeconds());
+    }
+
+    private boolean isAt(int position) {
+        return position >= 0 && position < workoutExercises.size();
     }
 
     /** What saving would write of the workout exercises, as comparable values: per workout
-     *  exercise in order its stored id (0 while unsaved), exercise and duration. */
+     *  exercise in order its row id (0 while unsaved), exercise and duration. */
     private List<List<Long>> rows() {
         List<List<Long>> rows = new ArrayList<>();
-        for (ExerciseItem item : items) {
-            rows.add(Arrays.asList(item.workoutExercise.id, item.workoutExercise.exerciseId,
-                    (long) item.workoutExercise.durationSeconds));
+        for (WorkoutExercise workoutExercise : workoutExercises) {
+            rows.add(Arrays.asList(workoutExercise.rowId, workoutExercise.exerciseId(),
+                    (long) workoutExercise.durationSeconds));
         }
         return rows;
     }
