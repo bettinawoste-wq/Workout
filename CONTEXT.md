@@ -75,6 +75,12 @@ lives in an on-device Room database.
   the workout session and its exercise sessions (`DatabaseSessionHistory` in the app, on the
   single-threaded io executor; in memory in tests). `WorkoutSessionEngineTest` covers the rules
   on fake time; the instrumented `PlayerViewModelTest` keeps one run through the real wiring.
+  The engine reports what is going on as a `SessionState` (phase, time left, the exercise shown
+  or previewed, whether stepping and pausing are possible, the summary once finished), not how
+  it looks; the pure `PlayerScreen` turns that into the screen's texts and switches, and
+  `PlayerFragment` only puts them in place. Sounds (`PlayerSound`: beep, start, success) come
+  from the engine as events; `PlayerViewModel` drops them while the sound setting is off and
+  hands the rest to the screen as one-shot `Event`s, so a rotation never plays one again.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
   `fallbackToDestructiveMigration()`. Room runs without `allowMainThreadQueries()` (removed in
   #22, the last step of the MVVM migration): every database access happens off the main thread,

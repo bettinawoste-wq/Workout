@@ -12,7 +12,8 @@ import java.util.Set;
  * first exercise, the exercises, a transition between two of them, finished), stepping and
  * pausing, when it beeps, how much of the whole workout is left, which positions are done,
  * and the timing of its exercise sessions. Runs on {@link SessionTime} and writes to
- * {@link SessionHistory}; what goes on is reported to its {@link Listener}.
+ * {@link SessionHistory}; what goes on is reported to its {@link Listener} as a
+ * {@link SessionState}, and each sound once, when it is due.
  *
  * <p>Single-threaded: every call and every time callback on one thread, the main thread in
  * the app.
@@ -26,11 +27,10 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     private static final int BEEP_SECONDS = 3;
 
     public interface Listener {
-        /** A new phase or exercise. */
-        void onExerciseState(PlayerExerciseState state);
+        /** A new phase or exercise, or the time moved, stopped or went on. */
+        void onState(SessionState state);
 
-        /** The time moved, or stopped or went on. */
-        void onTick(PlayerTick tick);
+        void onSound(PlayerSound sound);
     }
 
     private final SessionTime time;
@@ -41,7 +41,8 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     private long transitionMillis;
     private long totalMillis;
     private int index;
-    private PlayerExerciseState.Phase phase;
+    private SessionState.Phase phase;
+    private int scene;
     private long lastBeepSecond = -1;
     private boolean closed;
 
@@ -71,9 +72,7 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
         this.totalMillis = exerciseMillisFrom(0);
         history.startSession(workoutId, workoutName);
         index = 0;
-        enter(new PlayerExerciseState(
-                current(), index, this.exercises.size(), PlayerExerciseState.Phase.READY),
-                COUNTDOWN_MILLIS);
+        enter(SessionState.Phase.READY, COUNTDOWN_MILLIS);
     }
 
     /** Pauses or resumes an exercise, and also the countdown into one. Only an exercise's
@@ -87,7 +86,7 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
             if (isActive()) flushPause(time.now());
             time.resume();
         }
-        emitTick(time.millisLeft(), false);
+        publish(time.millisLeft());
     }
 
     public void next() {
@@ -110,7 +109,7 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
         if (closed) return;
         closed = true;
         time.cancel();
-        if (exercises == null || phase == PlayerExerciseState.Phase.FINISHED) return;
+        if (exercises == null || phase == SessionState.Phase.FINISHED) return;
         closeOutExercise();
         history.finishSession(false);
     }
@@ -118,7 +117,8 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     @Override
     public void onTick(long millisLeft) {
         if (closed) return;
-        emitTick(millisLeft, true);
+        publish(millisLeft);
+        beepIfDue(millisLeft);
     }
 
     @Override
@@ -137,8 +137,7 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
                     finish();
                 } else {
                     index++;
-                    enter(new PlayerExerciseState(current(), index, exercises.size(),
-                            PlayerExerciseState.Phase.TRANSITION), transitionMillis);
+                    enter(SessionState.Phase.TRANSITION, transitionMillis);
                 }
                 break;
             case FINISHED:
@@ -147,11 +146,11 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     }
 
     private boolean canPause() {
-        return exercises != null && !closed && phase != PlayerExerciseState.Phase.FINISHED;
+        return exercises != null && !closed && phase != SessionState.Phase.FINISHED;
     }
 
     private boolean isActive() {
-        return exercises != null && !closed && phase == PlayerExerciseState.Phase.ACTIVE;
+        return exercises != null && !closed && phase == SessionState.Phase.ACTIVE;
     }
 
     private WorkoutExercise current() {
@@ -164,24 +163,27 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
         exerciseStartedAt = time.now();
         exercisePausedMillis = 0;
         pauseStartedAt = -1;
-        enter(new PlayerExerciseState(current(), index, exercises.size(),
-                PlayerExerciseState.Phase.ACTIVE, afterCountdown),
-                current().durationSeconds * 1000L);
+        enter(SessionState.Phase.ACTIVE, current().durationSeconds * 1000L);
+        if (afterCountdown) listener.onSound(PlayerSound.START);
     }
 
-    private void enter(PlayerExerciseState state, long millis) {
-        phase = state.phase;
+    private void enter(SessionState.Phase phase, long millis) {
+        this.phase = phase;
+        scene++;
         lastBeepSecond = -1;
-        listener.onExerciseState(state);
         time.start(millis, this);
-        emitTick(millis, true);
+        publish(millis);
+        beepIfDue(millis);
     }
 
     private void finish() {
-        phase = PlayerExerciseState.Phase.FINISHED;
+        phase = SessionState.Phase.FINISHED;
+        scene++;
         history.finishSession(true);
-        listener.onExerciseState(PlayerExerciseState.finished(index, exercises.size(),
+        listener.onState(new SessionState(phase, scene, index, exercises.size(), null, 0, false,
+                false, false, false, 0, totalMillis,
                 new PlayerWorkoutSummary(activeSeconds, donePositions.size(), exercises.size())));
+        listener.onSound(PlayerSound.SUCCESS);
     }
 
     /** Records the exercise session under way, if there is one. */
@@ -204,28 +206,27 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
         return exercisePausedMillis;
     }
 
-    /** @param counting whether this is the time going on, which may beep; a pause or resume
-     *                  only shows where it stands */
-    private void emitTick(long millisLeft, boolean counting) {
-        boolean beep = counting && shouldBeep(millisLeft);
-        listener.onTick(new PlayerTick(millisLeft, time.isRunning(), beep, phase,
-                workoutRemainingMillis(millisLeft), totalMillis));
+    /** Reports where the phase under way stands. */
+    private void publish(long millisLeft) {
+        boolean active = phase == SessionState.Phase.ACTIVE;
+        listener.onState(new SessionState(phase, scene, index, exercises.size(), current(),
+                millisLeft, time.isRunning(), active && index > 0,
+                active && index < exercises.size() - 1, true,
+                workoutRemainingMillis(millisLeft), totalMillis, null));
     }
 
     /** Beeps count down into every exercise: in the countdown before the first one and in
      *  the transition before each of the others, once for each of the last three seconds,
      *  however often a second is reported. An exercise's own last seconds stay quiet. */
-    private boolean shouldBeep(long millisLeft) {
-        if (phase != PlayerExerciseState.Phase.READY
-                && phase != PlayerExerciseState.Phase.TRANSITION) {
-            return false;
+    private void beepIfDue(long millisLeft) {
+        if (phase != SessionState.Phase.READY && phase != SessionState.Phase.TRANSITION) {
+            return;
         }
         long second = (millisLeft + 999) / 1000;
         if (second <= BEEP_SECONDS && second > 0 && second != lastBeepSecond) {
             lastBeepSecond = second;
-            return true;
+            listener.onSound(PlayerSound.BEEP);
         }
-        return false;
     }
 
     /** Exercise time only: during the countdown and between exercises it stands still. */
