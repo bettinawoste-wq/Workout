@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.fragment.app.Fragment;
@@ -97,6 +98,12 @@ public class PlayerFragment extends Fragment {
 
         viewModel.isSoundOn().observe(getViewLifecycleOwner(), this::showSound);
         viewModel.getScreen().observe(getViewLifecycleOwner(), this::show);
+        viewModel.getNothingToPlay().observe(getViewLifecycleOwner(), event -> {
+            if (event.getContentIfNotHandled() == null) return;
+            Toast.makeText(requireContext(), "Dieses Workout hat noch keine Übungen",
+                    Toast.LENGTH_LONG).show();
+            Navigator.of(this).close();
+        });
         viewModel.getSound().observe(getViewLifecycleOwner(), event -> {
             PlayerSound due = event.getContentIfNotHandled();
             if (due != null) audioManager.play(due);

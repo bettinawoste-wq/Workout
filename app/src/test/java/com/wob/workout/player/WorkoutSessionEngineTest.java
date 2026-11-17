@@ -28,6 +28,7 @@ public class WorkoutSessionEngineTest {
     private final RecordedHistory history = new RecordedHistory();
     private final List<SessionState> states = new ArrayList<>();
     private final List<PlayerSound> sounds = new ArrayList<>();
+    private int nothingToPlay;
     private final WorkoutSessionEngine.Listener listener = new WorkoutSessionEngine.Listener() {
         @Override
         public void onState(SessionState state) {
@@ -37,6 +38,11 @@ public class WorkoutSessionEngineTest {
         @Override
         public void onSound(PlayerSound sound) {
             sounds.add(sound);
+        }
+
+        @Override
+        public void onNothingToPlay() {
+            nothingToPlay++;
         }
     };
     private WorkoutSessionEngine engine;
@@ -107,13 +113,14 @@ public class WorkoutSessionEngineTest {
     @Test
     public void anEmptyWorkoutDoesNotStart() {
         states.clear();
-        WorkoutSessionEngine empty = new WorkoutSessionEngine(time, history, null);
+        WorkoutSessionEngine empty = new WorkoutSessionEngine(time, history, listener);
 
         empty.start(WORKOUT_ID, "Nothing", new ArrayList<>(), 3);
         empty.close();
 
         assertTrue(states.isEmpty());
         assertEquals(1, history.sessionsStarted);
+        assertEquals(1, nothingToPlay);
     }
 
     // Stepping.

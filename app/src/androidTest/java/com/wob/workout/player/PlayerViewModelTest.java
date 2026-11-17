@@ -5,6 +5,7 @@ import static com.wob.workout.LiveDataTestUtil.observeValues;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -98,6 +99,21 @@ public class PlayerViewModelTest {
         assertEquals(1, exercises.size());
         assertEquals("Plank", exercises.get(0).exerciseTitle);
         assertEquals(1, exercises.get(0).plannedDurationSeconds);
+    }
+
+    @Test
+    public void aWorkoutWithoutExercisesReportsThatThereIsNothingToPlay() throws Exception {
+        long workoutId = testContainer.insertWorkout("Empty");
+        AppContainer container = testContainer.getAppContainer();
+
+        viewModel = onMain(() -> new PlayerViewModel(container, workoutId));
+        BlockingQueue<Event<Boolean>> nothingToPlay =
+                observeValues(viewModel.getNothingToPlay());
+
+        Event<Boolean> event = nothingToPlay.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertNotNull("No nothing-to-play event", event);
+        assertTrue(event.getContentIfNotHandled());
+        assertNull(onMain(() -> viewModel.getScreen().getValue()));
     }
 
     @Test

@@ -7,8 +7,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.ItemWorkoutBinding;
 import com.wob.workout.media.ExerciseThumbnails;
-import com.wob.workout.ui.ExerciseCount;
-import com.wob.workout.ui.MinutesSeconds;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,15 +53,14 @@ public class WorkoutAdapter extends RecyclerView.Adapter<WorkoutAdapter.ViewHold
         WorkoutListItem item = workouts.get(position);
 
         holder.binding.txtName.setText(item.workout.name);
-        holder.binding.txtInfo.setText(
-                ExerciseCount.text(item.exerciseCount)
-                        + " • " + MinutesSeconds.text(item.totalDurationSeconds));
+        holder.binding.txtInfo.setText(item.infoText());
         showPictureStrip(holder, item);
 
         holder.itemView.setOnClickListener(
                 v -> listener.onWorkoutClicked(item.workout));
 
         holder.binding.btnStart.setEnabled(item.canStart());
+        holder.binding.btnStart.setContentDescription(item.startButtonDescription());
         holder.binding.btnStart.setOnClickListener(
                 v -> listener.onWorkoutStartClicked(item.workout));
     }
