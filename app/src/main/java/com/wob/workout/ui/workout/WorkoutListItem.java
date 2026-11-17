@@ -24,4 +24,9 @@ public class WorkoutListItem {
         this.totalDurationSeconds = totalDurationSeconds;
         this.exercises = exercises;
     }
+
+    /** A workout without exercises has nothing to play. */
+    public boolean canStart() {
+        return exerciseCount > 0;
+    }
 }
