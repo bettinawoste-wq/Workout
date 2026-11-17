@@ -6,9 +6,9 @@ import androidx.lifecycle.ViewModel;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.data.LiveDataExecutor;
+import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
-import com.wob.workout.data.entity.WorkoutExercise;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,8 +44,7 @@ public class WorkoutEditViewModel extends ViewModel {
     private WorkoutDraft draft;
 
     private final MutableLiveData<Workout> workout = new MutableLiveData<>();
-    private final MutableLiveData<List<WorkoutExerciseAdapter.ExerciseItem>> exercises =
-            new MutableLiveData<>();
+    private final MutableLiveData<List<WorkoutExercise>> exercises = new MutableLiveData<>();
     private final MutableLiveData<String> summary = new MutableLiveData<>();
     private final MutableLiveData<Boolean> unsavedChanges = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> ready = new MutableLiveData<>(false);
@@ -63,7 +62,7 @@ public class WorkoutEditViewModel extends ViewModel {
                 if (loaded == null) return;
                 // Before the workout goes out: its observer fills the name field, which
                 // reaches changeName() and needs the draft to compare against.
-                draft = new WorkoutDraft(loaded.workout.name, loaded.items);
+                draft = new WorkoutDraft(loaded.workout.name, loaded.workoutExercises);
                 publish();
                 workout.setValue(loaded.workout);
                 ready.setValue(true);
@@ -95,7 +94,7 @@ public class WorkoutEditViewModel extends ViewModel {
     }
 
     /** The draft's workout exercises, in order. */
-    public LiveData<List<WorkoutExerciseAdapter.ExerciseItem>> getExercises() {
+    public LiveData<List<WorkoutExercise>> getExercises() {
         return exercises;
     }
 
@@ -133,31 +132,31 @@ public class WorkoutEditViewModel extends ViewModel {
         publish();
     }
 
-    public void changeDuration(WorkoutExerciseAdapter.ExerciseItem item, int durationSeconds) {
+    public void changeDuration(int position, int durationSeconds) {
         if (draft == null) return;
-        draft.changeDuration(item, durationSeconds);
+        draft.changeDuration(position, durationSeconds);
         publish();
     }
 
-    /** @return where it was, for {@link #restoreExercise}; -1 if nothing was removed */
-    public int removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
-        if (draft == null) return -1;
-        int position = draft.remove(item);
+    /** @return the removed one, for {@link #restoreExercise}; null if nothing was removed */
+    public WorkoutExercise removeExercise(int position) {
+        if (draft == null) return null;
+        WorkoutExercise removed = draft.remove(position);
         publish();
-        return position;
+        return removed;
     }
 
     /** Undoes {@link #removeExercise}: same place, same duration. */
-    public void restoreExercise(WorkoutExerciseAdapter.ExerciseItem item, int position) {
-        if (draft == null || position < 0) return;
-        draft.restore(item, position);
+    public void restoreExercise(int position, WorkoutExercise removed) {
+        if (draft == null || removed == null) return;
+        draft.restore(position, removed);
         publish();
     }
 
-    /** @param newOrder the adapter's items as a drag left them */
-    public void reorder(List<WorkoutExerciseAdapter.ExerciseItem> newOrder) {
+    /** One step of a drag: the workout exercise at {@code from} now stands at {@code to}. */
+    public void moveExercise(int from, int to) {
         if (draft == null) return;
-        draft.reorder(new ArrayList<>(newOrder));
+        draft.move(from, to);
         publish();
     }
 
@@ -165,17 +164,16 @@ public class WorkoutEditViewModel extends ViewModel {
      *  how a change made on another screen (e.g. deleting the Exercise this workout uses)
      *  while this Fragment sat on the back stack gets picked up on return. */
     public void refreshExercises() {
-        if (draft == null || draft.items().isEmpty()) return;
+        if (draft == null || draft.workoutExercises().isEmpty()) return;
         // Exercises added while this runs are not in here, so the draft keeps them.
         Set<Long> exerciseIds = new HashSet<>();
-        for (WorkoutExerciseAdapter.ExerciseItem item : draft.items()) {
-            exerciseIds.add(item.workoutExercise.exerciseId);
+        for (WorkoutExercise workoutExercise : draft.workoutExercises()) {
+            exerciseIds.add(workoutExercise.exerciseId());
         }
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             Map<Long, Exercise> found = new HashMap<>();
-            for (long exerciseId : exerciseIds) {
-                Exercise exercise = container.exerciseRepository.getById(exerciseId);
-                if (exercise != null) found.put(exerciseId, exercise);
+            for (Exercise exercise : container.exerciseRepository.getByIds(exerciseIds)) {
+                found.put(exercise.id, exercise);
             }
             return found;
         }, found -> {
@@ -221,7 +219,7 @@ public class WorkoutEditViewModel extends ViewModel {
     private <T> LiveData<T> saveDraftThen(Function<String, T> then) {
         if (draft == null) return new MutableLiveData<>(null);
         String name = draft.nameToSave();
-        List<WorkoutExercise> toSave = draft.workoutExercisesToSave();
+        List<WorkoutExercise> toSave = new ArrayList<>(draft.workoutExercises());
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
             workoutId = container.workoutRepository.saveWithExercises(workoutId, name, toSave);
             return then.apply(name);
@@ -229,7 +227,7 @@ public class WorkoutEditViewModel extends ViewModel {
     }
 
     private void publish() {
-        exercises.setValue(new ArrayList<>(draft.items()));
+        exercises.setValue(new ArrayList<>(draft.workoutExercises()));
         summary.setValue(draft.summaryText());
         unsavedChanges.setValue(draft.hasUnsavedChanges());
     }
@@ -238,24 +236,17 @@ public class WorkoutEditViewModel extends ViewModel {
     private Loaded load() {
         Workout loadedWorkout = container.workoutRepository.getById(workoutId);
         if (loadedWorkout == null) return null;
-        List<WorkoutExerciseAdapter.ExerciseItem> items = new ArrayList<>();
-        for (WorkoutExercise workoutExercise
-                : container.workoutExerciseRepository.getByWorkout(workoutId)) {
-            Exercise exercise = container.exerciseRepository.getById(workoutExercise.exerciseId);
-            if (exercise != null) {
-                items.add(new WorkoutExerciseAdapter.ExerciseItem(exercise, workoutExercise));
-            }
-        }
-        return new Loaded(loadedWorkout, items);
+        return new Loaded(
+                loadedWorkout, container.workoutRepository.getWorkoutExercises(workoutId));
     }
 
     private static class Loaded {
         final Workout workout;
-        final List<WorkoutExerciseAdapter.ExerciseItem> items;
+        final List<WorkoutExercise> workoutExercises;
 
-        Loaded(Workout workout, List<WorkoutExerciseAdapter.ExerciseItem> items) {
+        Loaded(Workout workout, List<WorkoutExercise> workoutExercises) {
             this.workout = workout;
-            this.items = items;
+            this.workoutExercises = workoutExercises;
         }
     }
 }

@@ -2,12 +2,18 @@ package com.wob.workout.data.repository;
 
 import android.content.Context;
 
+import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.Workout;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.Exercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
+import com.wob.workout.data.relation.WorkoutWithExercises;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class WorkoutRepository {
 
@@ -45,7 +51,7 @@ public class WorkoutRepository {
             copy.id = 0;
             copy.name = name;
             long copyId = db.workoutDao().insert(copy);
-            for (WorkoutExercise workoutExercise : db.workoutExerciseDao().getByWorkout(id)) {
+            for (WorkoutExerciseRow workoutExercise : db.workoutExerciseDao().getByWorkout(id)) {
                 workoutExercise.id = 0;
                 workoutExercise.workoutId = copyId;
                 db.workoutExerciseDao().insert(workoutExercise);
@@ -55,8 +61,9 @@ public class WorkoutRepository {
     }
 
     /** Saves a workout as the editor leaves it, in one transaction: its name and exactly
-     *  these workout exercises, in place of the stored ones. Ones with id 0 are added; the
-     *  others keep their id. Creates the workout if {@code id} is not positive.
+     *  these workout exercises, in this order, in place of the stored ones. Unsaved ones are
+     *  added; the others keep their row id. Creates the workout if {@code id} is not
+     *  positive.
      *  @return the workout's id. */
     public long saveWithExercises(long id, String name, List<WorkoutExercise> workoutExercises) {
         AppDatabase db = DatabaseProvider.get(context);
@@ -70,12 +77,44 @@ public class WorkoutRepository {
                 workoutId = db.workoutDao().insert(workout);
             }
             db.workoutExerciseDao().deleteByWorkout(workoutId);
+            List<WorkoutExerciseRow> rows = new ArrayList<>();
             for (WorkoutExercise workoutExercise : workoutExercises) {
-                workoutExercise.workoutId = workoutId;
+                WorkoutExerciseRow row = new WorkoutExerciseRow();
+                row.id = workoutExercise.rowId;
+                row.workoutId = workoutId;
+                row.exerciseId = workoutExercise.exerciseId();
+                row.durationSeconds = workoutExercise.durationSeconds;
+                row.position = rows.size();
+                rows.add(row);
             }
-            db.workoutExerciseDao().insertAll(workoutExercises);
+            db.workoutExerciseDao().insertAll(rows);
             return workoutId;
         });
+    }
+
+    /** The workout's exercises in their order, empty if the workout is gone. The editor and
+     *  the player both load them here. */
+    public List<WorkoutExercise> getWorkoutExercises(long workoutId) {
+        WorkoutWithExercises workout =
+                DatabaseProvider.get(context).workoutDao().getWithExercises(workoutId);
+        return workout != null ? workoutExercisesOf(workout) : new ArrayList<>();
+    }
+
+    /** The one place that turns stored rows into workout exercises: in their position's
+     *  order, leaving out any whose exercise is missing. */
+    static List<WorkoutExercise> workoutExercisesOf(WorkoutWithExercises workout) {
+        Map<Long, Exercise> exercisesById = new HashMap<>();
+        for (Exercise exercise : workout.exerciseDetails) {
+            exercisesById.put(exercise.id, exercise);
+        }
+        List<WorkoutExercise> inOrder = new ArrayList<>();
+        for (WorkoutExerciseRow row : workout.exercisesInOrder()) {
+            Exercise exercise = exercisesById.get(row.exerciseId);
+            if (exercise != null) {
+                inOrder.add(new WorkoutExercise(row.id, exercise, row.durationSeconds));
+            }
+        }
+        return inOrder;
     }
 
     public Workout getById(long id) {

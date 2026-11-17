@@ -14,14 +14,14 @@ import com.wob.workout.data.dao.WorkoutSessionDao;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.ExerciseSession;
 import com.wob.workout.data.entity.Workout;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
 import com.wob.workout.data.entity.WorkoutSession;
 
 @Database(
         entities = {
                 Exercise.class,
                 Workout.class,
-                WorkoutExercise.class,
+                WorkoutExerciseRow.class,
                 WorkoutSession.class,
                 ExerciseSession.class
         },

@@ -1,5 +1,6 @@
 package com.wob.workout.player;
 
+import com.wob.workout.data.WorkoutExercise;
 import android.util.Log;
 
 import com.wob.workout.data.repository.WorkoutHistoryRepository;
@@ -66,7 +67,7 @@ public class PlayerHistoryTracker {
         flushPause(System.currentTimeMillis());
     }
 
-    public void closeOutCurrentExercise(int index, PlayerExercise current) {
+    public void closeOutCurrentExercise(int index, WorkoutExercise current) {
         if (!exerciseStarted) return;
 
         long now = System.currentTimeMillis();

@@ -1,5 +1,6 @@
 package com.wob.workout.player;
 
+import com.wob.workout.data.WorkoutExercise;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -38,7 +39,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     private final MutableLiveData<PlayerTick> tick = new MutableLiveData<>();
     private final MutableLiveData<Boolean> soundOn = new MutableLiveData<>();
 
-    private List<PlayerExercise> exercises;
+    private List<WorkoutExercise> exercises;
     private int index;
     private long lastBeepSecond = -1;
     private PlayerExerciseState.Phase currentPhase = PlayerExerciseState.Phase.READY;
@@ -197,8 +198,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void loadExercises(AppContainer container, long workoutId) {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
-            List<PlayerExercise> loadedExercises =
-                    container.playerRepository.getExercises(workoutId);
+            List<WorkoutExercise> loadedExercises =
+                    container.workoutRepository.getWorkoutExercises(workoutId);
             Workout workout = container.workoutRepository.getById(workoutId);
             return new LoadResult(
                     loadedExercises,
@@ -214,7 +215,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         });
     }
 
-    private static int[] plannedSeconds(List<PlayerExercise> exercises) {
+    private static int[] plannedSeconds(List<WorkoutExercise> exercises) {
         int[] seconds = new int[exercises.size()];
         for (int i = 0; i < seconds.length; i++) {
             seconds[i] = exercises.get(i).durationSeconds;
@@ -233,7 +234,7 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
 
     private void beginExercise(boolean afterCountdown) {
         historyTracker.startExercise();
-        PlayerExercise current = exercises.get(index);
+        WorkoutExercise current = exercises.get(index);
         PlayerExerciseState state = new PlayerExerciseState(
                 current, index, exercises.size(), PlayerExerciseState.Phase.ACTIVE);
         // Set before the state goes out: observers are told inside setValue().
@@ -241,7 +242,8 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         enterPhase(state, current.durationSeconds * 1000L);
     }
 
-    private void enterPhase(PlayerExerciseState.Phase phase, PlayerExercise exercise, long millis) {
+    private void enterPhase(
+            PlayerExerciseState.Phase phase, WorkoutExercise exercise, long millis) {
         enterPhase(new PlayerExerciseState(exercise, index, exercises.size(), phase), millis);
     }
 
@@ -283,11 +285,11 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
     }
 
     private static class LoadResult {
-        final List<PlayerExercise> exercises;
+        final List<WorkoutExercise> exercises;
         final String workoutName;
         final int transitionSeconds;
 
-        LoadResult(List<PlayerExercise> exercises, String workoutName, int transitionSeconds) {
+        LoadResult(List<WorkoutExercise> exercises, String workoutName, int transitionSeconds) {
             this.exercises = exercises;
             this.workoutName = workoutName;
             this.transitionSeconds = transitionSeconds;

@@ -2,6 +2,7 @@ package com.wob.workout.data.dao;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.*;
+import java.util.Collection;
 import java.util.List;
 
 import com.wob.workout.data.entity.Exercise;
@@ -29,4 +30,8 @@ public interface ExerciseDao {
 
     @Query("SELECT * FROM Exercise WHERE id = :id LIMIT 1")
     Exercise getById(long id);
+
+    /** Those of the exercises that still exist, in no particular order. */
+    @Query("SELECT * FROM Exercise WHERE id IN (:ids)")
+    List<Exercise> getByIds(Collection<Long> ids);
 }

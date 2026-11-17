@@ -10,7 +10,7 @@ import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
 import com.wob.workout.data.entity.WorkoutSession;
 
 import java.util.concurrent.TimeUnit;
@@ -133,7 +133,7 @@ public class TestAppContainer {
 
     public long insertWorkoutExercise(long workoutId, long exerciseId, int position,
                                       int durationSeconds) {
-        WorkoutExercise workoutExercise = new WorkoutExercise();
+        WorkoutExerciseRow workoutExercise = new WorkoutExerciseRow();
         workoutExercise.workoutId = workoutId;
         workoutExercise.exerciseId = exerciseId;
         workoutExercise.position = position;

@@ -23,10 +23,13 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
+import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
 import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.ScreenToolbar;
 import com.wob.workout.ui.exercise.ExerciseEditFragment;
+
+import java.util.List;
 
 public class WorkoutEditFragment extends Fragment {
 
@@ -53,7 +56,8 @@ public class WorkoutEditFragment extends Fragment {
                 public boolean onMove(@NonNull RecyclerView recyclerView,
                                       @NonNull RecyclerView.ViewHolder viewHolder,
                                       @NonNull RecyclerView.ViewHolder target) {
-                    adapter.moveItem(
+                    // The draft moves it; the list follows from the published draft.
+                    viewModel.moveExercise(
                             viewHolder.getBindingAdapterPosition(),
                             target.getBindingAdapterPosition());
                     return true;
@@ -61,13 +65,6 @@ public class WorkoutEditFragment extends Fragment {
 
                 @Override
                 public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                }
-
-                @Override
-                public void clearView(@NonNull RecyclerView recyclerView,
-                                      @NonNull RecyclerView.ViewHolder viewHolder) {
-                    super.clearView(recyclerView, viewHolder);
-                    viewModel.reorder(adapter.getItems());
                 }
             });
 
@@ -139,10 +136,11 @@ public class WorkoutEditFragment extends Fragment {
         });
         EmptyState.setUp(binding.emptyState, R.drawable.ic_list, R.string.workout_ohne_uebungen,
                 R.string.uebungen_hinzufuegen, v -> ExercisePickerSheet.show(this));
-        viewModel.getExercises().observe(getViewLifecycleOwner(), items -> {
-            if (items == null) return;
-            adapter.setData(items);
-            EmptyState.show(binding.emptyState, items.isEmpty(), binding.btnAddExercise);
+        viewModel.getExercises().observe(getViewLifecycleOwner(), workoutExercises -> {
+            if (workoutExercises == null) return;
+            adapter.setData(workoutExercises);
+            EmptyState.show(
+                    binding.emptyState, workoutExercises.isEmpty(), binding.btnAddExercise);
         });
         viewModel.getSummary().observe(getViewLifecycleOwner(), binding.txtSummary::setText);
 
@@ -265,16 +263,19 @@ public class WorkoutEditFragment extends Fragment {
 
     /** What tapping a workout exercise opens: its duration, ready to change, with
      *  "Entfernen" and "Übung bearbeiten" below it. */
-    private void showExerciseDialog(WorkoutExerciseAdapter.ExerciseItem item) {
+    private void showExerciseDialog(int position) {
+        List<WorkoutExercise> shown = viewModel.getExercises().getValue();
+        if (shown == null || position >= shown.size()) return;
+        WorkoutExercise workoutExercise = shown.get(position);
 
         View view = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_duration_input, null, false);
 
         TextInputEditText edtDuration = view.findViewById(R.id.edtDuration);
-        edtDuration.setText(String.valueOf(item.workoutExercise.durationSeconds));
+        edtDuration.setText(String.valueOf(workoutExercise.durationSeconds));
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(item.exercise.title)
+                .setTitle(workoutExercise.exercise.title)
                 .setView(view)
                 .setNegativeButton("Abbrechen", null)
                 .setPositiveButton("OK", null)
@@ -300,36 +301,36 @@ public class WorkoutEditFragment extends Fragment {
                 return;
             }
 
-            viewModel.changeDuration(item, value);
+            viewModel.changeDuration(position, value);
             dialog.dismiss();
         });
 
         view.findViewById(R.id.btnRemove).setOnClickListener(v -> {
             dialog.dismiss();
-            removeExercise(item);
+            removeExercise(position);
         });
         view.findViewById(R.id.btnEditExercise).setOnClickListener(v -> {
             dialog.dismiss();
-            openExercise(item);
+            openExercise(workoutExercise.exerciseId());
         });
     }
 
     /** No question first: nothing is saved before "Speichern", and the snackbar undoes it. */
-    private void removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
-        int position = viewModel.removeExercise(item);
-        if (position < 0) return;
+    private void removeExercise(int position) {
+        WorkoutExercise removed = viewModel.removeExercise(position);
+        if (removed == null) return;
         Snackbar.make(binding.getRoot(),
-                        "„" + item.exercise.title + "“ entfernt", Snackbar.LENGTH_LONG)
-                .setAction("Rückgängig", v -> viewModel.restoreExercise(item, position))
+                        "„" + removed.exercise.title + "“ entfernt", Snackbar.LENGTH_LONG)
+                .setAction("Rückgängig", v -> viewModel.restoreExercise(position, removed))
                 .show();
     }
 
     /** Edits the exercise itself, for every workout; this editor's draft waits on the back
      *  stack and takes the changes over when it returns. */
-    private void openExercise(WorkoutExerciseAdapter.ExerciseItem item) {
+    private void openExercise(long exerciseId) {
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.main, ExerciseEditFragment.edit(item.exercise.id))
+                .replace(R.id.main, ExerciseEditFragment.edit(exerciseId))
                 .addToBackStack(null)
                 .commit();
     }

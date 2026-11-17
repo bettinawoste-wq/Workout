@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.Exercise;
 
+import java.util.Collection;
 import java.util.List;
 
 public class ExerciseRepository {
@@ -40,6 +41,13 @@ public class ExerciseRepository {
         return DatabaseProvider.get(context)
                 .exerciseDao()
                 .getById(id);
+    }
+
+    /** Those of the exercises that still exist, in no particular order. */
+    public List<Exercise> getByIds(Collection<Long> ids) {
+        return DatabaseProvider.get(context)
+                .exerciseDao()
+                .getByIds(ids);
     }
 
     public List<Exercise> getAll() {

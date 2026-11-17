@@ -6,18 +6,17 @@ import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 
+import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.dao.WorkoutDao;
 import com.wob.workout.data.entity.Exercise;
-import com.wob.workout.data.entity.WorkoutExercise;
+import com.wob.workout.data.entity.WorkoutExerciseRow;
 import com.wob.workout.data.relation.WorkoutWithExercises;
 import com.wob.workout.ui.workout.WorkoutListItem;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class WorkoutSummaryRepository {
 
@@ -58,7 +57,7 @@ public class WorkoutSummaryRepository {
 
         for (WorkoutWithExercises row : rows) {
             int duration = 0;
-            for (WorkoutExercise exercise : row.exercises) {
+            for (WorkoutExerciseRow exercise : row.exercises) {
                 duration += exercise.durationSeconds;
             }
             result.add(new WorkoutListItem(
@@ -68,16 +67,12 @@ public class WorkoutSummaryRepository {
         return result;
     }
 
+    /** The pictures follow the order of the workout exercises; see
+     *  {@link WorkoutRepository#getWorkoutExercises}. */
     private static List<Exercise> exercisesInOrder(WorkoutWithExercises row) {
-        Map<Long, Exercise> exercisesById = new HashMap<>();
-        for (Exercise exercise : row.exerciseDetails) {
-            exercisesById.put(exercise.id, exercise);
-        }
-
         List<Exercise> inOrder = new ArrayList<>();
-        for (WorkoutExercise entry : row.exercisesInOrder()) {
-            Exercise exercise = exercisesById.get(entry.exerciseId);
-            if (exercise != null) inOrder.add(exercise);
+        for (WorkoutExercise workoutExercise : WorkoutRepository.workoutExercisesOf(row)) {
+            inOrder.add(workoutExercise.exercise);
         }
         return inOrder;
     }

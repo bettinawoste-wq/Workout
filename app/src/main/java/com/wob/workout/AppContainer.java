@@ -9,7 +9,6 @@ import com.wob.workout.data.repository.WorkoutHistoryRepository;
 import com.wob.workout.data.repository.WorkoutRepository;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
 import com.wob.workout.media.ExerciseThumbnails;
-import com.wob.workout.player.PlayerRepository;
 import com.wob.workout.player.SoundSetting;
 
 import java.util.concurrent.ExecutorService;
@@ -31,7 +30,6 @@ public class AppContainer {
     public final WorkoutExerciseRepository workoutExerciseRepository;
     public final WorkoutSummaryRepository workoutSummaryRepository;
     public final WorkoutHistoryRepository workoutHistoryRepository;
-    public final PlayerRepository playerRepository;
 
     /** Single background thread for all Room access — see wayfinder ticket #2.
      *  <b>Must stay single-threaded:</b> {@code PlayerHistoryTracker} relies on it to run
@@ -63,6 +61,5 @@ public class AppContainer {
         workoutExerciseRepository = new WorkoutExerciseRepository(appContext);
         workoutSummaryRepository = new WorkoutSummaryRepository(appContext);
         workoutHistoryRepository = new WorkoutHistoryRepository(appContext);
-        playerRepository = new PlayerRepository(exerciseRepository, workoutExerciseRepository);
     }
 }
