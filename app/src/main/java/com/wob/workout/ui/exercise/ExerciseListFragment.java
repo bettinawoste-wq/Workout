@@ -18,6 +18,7 @@ import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentExerciseListBinding;
 import com.wob.workout.ui.EmptyState;
+import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
 
 public class ExerciseListFragment extends Fragment {
@@ -66,23 +67,10 @@ public class ExerciseListFragment extends Fragment {
     }
 
     private void openNewExercise() {
-        requireActivity()
-                .getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.main, new ExerciseEditFragment())
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).open(new ExerciseEditFragment());
     }
 
     private void openExercise(Exercise exercise) {
-        requireActivity()
-                .getSupportFragmentManager()
-                .beginTransaction()
-                .replace(
-                        R.id.main,
-                        ExerciseEditFragment.edit(
-                                exercise.id))
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).open(ExerciseEditFragment.edit(exercise.id));
     }
 }

@@ -1,6 +1,9 @@
 package com.wob.workout.ui.exercise;
 
 import static com.wob.workout.LiveDataTestUtil.getOrAwaitValue;
+import static com.wob.workout.ui.exercise.ExerciseEditViewModel.SaveAnswer.FAILED;
+import static com.wob.workout.ui.exercise.ExerciseEditViewModel.SaveAnswer.SAVED;
+import static com.wob.workout.ui.exercise.ExerciseEditViewModel.SaveAnswer.TITLE_REQUIRED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -126,7 +129,7 @@ public class ExerciseEditViewModelTest {
     public void saveInsertsANewExercise() throws InterruptedException {
         ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, 0);
 
-        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Lunge", "Alternate legs")));
+        assertEquals(SAVED, getOrAwaitValue(viewModel.save("Lunge", "Alternate legs")));
 
         List<Exercise> all = container.exerciseRepository.getAll();
         assertEquals(1, all.size());
@@ -137,13 +140,49 @@ public class ExerciseEditViewModelTest {
     }
 
     @Test
+    public void withoutATitleNothingIsSaved() throws Exception {
+        ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, 0);
+
+        ExerciseEditViewModel.SaveAnswer answer =
+                getOrAwaitValue(viewModel.save("   ", "Alternate legs"));
+
+        assertEquals(TITLE_REQUIRED, answer);
+        assertEquals("Titel erforderlich", answer.message);
+        container.ioExecutor.submit(() -> { }).get(2, TimeUnit.SECONDS);
+        assertTrue(container.exerciseRepository.getAll().isEmpty());
+    }
+
+    @Test
+    public void titleAndDescriptionAreSavedWithoutSurroundingSpaces()
+            throws InterruptedException {
+        ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, 0);
+
+        assertEquals(SAVED, getOrAwaitValue(viewModel.save("  Lunge ", " Alternate legs ")));
+
+        Exercise saved = container.exerciseRepository.getAll().get(0);
+        assertEquals("Lunge", saved.title);
+        assertEquals("Alternate legs", saved.description);
+    }
+
+    @Test
+    public void theDeleteConfirmationNamesTheFieldsTitleElseTheStoredOne()
+            throws InterruptedException {
+        long id = insertExercise("Squat", null, null, null);
+        ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, id);
+        getOrAwaitValue(viewModel.getExercise());
+
+        assertEquals("Back Squat", viewModel.titleToConfirmDelete("Back Squat"));
+        assertEquals("Squat", viewModel.titleToConfirmDelete(""));
+    }
+
+    @Test
     public void saveUpdatesAnExistingExerciseAndKeepsItsMedia() throws InterruptedException {
         long id = insertExercise("Squat", "Old", "squat.jpg", MediaType.IMAGE);
         ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, id);
         // save() reads the media fields the load callback set, so wait for it first.
         getOrAwaitValue(viewModel.getExercise());
 
-        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Back Squat", "New")));
+        assertEquals(SAVED, getOrAwaitValue(viewModel.save("Back Squat", "New")));
 
         Exercise saved = container.exerciseRepository.getById(id);
         assertEquals("Back Squat", saved.title);
@@ -154,7 +193,7 @@ public class ExerciseEditViewModelTest {
     }
 
     @Test
-    public void saveReportsFalseWhenTheExerciseWasDeletedMeanwhile()
+    public void saveFailsWhenTheExerciseWasDeletedMeanwhile()
             throws InterruptedException {
         long id = insertExercise("Squat", null, null, null);
         ExerciseEditViewModel viewModel = new ExerciseEditViewModel(container, id);
@@ -162,7 +201,7 @@ public class ExerciseEditViewModelTest {
         // Out of band: deleted elsewhere while this screen was open.
         container.exerciseRepository.delete(container.exerciseRepository.getById(id));
 
-        assertEquals(Boolean.FALSE, getOrAwaitValue(viewModel.save("Back Squat", null)));
+        assertEquals(FAILED, getOrAwaitValue(viewModel.save("Back Squat", null)));
 
         // An update must not resurrect the row as an insert.
         assertTrue(container.exerciseRepository.getAll().isEmpty());
@@ -226,7 +265,7 @@ public class ExerciseEditViewModelTest {
         assertNotNull(getOrAwaitValue(viewModel.getMediaError()));
 
         assertSame(previewBefore, viewModel.getPreview().getValue());
-        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Squat", null)));
+        assertEquals(SAVED, getOrAwaitValue(viewModel.save("Squat", null)));
         Exercise saved = container.exerciseRepository.getById(id);
         assertEquals("squat.jpg", saved.mediaFile);
         assertEquals(MediaType.IMAGE, saved.mediaType);
@@ -243,7 +282,7 @@ public class ExerciseEditViewModelTest {
 
         assertFalse(viewModel.hasMedia());
         assertPreviewText(NO_MEDIA_TEXT, viewModel.getPreview().getValue());
-        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Squat", null)));
+        assertEquals(SAVED, getOrAwaitValue(viewModel.save("Squat", null)));
         Exercise saved = container.exerciseRepository.getById(id);
         assertNull(saved.mediaFile);
         assertNull(saved.mediaType);
@@ -261,7 +300,7 @@ public class ExerciseEditViewModelTest {
 
         viewModel.setFraming(new Framing(3f, 0f, 0f));
 
-        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Squat", null)));
+        assertEquals(SAVED, getOrAwaitValue(viewModel.save("Squat", null)));
         assertEquals(3f, container.exerciseRepository.getById(id).framing().zoom, 0.001f);
     }
 
@@ -275,7 +314,7 @@ public class ExerciseEditViewModelTest {
         viewModel.removeMedia();
 
         assertNull(viewModel.getFraming());
-        assertEquals(Boolean.TRUE, getOrAwaitValue(viewModel.save("Squat", null)));
+        assertEquals(SAVED, getOrAwaitValue(viewModel.save("Squat", null)));
         assertNull(container.exerciseRepository.getById(id).framing());
     }
 

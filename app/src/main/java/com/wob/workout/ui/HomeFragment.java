@@ -80,12 +80,7 @@ public class HomeFragment extends Fragment implements WorkoutAdapter.Listener {
     }
 
     private void open(Fragment screen) {
-        requireActivity()
-                .getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.main, screen)
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).open(screen);
     }
 
     @Override

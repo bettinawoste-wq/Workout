@@ -73,6 +73,27 @@ public class WorkoutDraft {
                 Math.min(Math.max(position, 0), workoutExercises.size()), workoutExercise);
     }
 
+    /** What {@link #changeDuration(int, String)} makes of a typed duration. */
+    public enum DurationAnswer {
+        ACCEPTED,
+        /** Not a whole number of seconds above zero; nothing changed. */
+        NOT_VALID_SECONDS
+    }
+
+    /** Takes a duration as typed, e.g. into the duration dialog.
+     *  @return whether it was taken over */
+    public DurationAnswer changeDuration(int position, String typed) {
+        int seconds;
+        try {
+            seconds = Integer.parseInt(typed.trim());
+        } catch (NumberFormatException e) {
+            return DurationAnswer.NOT_VALID_SECONDS;
+        }
+        if (seconds <= 0) return DurationAnswer.NOT_VALID_SECONDS;
+        changeDuration(position, seconds);
+        return DurationAnswer.ACCEPTED;
+    }
+
     public void changeDuration(int position, int durationSeconds) {
         if (!isAt(position)) return;
         workoutExercises.set(

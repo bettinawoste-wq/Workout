@@ -17,6 +17,7 @@ import com.wob.workout.data.entity.Workout;
 import com.wob.workout.databinding.FragmentWorkoutListBinding;
 import com.wob.workout.player.PlayerFragment;
 import com.wob.workout.ui.EmptyState;
+import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
 
 public class WorkoutListFragment extends Fragment implements WorkoutAdapter.Listener {
@@ -55,29 +56,17 @@ public class WorkoutListFragment extends Fragment implements WorkoutAdapter.List
     }
 
     private void openNewWorkout() {
-        requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.main, WorkoutEditFragment.create())
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).open(WorkoutEditFragment.create());
     }
 
     @Override
     public void onWorkoutClicked(Workout workout) {
-        requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.main, WorkoutEditFragment.edit(workout.id))
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).open(WorkoutEditFragment.edit(workout.id));
     }
 
     @Override
     public void onWorkoutStartClicked(Workout workout) {
-        requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.main, PlayerFragment.create(workout.id, workout.name))
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).open(PlayerFragment.create(workout.id, workout.name));
     }
 
     @Override

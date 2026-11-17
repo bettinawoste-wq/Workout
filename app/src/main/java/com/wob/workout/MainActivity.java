@@ -10,6 +10,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.wob.workout.databinding.ActivityMainBinding;
 import com.wob.workout.ui.HomeFragment;
+import com.wob.workout.ui.Navigator;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -25,12 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
 
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(
-                            R.id.main,
-                            new HomeFragment())
-                    .commit();
+            new Navigator(getSupportFragmentManager()).showFirst(new HomeFragment());
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(

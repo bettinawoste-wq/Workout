@@ -68,6 +68,28 @@ public class WorkoutDraftTest {
     }
 
     @Test
+    public void aDurationAsTypedIsAcceptedWhenItIsAWholePositiveNumberOfSeconds() {
+        WorkoutDraft draft = legDay();
+
+        assertEquals(WorkoutDraft.DurationAnswer.ACCEPTED, draft.changeDuration(0, " 90 "));
+
+        assertEquals(90, draft.workoutExercises().get(0).durationSeconds);
+    }
+
+    @Test
+    public void aDurationThatIsNotAValidNumberOfSecondsIsRejectedAndChangesNothing() {
+        WorkoutDraft draft = legDay();
+
+        for (String typed : new String[] {"", "  ", "0", "-5", "1.5", "abc", "99999999999"}) {
+            assertEquals(typed, WorkoutDraft.DurationAnswer.NOT_VALID_SECONDS,
+                    draft.changeDuration(0, typed));
+        }
+
+        assertEquals(45, draft.workoutExercises().get(0).durationSeconds);
+        assertFalse(draft.hasUnsavedChanges());
+    }
+
+    @Test
     public void renamingIsAnUnsavedChangeButSurroundingSpacesAreNot() {
         WorkoutDraft draft = legDay();
 

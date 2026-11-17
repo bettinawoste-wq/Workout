@@ -10,7 +10,6 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,6 +25,7 @@ import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
 import com.wob.workout.ui.EmptyState;
+import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
 import com.wob.workout.ui.exercise.ExerciseEditFragment;
 
@@ -197,7 +197,7 @@ public class WorkoutEditFragment extends Fragment {
                         Snackbar.LENGTH_SHORT).show();
                 return;
             }
-            requireActivity().getSupportFragmentManager().popBackStack();
+            Navigator.of(this).close();
         });
     }
 
@@ -206,7 +206,7 @@ public class WorkoutEditFragment extends Fragment {
                 .setTitle(R.string.aenderungen_verwerfen)
                 .setNegativeButton(R.string.weiter_bearbeiten, null)
                 .setPositiveButton(R.string.verwerfen, (dialog, which) ->
-                        requireActivity().getSupportFragmentManager().popBackStack())
+                        Navigator.of(this).close())
                 .show();
     }
 
@@ -231,22 +231,14 @@ public class WorkoutEditFragment extends Fragment {
                         Snackbar.LENGTH_SHORT).show();
                 return;
             }
-            FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
-            fragmentManager.popBackStack();
-            fragmentManager.beginTransaction()
-                    .replace(R.id.main, edit(copyId))
-                    .addToBackStack(null)
-                    .commit();
+            Navigator.of(this).replace(edit(copyId));
         });
     }
 
     private void confirmDelete() {
         if (viewModel.isNew()) return;
 
-        String name = binding.edtName.getText().toString();
-        if (name.isEmpty() && viewModel.getWorkout().getValue() != null) {
-            name = viewModel.getWorkout().getValue().name;
-        }
+        String name = viewModel.nameToConfirmDelete(binding.edtName.getText().toString());
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Workout löschen?")
@@ -255,7 +247,7 @@ public class WorkoutEditFragment extends Fragment {
                 .setPositiveButton("Löschen", (dialog, which) ->
                         viewModel.delete().observe(getViewLifecycleOwner(), deleted -> {
                             if (deleted != null && deleted) {
-                                requireActivity().getSupportFragmentManager().popBackStack();
+                                Navigator.of(this).close();
                             }
                         }))
                 .show();
@@ -283,25 +275,14 @@ public class WorkoutEditFragment extends Fragment {
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
 
-            String text = edtDuration.getText() != null
-                    ? edtDuration.getText().toString().trim()
-                    : "";
-
-            int value;
-            try {
-                value = Integer.parseInt(text);
-            } catch (NumberFormatException e) {
-                value = -1;
-            }
-
-            if (value <= 0) {
+            String typed = edtDuration.getText() != null ? edtDuration.getText().toString() : "";
+            if (viewModel.changeDuration(position, typed)
+                    == WorkoutDraft.DurationAnswer.NOT_VALID_SECONDS) {
                 Snackbar.make(binding.getRoot(),
                         "Bitte eine gültige Dauer in Sekunden eingeben",
                         Snackbar.LENGTH_SHORT).show();
                 return;
             }
-
-            viewModel.changeDuration(position, value);
             dialog.dismiss();
         });
 
@@ -328,10 +309,6 @@ public class WorkoutEditFragment extends Fragment {
     /** Edits the exercise itself, for every workout; this editor's draft waits on the back
      *  stack and takes the changes over when it returns. */
     private void openExercise(long exerciseId) {
-        requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.main, ExerciseEditFragment.edit(exerciseId))
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).open(ExerciseEditFragment.edit(exerciseId));
     }
 }
