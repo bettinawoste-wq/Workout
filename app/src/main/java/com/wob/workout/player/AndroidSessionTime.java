@@ -3,75 +3,78 @@ package com.wob.workout.player;
 import android.os.CountDownTimer;
 
 /**
- * Wraps a single {@link CountDownTimer}, handling the cancel-and-recreate-with-remaining-
- * time dance Android's CountDownTimer requires for pause/resume. One instance is reused
- * across both the exercise countdown and the countdowns between exercises — never more
- * than one running at once in the player's state machine. See wayfinder ticket #4.
+ * {@link SessionTime} on a real {@link CountDownTimer} and the system clock. Handles the
+ * cancel-and-recreate-with-remaining-time dance Android's CountDownTimer requires for
+ * pause/resume. Its callbacks arrive on the thread that started it, the main thread.
  */
-public class PlayerTimer {
+public class AndroidSessionTime implements SessionTime {
 
-    public interface Listener {
-        void onTick(long millisUntilFinished);
-        void onFinish();
-    }
-
-    private final Listener listener;
     private CountDownTimer timer;
+    private Listener listener;
     private long millisLeft;
     private boolean running;
 
-    public PlayerTimer(Listener listener) {
-        this.listener = listener;
+    @Override
+    public long now() {
+        return System.currentTimeMillis();
     }
 
-    public void start(long millis) {
+    @Override
+    public void start(long millis, Listener listener) {
         cancel();
+        this.listener = listener;
         millisLeft = millis;
         running = true;
         timer = newTimer(millisLeft);
         timer.start();
     }
 
+    @Override
     public void pause() {
         if (!running) return;
         if (timer != null) timer.cancel();
         running = false;
     }
 
+    @Override
     public void resume() {
-        if (running) return;
+        if (running || listener == null) return;
         running = true;
         timer = newTimer(millisLeft);
         timer.start();
     }
 
+    @Override
     public void cancel() {
         if (timer != null) timer.cancel();
         timer = null;
         running = false;
     }
 
+    @Override
     public boolean isRunning() {
         return running;
     }
 
-    public long getMillisLeft() {
+    @Override
+    public long millisLeft() {
         return millisLeft;
     }
 
     private CountDownTimer newTimer(long millis) {
+        Listener target = listener;
         return new CountDownTimer(millis, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 millisLeft = millisUntilFinished;
-                listener.onTick(millisUntilFinished);
+                target.onTick(millisUntilFinished);
             }
 
             @Override
             public void onFinish() {
                 millisLeft = 0;
                 running = false;
-                listener.onFinish();
+                target.onFinish();
             }
         };
     }

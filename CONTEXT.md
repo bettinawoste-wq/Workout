@@ -23,7 +23,7 @@ lives in an on-device Room database.
   changes asks before throwing it away, and a new workout is only created by saving.
 - **WorkoutSession / ExerciseSession** — a historical record of one run through a workout:
   when it started/finished, whether it was completed or aborted, and the actual vs. planned
-  duration per exercise. Written by `PlayerFragment` as the player runs, read by the
+  duration per exercise. Written by the player's `WorkoutSessionEngine` as it runs, read by the
   `ui/history` screens. `WorkoutSession.workoutId` is deliberately **not** a cascading foreign
   key — deleting a `Workout` must not delete the history recorded against it.
 
@@ -39,8 +39,8 @@ lives in an on-device Room database.
   navigation then) and got `HomeViewModel` later, with issue #44. `WorkoutListViewModel` is a thin
   passthrough over `WorkoutSummaryRepository`'s reactive Room `LiveData` (a `@Relation` query mapped
   via `Transformations.map`); `HomeViewModel` is the same, over `observeRecent()` for the home
-  screen's recent workouts; `PlayerViewModel` owns the player's state machine, a consolidated
-  `PlayerTimer`, and a standalone `PlayerHistoryTracker` for session bookkeeping;
+  screen's recent workouts; `PlayerViewModel` only adapts the workout session engine (see
+  **Player** below) to LiveData;
   `WorkoutEditViewModel` deliberately does *not* use a reactive Room query — it loads once into
   its draft and, on every view creation, updates the draft's exercises from the catalog (to pick
   up changes made elsewhere, e.g. an Exercise deleted while this screen sat on the back stack)
@@ -66,11 +66,20 @@ lives in an on-device Room database.
   `LiveDataExecutor.runOnExecutorOnce` round-trip via a small `HistoryDetail` holder, mirroring
   `ExerciseEditViewModel`'s `LoadResult` pattern. See GitHub issue #1 ("Lightweight MVVM
   Migration") for the full history of the map.
+- **Player**: the rules of a workout session live in `WorkoutSessionEngine`, plain Java
+  without Android: the phases (countdown before the first exercise, exercise, transition,
+  finished), next / previous / pause, when it beeps, the remaining time of the whole workout,
+  which positions are done, and the start / pause / resume / close-out timing of exercise
+  sessions. It has two seams (ADR 0005): `SessionTime`, the countdown and clock it runs on
+  (`AndroidSessionTime` in the app, a fake in JVM tests), and `SessionHistory`, where it writes
+  the workout session and its exercise sessions (`DatabaseSessionHistory` in the app, on the
+  single-threaded io executor; in memory in tests). `WorkoutSessionEngineTest` covers the rules
+  on fake time; the instrumented `PlayerViewModelTest` keeps one run through the real wiring.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
   `fallbackToDestructiveMigration()`. Room runs without `allowMainThreadQueries()` (removed in
   #22, the last step of the MVVM migration): every database access happens off the main thread,
   either on `AppContainer.ioExecutor` (one-shot reads and writes via `LiveDataExecutor`, and
-  `PlayerHistoryTracker`'s three history writes) or on Room's own query executor behind reactive
+  `DatabaseSessionHistory`'s history writes) or on Room's own query executor behind reactive
   `LiveData`. ViewModel tests built on `TestAppContainer`'s in-memory database fail with
   `IllegalStateException` if code touches it from the main thread, so a regression shows up there.
 - **Settings**: the few app-wide choices that aren't data, so far only the player's sound switch
