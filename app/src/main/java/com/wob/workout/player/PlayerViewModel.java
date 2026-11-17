@@ -104,14 +104,16 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         return soundSetting.isOn();
     }
 
+    /** Pauses or resumes an exercise, and also the countdown into one. Only an exercise's
+     *  own time counts in the history, so a paused countdown leaves it untouched. */
     public void togglePause() {
-        if (!isActive()) return;
+        if (!canPause()) return;
 
         if (timer.isRunning()) {
             timer.pause();
-            historyTracker.onExercisePause();
+            if (isActive()) historyTracker.onExercisePause();
         } else {
-            historyTracker.onExerciseResume();
+            if (isActive()) historyTracker.onExerciseResume();
             timer.resume();
         }
         tick.setValue(newTick(timer.getMillisLeft(), timer.isRunning(), false));
@@ -131,6 +133,12 @@ public class PlayerViewModel extends ViewModel implements PlayerTimer.Listener {
         historyTracker.closeOutCurrentExercise(index, exercises.get(index));
         index--;
         beginExercise(false);
+    }
+
+    /** Once loaded, an exercise and the countdown into one can pause; a finished workout
+     *  can't. */
+    private boolean canPause() {
+        return exercises != null && currentPhase != PlayerExerciseState.Phase.FINISHED;
     }
 
     private boolean isActive() {

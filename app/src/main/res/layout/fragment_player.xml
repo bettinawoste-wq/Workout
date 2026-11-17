@@ -127,6 +127,8 @@
                 android:id="@+id/txtTimer"
                 android:layout_width="match_parent"
                 android:layout_height="88dp"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="@null"
                 android:gravity="center"
                 android:includeFontPadding="false"
                 android:maxLines="1"
@@ -222,4 +224,33 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="8dp"
         android:text="Workout abbrechen"/>
+
+    <!-- In place of "Workout abbrechen" once the workout session is finished. -->
+    <LinearLayout
+        android:id="@+id/rowFinished"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/btnAgain"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/nochmal"/>
+
+        <Button
+            android:id="@+id/btnDone"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/fertig"/>
+    </LinearLayout>
 </LinearLayout>

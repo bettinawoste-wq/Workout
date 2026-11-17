@@ -139,7 +139,7 @@ def main():
         print("waiting %d s for the last exercise to run out" % left)
         time.sleep(left)
         wait_for_text("Fertig", 15)
-        tap_view(PKG, "btnCancel")
+        tap_view(PKG, "btnDone")
         time.sleep(1.5)
 
         tap_view(PKG, "btnHistory")
