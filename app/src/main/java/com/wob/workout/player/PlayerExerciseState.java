@@ -18,18 +18,36 @@ public class PlayerExerciseState {
     public final Phase phase;
     /** Only set during {@link Phase#FINISHED}. */
     public final PlayerWorkoutSummary summary;
+    /** An exercise a countdown led into starts with the start sound; one stepped to doesn't. */
+    public final boolean startSound;
+    /** A completed workout ends with the success sound. */
+    public final boolean successSound;
 
     public PlayerExerciseState(WorkoutExercise exercise, int index, int total, Phase phase) {
-        this(exercise, index, total, phase, null);
+        this(exercise, index, total, phase, false);
     }
 
     public PlayerExerciseState(WorkoutExercise exercise, int index, int total, Phase phase,
-                               PlayerWorkoutSummary summary) {
+                               boolean startSound) {
+        this(exercise, index, total, phase, null, startSound, false);
+    }
+
+    /** The finished workout: no exercise, its summary, the success sound. */
+    public static PlayerExerciseState finished(int index, int total,
+                                               PlayerWorkoutSummary summary) {
+        return new PlayerExerciseState(null, index, total, Phase.FINISHED, summary, false, true);
+    }
+
+    private PlayerExerciseState(WorkoutExercise exercise, int index, int total, Phase phase,
+                                PlayerWorkoutSummary summary, boolean startSound,
+                                boolean successSound) {
         this.exercise = exercise;
         this.index = index;
         this.total = total;
         this.phase = phase;
         this.summary = summary;
+        this.startSound = startSound;
+        this.successSound = successSound;
     }
 
     /** False on the last exercise, where {@code PlayerViewModel.next()} does nothing. */

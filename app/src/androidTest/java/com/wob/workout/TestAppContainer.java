@@ -113,7 +113,7 @@ public class TestAppContainer {
     }
 
     /** Blocks until every task already submitted to the container's {@code ioExecutor} has
-     *  run - for asserting on fire-and-forget writes (e.g. {@code PlayerHistoryTracker}).
+     *  run - for asserting on fire-and-forget writes (e.g. {@code DatabaseSessionHistory}).
      *  Works because that executor is single-threaded. */
     public void drainIoExecutor() throws Exception {
         appContainer.ioExecutor.submit(() -> { }).get();
@@ -161,7 +161,7 @@ public class TestAppContainer {
         }
         closed = true;
         try {
-            // Let already-queued writes (e.g. PlayerHistoryTracker's fire-and-forget ones)
+            // Let already-queued writes (e.g. DatabaseSessionHistory's fire-and-forget ones)
             // finish before the database closes. shutdownNow() would interrupt a running
             // Room call, which rethrows the InterruptedException on the executor thread and
             // kills the instrumentation process.

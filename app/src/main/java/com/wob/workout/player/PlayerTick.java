@@ -13,7 +13,7 @@ public class PlayerTick {
     public final boolean running;
     public final boolean shouldBeep;
     public final PlayerExerciseState.Phase phase;
-    /** What is left of the whole workout, see {@link PlayerProgress}. */
+    /** What is left of the exercise time of the whole workout. */
     public final long workoutRemainingMillis;
     public final long workoutTotalMillis;
 
