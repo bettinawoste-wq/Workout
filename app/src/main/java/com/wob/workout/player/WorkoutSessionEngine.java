@@ -31,6 +31,9 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
         void onState(SessionState state);
 
         void onSound(PlayerSound sound);
+
+        /** The workout has no exercises, so nothing was started. */
+        void onNothingToPlay();
     }
 
     private final SessionTime time;
@@ -63,10 +66,15 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     }
 
     /** Starts the workout session with the countdown to the first exercise. A workout
-     *  without exercises has nothing to run and is not started. */
+     *  without exercises has nothing to run: it is not started, and the listener hears
+     *  {@link Listener#onNothingToPlay()} instead. */
     public void start(long workoutId, String workoutName, List<WorkoutExercise> exercises,
                       int transitionSeconds) {
-        if (closed || this.exercises != null || exercises.isEmpty()) return;
+        if (closed || this.exercises != null) return;
+        if (exercises.isEmpty()) {
+            listener.onNothingToPlay();
+            return;
+        }
         this.exercises = new ArrayList<>(exercises);
         this.transitionMillis = transitionSeconds * 1000L;
         this.totalMillis = exerciseMillisFrom(0);

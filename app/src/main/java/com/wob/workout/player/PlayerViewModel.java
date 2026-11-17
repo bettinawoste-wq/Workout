@@ -28,6 +28,7 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
     private final MutableLiveData<PlayerScreen> screen = new MutableLiveData<>();
     private final MutableLiveData<Event<PlayerSound>> sound = new MutableLiveData<>();
     private final MutableLiveData<Boolean> soundOn = new MutableLiveData<>();
+    private final MutableLiveData<Event<Boolean>> nothingToPlay = new MutableLiveData<>();
 
     private boolean cleared;
 
@@ -50,6 +51,11 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
     /** The sounds to play, only while the sound setting is on. */
     public LiveData<Event<PlayerSound>> getSound() {
         return sound;
+    }
+
+    /** Once, when the workout turned out to have no exercises: there is no screen to show. */
+    public LiveData<Event<Boolean>> getNothingToPlay() {
+        return nothingToPlay;
     }
 
     public LiveData<Boolean> isSoundOn() {
@@ -83,6 +89,11 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
     @Override
     public void onSound(PlayerSound due) {
         if (soundSetting.isOn()) sound.setValue(new Event<>(due));
+    }
+
+    @Override
+    public void onNothingToPlay() {
+        nothingToPlay.setValue(new Event<>(true));
     }
 
     @Override
