@@ -9,6 +9,7 @@ import com.wob.workout.data.LiveDataExecutor;
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.Workout;
+import com.wob.workout.ui.DeleteConfirmation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -132,10 +133,13 @@ public class WorkoutEditViewModel extends ViewModel {
         publish();
     }
 
-    public void changeDuration(int position, int durationSeconds) {
-        if (draft == null) return;
-        draft.changeDuration(position, durationSeconds);
-        publish();
+    /** Takes a duration as typed in the duration dialog; the dialog only shows the answer.
+     *  Before the draft has loaded there is nothing to change. */
+    public WorkoutDraft.DurationAnswer changeDuration(int position, String typed) {
+        if (draft == null) return WorkoutDraft.DurationAnswer.ACCEPTED;
+        WorkoutDraft.DurationAnswer answer = draft.changeDuration(position, typed);
+        if (answer == WorkoutDraft.DurationAnswer.ACCEPTED) publish();
+        return answer;
     }
 
     /** @return the removed one, for {@link #restoreExercise}; null if nothing was removed */
@@ -196,6 +200,13 @@ public class WorkoutEditViewModel extends ViewModel {
     public LiveData<Long> duplicate() {
         return saveDraftThen(name ->
                 container.workoutRepository.duplicate(workoutId, name + " (Kopie)"));
+    }
+
+    /** What the delete confirmation calls the workout: the name field's text, or the stored
+     *  name while the field is empty. */
+    public String nameToConfirmDelete(String fieldText) {
+        Workout loaded = workout.getValue();
+        return DeleteConfirmation.name(fieldText, loaded != null ? loaded.name : null);
     }
 
     public LiveData<Boolean> delete() {

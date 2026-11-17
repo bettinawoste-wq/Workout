@@ -100,7 +100,7 @@ public class WorkoutEditViewModelTest {
         List<WorkoutExercise> loaded = getOrAwaitValue(viewModel.getExercises());
 
         viewModel.changeName("Arm Day");
-        viewModel.changeDuration(0, 90);
+        viewModel.changeDuration(0, "90");
         viewModel.moveExercise(1, 0);
         viewModel.removeExercise(0); // Lunge, moved to the front
         List<WorkoutExercise> shown = awaitEmissionAfter(viewModel, () -> viewModel.addExercises(
@@ -128,7 +128,7 @@ public class WorkoutEditViewModelTest {
         WorkoutExercise lunge = loaded.get(1);
 
         viewModel.changeName("  Leg Day Heavy ");
-        viewModel.changeDuration(0, 90);
+        viewModel.changeDuration(0, "90");
         awaitEmissionAfter(viewModel, () -> viewModel.addExercises(
                 Arrays.asList(container.exerciseRepository.getById(plankId))));
         viewModel.moveExercise(1, 0);
@@ -235,6 +235,31 @@ public class WorkoutEditViewModelTest {
     }
 
     @Test
+    public void aTypedDurationThatIsNotValidIsRejectedAndChangesNothing() throws Exception {
+        long workoutId = testContainer.insertWorkout("Core");
+        long plankId = testContainer.insertExercise("Plank");
+        testContainer.insertWorkoutExercise(workoutId, plankId, 0, 30);
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getExercises());
+
+        assertEquals(WorkoutDraft.DurationAnswer.NOT_VALID_SECONDS,
+                viewModel.changeDuration(0, "0"));
+        assertEquals(WorkoutDraft.DurationAnswer.ACCEPTED, viewModel.changeDuration(0, "45"));
+
+        assertEquals(45, viewModel.getExercises().getValue().get(0).durationSeconds);
+    }
+
+    @Test
+    public void theDeleteConfirmationNamesTheFieldsNameElseTheStoredOne() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getWorkout());
+
+        assertEquals("Arm Day", viewModel.nameToConfirmDelete("Arm Day"));
+        assertEquals("Leg Day", viewModel.nameToConfirmDelete(""));
+    }
+
+    @Test
     public void unsavedChangesFollowTheDraft() throws Exception {
         long workoutId = testContainer.insertWorkout("Core");
         long plankId = testContainer.insertExercise("Plank");
@@ -243,10 +268,10 @@ public class WorkoutEditViewModelTest {
         getOrAwaitValue(viewModel.getExercises());
         assertFalse(viewModel.hasUnsavedChanges());
 
-        viewModel.changeDuration(0, 90);
+        viewModel.changeDuration(0, "90");
         assertTrue(getOrAwaitValue(viewModel.getUnsavedChanges()));
 
-        viewModel.changeDuration(0, 30);
+        viewModel.changeDuration(0, "30");
         assertFalse(getOrAwaitValue(viewModel.getUnsavedChanges()));
     }
 
@@ -302,7 +327,7 @@ public class WorkoutEditViewModelTest {
         List<WorkoutExercise> loaded = getOrAwaitValue(viewModel.getExercises());
         assertTitles(loaded, "Squat", "Lunge");
         // A change of the draft's own, which the refresh must keep.
-        viewModel.changeDuration(1, 50);
+        viewModel.changeDuration(1, "50");
 
         // Out of band: the catalog screen deletes an exercise this workout uses. The
         // WorkoutExercise FK cascades, so its stored row goes with it.
@@ -412,7 +437,7 @@ public class WorkoutEditViewModelTest {
         List<WorkoutExercise> loaded = getOrAwaitValue(viewModel.getExercises());
 
         viewModel.changeName("Arm Day");
-        viewModel.changeDuration(0, 90);
+        viewModel.changeDuration(0, "90");
         viewModel.removeExercise(1);
         long copyId = getOrAwaitValue(viewModel.duplicate());
 
@@ -452,7 +477,7 @@ public class WorkoutEditViewModelTest {
 
         WorkoutEditViewModel copy = new WorkoutEditViewModel(container, copyId);
         List<WorkoutExercise> copied = getOrAwaitValue(copy.getExercises());
-        copy.changeDuration(0, 99);
+        copy.changeDuration(0, "99");
         copy.removeExercise(1);
         copy.changeName("Arm Day");
         assertTrue(getOrAwaitValue(copy.save()));

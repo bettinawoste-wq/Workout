@@ -16,6 +16,7 @@ import com.wob.workout.data.entity.MediaType;
 import com.wob.workout.media.Framing;
 import com.wob.workout.media.MediaStorageManager;
 import com.wob.workout.media.MediaThumbnailLoader;
+import com.wob.workout.ui.DeleteConfirmation;
 
 import java.io.File;
 
@@ -75,11 +76,30 @@ public class ExerciseEditViewModel extends ViewModel {
         return mediaError;
     }
 
-    public LiveData<Boolean> save(String title, String description) {
+    /** What came of {@link #save}; the screen shows the message. */
+    public enum SaveAnswer {
+        SAVED(null),
+        TITLE_REQUIRED("Titel erforderlich"),
+        FAILED("Speichern fehlgeschlagen");
+
+        /** What to tell the user, null once saved. */
+        public final String message;
+
+        SaveAnswer(String message) {
+            this.message = message;
+        }
+    }
+
+    /** Saves title and description as typed, without surrounding spaces. Without a title
+     *  nothing is saved. */
+    public LiveData<SaveAnswer> save(String title, String description) {
+        String trimmedTitle = title != null ? title.trim() : "";
+        if (trimmedTitle.isEmpty()) return new MutableLiveData<>(SaveAnswer.TITLE_REQUIRED);
+
         Exercise target = new Exercise();
         target.id = isNew() ? 0 : exerciseId;
-        target.title = title;
-        target.description = description;
+        target.title = trimmedTitle;
+        target.description = description != null ? description.trim() : null;
         target.mediaFile = selectedMediaFile;
         target.mediaType = selectedMediaType;
         target.storeFraming(selectedFraming);
@@ -88,10 +108,19 @@ public class ExerciseEditViewModel extends ViewModel {
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
             if (isInsert) {
                 container.exerciseRepository.save(target);
-                return true;
+                return SaveAnswer.SAVED;
             }
-            return container.exerciseRepository.update(target);
+            return container.exerciseRepository.update(target)
+                    ? SaveAnswer.SAVED
+                    : SaveAnswer.FAILED;
         });
+    }
+
+    /** What the delete confirmation calls the exercise: the title field's text, or the
+     *  stored title while the field is empty. */
+    public String titleToConfirmDelete(String fieldText) {
+        Exercise loaded = exercise.getValue();
+        return DeleteConfirmation.name(fieldText, loaded != null ? loaded.title : null);
     }
 
     public LiveData<Boolean> delete() {

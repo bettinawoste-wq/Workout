@@ -66,6 +66,14 @@ lives in an on-device Room database.
   `LiveDataExecutor.runOnExecutorOnce` round-trip via a small `HistoryDetail` holder, mirroring
   `ExerciseEditViewModel`'s `LoadResult` pattern. See GitHub issue #1 ("Lightweight MVVM
   Migration") for the full history of the map.
+- **Navigation**: one `ui.Navigator`, a plain class over the activity's `FragmentManager`
+  (`Navigator.of(fragment)`), makes every screen change: `open` a screen on top, `close` the
+  current one, `replace` the current one so back still leads where it did ("Nochmal" in the
+  player, "Duplizieren" in the workout editor), and `showFirst` for the home screen. Fragments
+  never touch the `FragmentManager` themselves. Input rules live in drafts and view models, not
+  in fragments: the workout draft takes a duration as typed and answers whether it was a valid
+  number of seconds, the exercise editor's view model rejects a missing title, and both
+  editors' view models name the workout or exercise in the delete confirmation.
 - **Player**: the rules of a workout session live in `WorkoutSessionEngine`, plain Java
   without Android: the phases (countdown before the first exercise, exercise, transition,
   finished), next / previous / pause, when it beeps, the remaining time of the whole workout,

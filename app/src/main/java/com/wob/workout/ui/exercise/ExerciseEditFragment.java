@@ -20,6 +20,7 @@ import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentExerciseEditBinding;
+import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
 
 public class ExerciseEditFragment extends Fragment {
@@ -156,36 +157,29 @@ public class ExerciseEditFragment extends Fragment {
     }
 
     private void save() {
-        String title = binding.edtTitle.getText().toString().trim();
-        if (title.isEmpty()) {
-            Snackbar.make(binding.getRoot(), "Titel erforderlich", Snackbar.LENGTH_SHORT).show();
-            return;
-        }
-
-        String description = binding.edtDescription.getText().toString().trim();
-
         // Disable immediately so a second tap before the async write returns can't insert a
         // duplicate exercise.
         binding.btnSave.setEnabled(false);
 
-        viewModel.save(title, description).observe(getViewLifecycleOwner(), saved -> {
-            if (saved != null && saved) {
-                requireActivity().getSupportFragmentManager().popBackStack();
-            } else if (binding != null) {
-                binding.btnSave.setEnabled(true);
-                Snackbar.make(binding.getRoot(), "Speichern fehlgeschlagen",
-                        Snackbar.LENGTH_SHORT).show();
-            }
-        });
+        viewModel.save(binding.edtTitle.getText().toString(),
+                binding.edtDescription.getText().toString()).observe(getViewLifecycleOwner(),
+                answer -> {
+                    if (answer == ExerciseEditViewModel.SaveAnswer.SAVED) {
+                        Navigator.of(this).close();
+                    } else if (binding != null) {
+                        binding.btnSave.setEnabled(true);
+                        String message = answer != null
+                                ? answer.message
+                                : ExerciseEditViewModel.SaveAnswer.FAILED.message;
+                        Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void confirmDelete() {
         if (viewModel.isNew()) return;
 
-        String title = binding.edtTitle.getText().toString();
-        if (title.isEmpty() && viewModel.getExercise().getValue() != null) {
-            title = viewModel.getExercise().getValue().title;
-        }
+        String title = viewModel.titleToConfirmDelete(binding.edtTitle.getText().toString());
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Übung löschen?")
@@ -194,7 +188,7 @@ public class ExerciseEditFragment extends Fragment {
                 .setPositiveButton("Löschen", (dialog, which) ->
                         viewModel.delete().observe(getViewLifecycleOwner(), deleted -> {
                             if (deleted != null && deleted) {
-                                requireActivity().getSupportFragmentManager().popBackStack();
+                                Navigator.of(this).close();
                             }
                         }))
                 .show();

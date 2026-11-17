@@ -19,6 +19,7 @@ import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentHistoryListBinding;
 import com.wob.workout.ui.EmptyState;
+import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
 
 public class HistoryListFragment extends Fragment {
@@ -57,12 +58,7 @@ public class HistoryListFragment extends Fragment {
                 .get(HistoryListViewModel.class);
 
         adapter = new HistoryAdapter(item ->
-                requireActivity()
-                        .getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.main, HistoryDetailFragment.forSession(item.session.id))
-                        .addToBackStack(null)
-                        .commit());
+                Navigator.of(this).open(HistoryDetailFragment.forSession(item.session.id)));
 
         binding.recyclerHistory.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.recyclerHistory.setAdapter(adapter);

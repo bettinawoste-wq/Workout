@@ -9,7 +9,6 @@ import android.view.ViewGroup;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -18,6 +17,7 @@ import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentPlayerBinding;
+import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
 
 /** Shows the {@link PlayerScreen} its view model hands over and plays the sounds it sends. */
@@ -87,8 +87,7 @@ public class PlayerFragment extends Fragment {
         binding.btnNext.setOnClickListener(v -> viewModel.next());
         binding.btnPrevious.setOnClickListener(v -> viewModel.previous());
         binding.btnCancel.setOnClickListener(v -> confirmCancelWorkout());
-        binding.btnDone.setOnClickListener(v ->
-                requireActivity().getSupportFragmentManager().popBackStack());
+        binding.btnDone.setOnClickListener(v -> Navigator.of(this).close());
         binding.btnAgain.setOnClickListener(v -> startAgain(workoutId, workoutName));
         binding.toolbar.setOnMenuItemClickListener(item -> {
             if (item.getItemId() != R.id.action_sound) return false;
@@ -112,19 +111,14 @@ public class PlayerFragment extends Fragment {
                 .setMessage("Dein Fortschritt wird als abgebrochen im Verlauf gespeichert.")
                 .setNegativeButton("Weiter", null)
                 .setPositiveButton("Abbrechen", (dialog, which) ->
-                        requireActivity().getSupportFragmentManager().popBackStack())
+                        Navigator.of(this).close())
                 .show();
     }
 
     /** Runs the same workout once more, as a new workout session, in place of this player,
      *  so back still leads to where the player was opened. */
     private void startAgain(long workoutId, String workoutName) {
-        FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
-        fragmentManager.popBackStack();
-        fragmentManager.beginTransaction()
-                .replace(R.id.main, create(workoutId, workoutName))
-                .addToBackStack(null)
-                .commit();
+        Navigator.of(this).replace(create(workoutId, workoutName));
     }
 
     private void show(PlayerScreen screen) {
