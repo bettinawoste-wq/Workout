@@ -160,17 +160,20 @@ public class WorkoutEditViewModelTest {
             }
         });
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        // The load delivers on the io executor (InstantTaskExecutorRule), setting the
+        // workout and then ready: a one-shot read of ready could fall between the two.
+        BlockingQueue<Boolean> ready = observeValues(viewModel.getReady());
 
         try {
-            assertFalse(getOrAwaitValue(viewModel.getReady()));
+            assertEquals(Boolean.FALSE, ready.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertNull(getOrAwaitValue(viewModel.save()));
             assertNull(getOrAwaitValue(viewModel.duplicate()));
         } finally {
             release.countDown();
         }
 
+        assertEquals(Boolean.TRUE, ready.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertNotNull(getOrAwaitValue(viewModel.getWorkout()));
-        assertTrue(getOrAwaitValue(viewModel.getReady()));
         assertEquals(1, container.workoutRepository.getAll().size());
     }
 
