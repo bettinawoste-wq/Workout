@@ -1,6 +1,5 @@
 package com.wob.workout.player;
 
-import com.wob.workout.data.WorkoutExercise;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -21,6 +20,7 @@ import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentPlayerBinding;
 import com.wob.workout.ui.ScreenToolbar;
 
+/** Shows the {@link PlayerScreen} its view model hands over and plays the sounds it sends. */
 public class PlayerFragment extends Fragment {
 
     private static final String ARG_WORKOUT_ID = "workout_id";
@@ -30,6 +30,8 @@ public class PlayerFragment extends Fragment {
     private PlayerViewModel viewModel;
     private AudioManager audioManager;
     private MediaController mediaController;
+    /** The scene whose picture is on screen, so that a tick doesn't load it again. */
+    private int shownScene = -1;
 
     /** While a workout runs, leaving it (back arrow or system back) aborts it, so ask first,
      *  just like "Workout abbrechen". Disabled once it's finished: then back just leaves. */
@@ -56,6 +58,7 @@ public class PlayerFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
         binding = FragmentPlayerBinding.inflate(inflater, container, false);
+        shownScene = -1;
         ScreenToolbar.setUp(this, binding.toolbar);
         String workoutName = getArguments() != null
                 ? getArguments().getString(ARG_WORKOUT_NAME)
@@ -94,9 +97,11 @@ public class PlayerFragment extends Fragment {
         });
 
         viewModel.isSoundOn().observe(getViewLifecycleOwner(), this::showSound);
-
-        viewModel.getExerciseState().observe(getViewLifecycleOwner(), this::showExerciseState);
-        viewModel.getTick().observe(getViewLifecycleOwner(), this::showTick);
+        viewModel.getScreen().observe(getViewLifecycleOwner(), this::show);
+        viewModel.getSound().observe(getViewLifecycleOwner(), event -> {
+            PlayerSound due = event.getContentIfNotHandled();
+            if (due != null) audioManager.play(due);
+        });
 
         return binding.getRoot();
     }
@@ -122,46 +127,47 @@ public class PlayerFragment extends Fragment {
                 .commit();
     }
 
-    private void showExerciseState(PlayerExerciseState state) {
-        binding.txtProgress.setText((state.index + 1) + " / " + state.total);
+    private void show(PlayerScreen screen) {
+        binding.txtProgress.setText(screen.progressText);
+        binding.txtTimer.setText(screen.timerText);
+        binding.txtTimer.setClickable(screen.timerTappable);
 
-        switch (state.phase) {
-            case READY:
-                showPreviewLabel("ERSTE ÜBUNG", state.exercise);
-                showExerciseInfo(state.exercise);
-                setStepsEnabled(false);
-                break;
-            case ACTIVE:
-                showPreviewLabel(null, null);
-                showExerciseInfo(state.exercise);
-                // Stepping past either end does nothing, so don't offer it.
-                binding.btnPrevious.setEnabled(state.hasPrevious());
-                binding.btnNext.setEnabled(state.hasNext());
-                if (viewModel.shouldPlayStartSound(state)) {
-                    audioManager.playStart();
-                }
-                break;
-            case TRANSITION:
-                showPreviewLabel("NÄCHSTE ÜBUNG", state.exercise);
-                showExerciseInfo(state.exercise);
-                setStepsEnabled(false);
-                break;
-            case FINISHED:
-                showFinished(state.summary);
-                if (viewModel.shouldPlaySuccessSound(state)) {
-                    audioManager.playSuccess();
-                }
-                break;
+        int previewVisibility = screen.mediaLabel != null ? View.VISIBLE : View.GONE;
+        binding.mediaScrim.setVisibility(previewVisibility);
+        binding.mediaLabels.setVisibility(previewVisibility);
+        binding.txtMediaLabel.setText(screen.mediaLabel);
+        binding.txtMediaTitle.setText(screen.mediaTitle);
+
+        binding.txtTitle.setText(screen.title);
+        binding.txtDescription.setText(screen.description);
+        binding.txtDescription.setGravity(
+                screen.descriptionCentered ? Gravity.CENTER_HORIZONTAL : Gravity.START);
+
+        binding.btnPrevious.setEnabled(screen.previousEnabled);
+        binding.btnNext.setEnabled(screen.nextEnabled);
+        binding.btnPause.setIconResource(
+                screen.pauseButtonShowsPause ? R.drawable.ic_pause : R.drawable.ic_play);
+        binding.btnPause.setContentDescription(screen.pauseButtonLabel);
+
+        binding.progressWorkout.setProgressCompat(screen.workoutPermilleDone, true);
+        binding.txtWorkoutRemaining.setText(screen.workoutRemainingText);
+
+        int runningVisibility = screen.finished ? View.GONE : View.VISIBLE;
+        binding.progressWorkout.setVisibility(runningVisibility);
+        binding.rowWorkoutProgress.setVisibility(runningVisibility);
+        binding.rowTransport.setVisibility(runningVisibility);
+        binding.btnCancel.setVisibility(runningVisibility);
+        binding.rowFinished.setVisibility(screen.finished ? View.VISIBLE : View.GONE);
+        confirmAbortOnBack.setEnabled(!screen.finished);
+
+        if (screen.scene != shownScene) {
+            shownScene = screen.scene;
+            if (screen.exercise != null) {
+                mediaController.show(screen.exercise);
+            } else {
+                mediaController.hide();
+            }
         }
-    }
-
-    /** Darkens the picture and names it while it only previews the coming exercise. */
-    private void showPreviewLabel(String label, WorkoutExercise exercise) {
-        int visibility = label != null ? View.VISIBLE : View.GONE;
-        binding.mediaScrim.setVisibility(visibility);
-        binding.mediaLabels.setVisibility(visibility);
-        binding.txtMediaLabel.setText(label);
-        binding.txtMediaTitle.setText(exercise != null ? exercise.exercise.title : null);
     }
 
     /** The speaker shows the current state; its label says what a tap does. */
@@ -169,75 +175,6 @@ public class PlayerFragment extends Fragment {
         MenuItem item = binding.toolbar.getMenu().findItem(R.id.action_sound);
         item.setIcon(on ? R.drawable.ic_volume_up : R.drawable.ic_volume_off);
         item.setTitle(on ? R.string.ton_ausschalten : R.string.ton_einschalten);
-    }
-
-    private void showPauseButton(boolean running) {
-        binding.btnPause.setIconResource(running ? R.drawable.ic_pause : R.drawable.ic_play);
-        binding.btnPause.setContentDescription(running ? "Pause" : "Weiter");
-    }
-
-    /** Stepping is only for a running exercise; pause works in the countdown too. */
-    private void setStepsEnabled(boolean enabled) {
-        binding.btnNext.setEnabled(enabled);
-        binding.btnPrevious.setEnabled(enabled);
-    }
-
-    private void showExerciseInfo(WorkoutExercise exercise) {
-        if (exercise == null) return;
-        binding.txtTitle.setText(exercise.exercise.title);
-        binding.txtDescription.setText(exercise.exercise.description);
-        mediaController.show(exercise.exercise);
-    }
-
-    private void showFinished(PlayerWorkoutSummary summary) {
-        binding.txtTimer.setText(formatTime(summary.activeSeconds * 1000L));
-        binding.txtTitle.setText("Gut gemacht 💪");
-        binding.txtDescription.setText(summary.resultText());
-        // The exercise descriptions read from the start; the summary sits in the middle,
-        // like the timer and title above it.
-        binding.txtDescription.setGravity(Gravity.CENTER_HORIZONTAL);
-
-        binding.progressWorkout.setVisibility(View.GONE);
-        binding.rowWorkoutProgress.setVisibility(View.GONE);
-        binding.rowTransport.setVisibility(View.GONE);
-
-        // The session is already completed, so "Workout abbrechen" and its "saved as aborted"
-        // dialog no longer apply: back just leaves, and "Fertig" / "Nochmal" take its place.
-        confirmAbortOnBack.setEnabled(false);
-        binding.btnCancel.setVisibility(View.GONE);
-        binding.rowFinished.setVisibility(View.VISIBLE);
-        binding.txtTimer.setClickable(false);
-
-        mediaController.hide();
-    }
-
-    private void showTick(PlayerTick tick) {
-        if (viewModel.shouldPlayBeep(tick)) audioManager.playBeep();
-
-        binding.progressWorkout.setProgressCompat(tick.workoutPermilleDone(), true);
-        binding.txtWorkoutRemaining.setText("Noch " + formatTime(tick.workoutRemainingMillis));
-
-        switch (tick.phase) {
-            case READY:
-            case TRANSITION:
-                binding.txtTimer.setText("Start in " + ((tick.remainingMillis + 999) / 1000));
-                showPauseButton(tick.running);
-                break;
-            case ACTIVE:
-                binding.txtTimer.setText(formatTime(tick.remainingMillis));
-                showPauseButton(tick.running);
-                break;
-            case FINISHED:
-                break;
-        }
-    }
-
-    private String formatTime(long millis) {
-        long totalSeconds = millis / 1000;
-        long minutes = totalSeconds / 60;
-        long seconds = totalSeconds % 60;
-
-        return String.format("%02d:%02d", minutes, seconds);
     }
 
     @Override

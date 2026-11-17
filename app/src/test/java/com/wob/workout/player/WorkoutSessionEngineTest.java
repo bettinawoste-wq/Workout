@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.entity.Exercise;
-import com.wob.workout.player.PlayerExerciseState.Phase;
+import com.wob.workout.player.SessionState.Phase;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -26,17 +26,17 @@ public class WorkoutSessionEngineTest {
 
     private final FakeSessionTime time = new FakeSessionTime();
     private final RecordedHistory history = new RecordedHistory();
-    private final List<PlayerExerciseState> states = new ArrayList<>();
-    private final List<PlayerTick> ticks = new ArrayList<>();
+    private final List<SessionState> states = new ArrayList<>();
+    private final List<PlayerSound> sounds = new ArrayList<>();
     private final WorkoutSessionEngine.Listener listener = new WorkoutSessionEngine.Listener() {
         @Override
-        public void onExerciseState(PlayerExerciseState state) {
+        public void onState(SessionState state) {
             states.add(state);
         }
 
         @Override
-        public void onTick(PlayerTick tick) {
-            ticks.add(tick);
+        public void onSound(PlayerSound sound) {
+            sounds.add(sound);
         }
     };
     private WorkoutSessionEngine engine;
@@ -53,14 +53,14 @@ public class WorkoutSessionEngineTest {
 
     @Test
     public void startsWithTheCountdownToTheFirstExercise() {
-        PlayerExerciseState state = state();
+        SessionState state = state();
 
         assertEquals(Phase.READY, state.phase);
-        assertEquals(0, state.index);
+        assertEquals(0, state.position);
         assertEquals(2, state.total);
-        assertEquals("Push-up", state.exercise.exercise.title);
-        assertEquals(3000, tick().remainingMillis);
-        assertTrue(tick().running);
+        assertEquals("Push-up", state.workoutExercise.exercise.title);
+        assertEquals(3000, state().millisLeft);
+        assertTrue(state().running);
     }
 
     @Test
@@ -68,8 +68,8 @@ public class WorkoutSessionEngineTest {
         time.advance(3000);
 
         assertEquals(Phase.ACTIVE, state().phase);
-        assertEquals(0, state().index);
-        assertEquals(60_000, tick().remainingMillis);
+        assertEquals(0, state().position);
+        assertEquals(60_000, state().millisLeft);
     }
 
     @Test
@@ -77,9 +77,9 @@ public class WorkoutSessionEngineTest {
         time.advance(3000 + 60_000);
 
         assertEquals(Phase.TRANSITION, state().phase);
-        assertEquals(1, state().index);
-        assertEquals("Squat", state().exercise.exercise.title);
-        assertEquals(3000, tick().remainingMillis);
+        assertEquals(1, state().position);
+        assertEquals("Squat", state().workoutExercise.exercise.title);
+        assertEquals(3000, state().millisLeft);
     }
 
     @Test
@@ -87,7 +87,7 @@ public class WorkoutSessionEngineTest {
         time.advance(3000 + 60_000 + 3000 + 30_000);
 
         assertEquals(Phase.FINISHED, state().phase);
-        assertNull(state().exercise);
+        assertNull(state().workoutExercise);
         assertFalse(time.isRunning());
     }
 
@@ -97,7 +97,7 @@ public class WorkoutSessionEngineTest {
         time.advance(3000 + 60_000);
 
         assertEquals(Phase.TRANSITION, state().phase);
-        assertEquals(9000, tick().remainingMillis);
+        assertEquals(9000, state().millisLeft);
         time.advance(8999);
         assertEquals(Phase.TRANSITION, state().phase);
         time.advance(1);
@@ -124,26 +124,26 @@ public class WorkoutSessionEngineTest {
 
         engine.next();
         assertEquals(Phase.ACTIVE, state().phase);
-        assertEquals(1, state().index);
-        assertEquals(30_000, tick().remainingMillis);
+        assertEquals(1, state().position);
+        assertEquals(30_000, state().millisLeft);
 
         engine.previous();
         assertEquals(Phase.ACTIVE, state().phase);
-        assertEquals(0, state().index);
-        assertEquals(60_000, tick().remainingMillis);
+        assertEquals(0, state().position);
+        assertEquals(60_000, state().millisLeft);
     }
 
     @Test
     public void steppingPastEitherEndDoesNothing() {
         time.advance(3000);
-        int before = states.size();
+        int before = state().scene;
 
         engine.previous();
         engine.next();
         engine.next();
 
-        assertEquals(before + 1, states.size());
-        assertEquals(1, state().index);
+        assertEquals(before + 1, state().scene);
+        assertEquals(1, state().position);
     }
 
     @Test
@@ -164,16 +164,16 @@ public class WorkoutSessionEngineTest {
         time.advance(3000 + 10_000);
 
         engine.togglePause();
-        assertFalse(tick().running);
-        assertEquals(50_000, tick().remainingMillis);
-        int ticksWhilePaused = ticks.size();
+        assertFalse(state().running);
+        assertEquals(50_000, state().millisLeft);
+        int statesWhilePaused = states.size();
         time.advance(120_000);
-        assertEquals(ticksWhilePaused, ticks.size());
+        assertEquals(statesWhilePaused, states.size());
         assertEquals(Phase.ACTIVE, state().phase);
 
         engine.togglePause();
-        assertTrue(tick().running);
-        assertEquals(50_000, tick().remainingMillis);
+        assertTrue(state().running);
+        assertEquals(50_000, state().millisLeft);
         time.advance(50_000);
         assertEquals(Phase.TRANSITION, state().phase);
     }
@@ -185,7 +185,7 @@ public class WorkoutSessionEngineTest {
         engine.togglePause();
         time.advance(10_000);
         assertEquals(Phase.TRANSITION, state().phase);
-        assertEquals(2000, tick().remainingMillis);
+        assertEquals(2000, state().millisLeft);
 
         engine.togglePause();
         time.advance(2000);
@@ -195,11 +195,11 @@ public class WorkoutSessionEngineTest {
     @Test
     public void aFinishedWorkoutCannotPause() {
         time.advance(3000 + 60_000 + 3000 + 30_000);
-        int before = ticks.size();
+        int before = states.size();
 
         engine.togglePause();
 
-        assertEquals(before, ticks.size());
+        assertEquals(before, states.size());
         assertEquals(Phase.FINISHED, state().phase);
     }
 
@@ -235,53 +235,97 @@ public class WorkoutSessionEngineTest {
     @Test
     public void theStartSoundBelongsToAnExerciseACountdownLedInto() {
         time.advance(3000);
-        assertTrue(state().startSound);
+        assertEquals(1, count(PlayerSound.START));
 
         engine.next();
-        assertFalse(state().startSound);
         engine.previous();
-        assertFalse(state().startSound);
+        assertEquals(1, count(PlayerSound.START));
 
         time.advance(60_000);
-        assertFalse(state().startSound); // the transition
+        assertEquals(1, count(PlayerSound.START)); // the transition
         time.advance(3000);
-        assertTrue(state().startSound);
+        assertEquals(2, count(PlayerSound.START));
     }
 
     @Test
-    public void onlyTheFinishedWorkoutHasTheSuccessSound() {
+    public void onlyTheCompletedWorkoutHasTheSuccessSound() {
+        time.advance(3000 + 60_000 + 3000 + 29_999);
+        assertEquals(0, count(PlayerSound.SUCCESS));
+
+        time.advance(1);
+        assertEquals(1, count(PlayerSound.SUCCESS));
+        assertEquals(PlayerSound.SUCCESS, sounds.get(sounds.size() - 1));
+
+        engine.close();
+        assertEquals(1, count(PlayerSound.SUCCESS));
+    }
+
+    @Test
+    public void anAbortedWorkoutHasNoSuccessSound() {
+        time.advance(3000 + 10_000);
+
+        engine.close();
+
+        assertEquals(0, count(PlayerSound.SUCCESS));
+    }
+
+    @Test
+    public void steppingIsOnlyOfferedWhereItWouldDoSomething() {
+        assertFalse(state().canStepBack);
+        assertFalse(state().canStepForward);
+        assertTrue(state().canPause);
+
         time.advance(3000);
-        assertFalse(state().successSound);
+        assertFalse(state().canStepBack);
+        assertTrue(state().canStepForward);
 
-        time.advance(60_000 + 3000 + 30_000);
+        engine.next();
+        assertTrue(state().canStepBack);
+        assertFalse(state().canStepForward);
 
-        assertTrue(state().successSound);
+        time.advance(30_000);
+        assertFalse(state().canStepBack);
+        assertFalse(state().canStepForward);
+        assertFalse(state().canPause);
+    }
+
+    @Test
+    public void theSceneChangesWithThePhaseButNotWithTheTime() {
+        int countdown = state().scene;
+        time.advance(2000);
+        assertEquals(countdown, state().scene);
+
+        time.advance(1000);
+        int exercise = state().scene;
+        assertTrue(exercise != countdown);
+        engine.togglePause();
+        assertEquals(exercise, state().scene);
     }
 
     // Remaining time of the whole workout.
 
     @Test
     public void theCountdownDoesNotCountTowardsTheWorkoutsTime() {
-        assertEquals(90_000, tick().workoutTotalMillis);
-        assertEquals(90_000, tick().workoutRemainingMillis);
+        assertEquals(90_000, state().workoutTotalMillis);
+        assertEquals(90_000, state().workoutRemainingMillis);
         time.advance(2000);
-        assertEquals(90_000, tick().workoutRemainingMillis);
+        assertEquals(90_000, state().workoutRemainingMillis);
     }
 
     @Test
     public void duringAnExerciseItsRestAndEverythingAfterRemains() {
         time.advance(3000 + 20_000);
 
-        assertEquals(40_000 + 30_000, tick().workoutRemainingMillis);
+        assertEquals(40_000 + 30_000, state().workoutRemainingMillis);
     }
 
     @Test
     public void theTransitionDoesNotCountTowardsTheWorkoutsTime() {
         time.advance(3000 + 60_000);
-        assertEquals(30_000, tick().workoutRemainingMillis);
+        assertEquals(30_000, state().workoutRemainingMillis);
 
         time.advance(2000);
-        assertEquals(30_000, tick().workoutRemainingMillis);
+        assertEquals(30_000, state().workoutRemainingMillis);
     }
 
     @Test
@@ -290,13 +334,13 @@ public class WorkoutSessionEngineTest {
 
         engine.next();
 
-        assertEquals(30_000, tick().workoutRemainingMillis);
+        assertEquals(30_000, state().workoutRemainingMillis);
     }
 
     @Test
     public void onTheLastExerciseOnlyItsRestRemains() {
         time.advance(3000 + 60_000 + 3000 + 29_000);
-        assertEquals(1000, tick().workoutRemainingMillis);
+        assertEquals(1000, state().workoutRemainingMillis);
     }
 
     // History.
@@ -437,7 +481,7 @@ public class WorkoutSessionEngineTest {
     private void startOther(int transitionSeconds, int... seconds) {
         engine.close();
         states.clear();
-        ticks.clear();
+        sounds.clear();
         List<WorkoutExercise> workoutExercises = new ArrayList<>();
         for (int i = 0; i < seconds.length; i++) {
             workoutExercises.add(workoutExercise(10 + i, "Übung " + i, seconds[i]));
@@ -446,20 +490,20 @@ public class WorkoutSessionEngineTest {
         engine.start(WORKOUT_ID, "Other", workoutExercises, transitionSeconds);
     }
 
-    private PlayerExerciseState state() {
+    private SessionState state() {
         return states.get(states.size() - 1);
     }
 
-    private PlayerTick tick() {
-        return ticks.get(ticks.size() - 1);
+    private int beeps() {
+        return count(PlayerSound.BEEP);
     }
 
-    private int beeps() {
-        int beeps = 0;
-        for (PlayerTick tick : ticks) {
-            if (tick.shouldBeep) beeps++;
+    private int count(PlayerSound sound) {
+        int count = 0;
+        for (PlayerSound played : sounds) {
+            if (played == sound) count++;
         }
-        return beeps;
+        return count;
     }
 
     private static WorkoutExercise workoutExercise(long exerciseId, String title, int seconds) {

@@ -27,17 +27,31 @@ public class AudioManager {
                 (pool, sampleId, status) -> loaded = true);
     }
 
-    public void playBeep() {
+    public void play(PlayerSound sound) {
+        switch (sound) {
+            case BEEP:
+                playBeep();
+                break;
+            case START:
+                playStart();
+                break;
+            case SUCCESS:
+                playSuccess();
+                break;
+        }
+    }
+
+    private void playBeep() {
         if (!loaded) return;
         soundPool.play(beepSoundId, 1f, 1f, 1, 0, 1f);
     }
 
-    public void playStart() {
+    private void playStart() {
         if (!loaded) return;
         soundPool.play(startSoundId, 1f, 1f, 1, 0, 1f);
     }
 
-    public void playSuccess() {
+    private void playSuccess() {
         if (!loaded) return;
         soundPool.play(successSoundId, 1f, 1f, 1, 0, 1f);
     }

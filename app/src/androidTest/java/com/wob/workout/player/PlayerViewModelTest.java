@@ -3,6 +3,7 @@ package com.wob.workout.player;
 import static com.wob.workout.LiveDataTestUtil.getOrAwaitValue;
 import static com.wob.workout.LiveDataTestUtil.observeValues;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -11,8 +12,8 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.TestAppContainer;
+import com.wob.workout.data.Event;
 import com.wob.workout.data.entity.ExerciseSession;
-import com.wob.workout.player.PlayerExerciseState.Phase;
 import com.wob.workout.ui.history.WorkoutSessionSummary;
 
 import org.junit.After;
@@ -20,6 +21,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +33,8 @@ import java.util.function.Supplier;
  * The player's real wiring: {@link PlayerViewModel} loading from the database, running
  * {@link WorkoutSessionEngine} on {@link AndroidSessionTime} and writing through
  * {@link DatabaseSessionHistory}. The rules themselves are covered on the JVM with fake time
- * ({@code WorkoutSessionEngineTest}); this test runs one short workout in real time.
+ * ({@code WorkoutSessionEngineTest}); this test runs one short workout in real time, with
+ * the sound setting on (a fresh test container's default).
  *
  * <p>No {@code InstantTaskExecutorRule}: the real {@link android.os.CountDownTimer} needs the
  * main thread's Looper, so the ViewModel is created and cleared on the main thread, exactly
@@ -69,13 +73,18 @@ public class PlayerViewModelTest {
         AppContainer container = testContainer.getAppContainer();
 
         viewModel = onMain(() -> new PlayerViewModel(container, workoutId));
-        BlockingQueue<PlayerExerciseState> states = observeValues(viewModel.getExerciseState());
+        BlockingQueue<PlayerScreen> screens = observeValues(viewModel.getScreen());
+        BlockingQueue<Event<PlayerSound>> sounds = observeValues(viewModel.getSound());
 
-        assertEquals(Phase.READY, next(states).phase);
-        assertEquals(Phase.ACTIVE, next(states).phase);
-        PlayerExerciseState finished = next(states);
-        assertEquals(Phase.FINISHED, finished.phase);
-        assertEquals(1, finished.summary.doneExercises);
+        assertEquals("ERSTE ÜBUNG", next(screens).mediaLabel);
+        PlayerScreen finished = next(screens);
+        while (!finished.finished) finished = next(screens);
+        assertEquals("Übung erledigt", finished.description);
+        // Three beeps into the exercise, its start, the end of the workout.
+        List<PlayerSound> played = new ArrayList<>();
+        for (Event<PlayerSound> event : sounds) played.add(event.getContentIfNotHandled());
+        assertEquals(Arrays.asList(PlayerSound.BEEP, PlayerSound.BEEP, PlayerSound.BEEP,
+                PlayerSound.START, PlayerSound.SUCCESS), played);
 
         // History writes are fire-and-forget on the IO executor (issue #21).
         testContainer.drainIoExecutor();
@@ -91,11 +100,48 @@ public class PlayerViewModelTest {
         assertEquals(1, exercises.get(0).plannedDurationSeconds);
     }
 
-    private static PlayerExerciseState next(BlockingQueue<PlayerExerciseState> states)
+    @Test
+    public void whileTheSoundIsOffNoSoundReachesTheScreen() throws Exception {
+        long workoutId = testContainer.insertWorkout("Quiet");
+        testContainer.insertWorkoutExercise(
+                workoutId, testContainer.insertExercise("Plank"), 0, 1);
+        AppContainer container = testContainer.getAppContainer();
+        assertTrue(container.soundSetting.isOn()); // on by default
+
+        viewModel = onMain(() -> new PlayerViewModel(container, workoutId));
+        runOnMain(viewModel::toggleSound);
+        assertFalse(onMain(() -> viewModel.isSoundOn().getValue()));
+        BlockingQueue<PlayerScreen> screens = observeValues(viewModel.getScreen());
+        BlockingQueue<Event<PlayerSound>> sounds = observeValues(viewModel.getSound());
+
+        PlayerScreen screen = next(screens);
+        while (!screen.finished) screen = next(screens);
+
+        assertTrue(sounds.isEmpty());
+    }
+
+    @Test
+    public void theSoundSwitchedOffStaysOffForTheNextWorkout() {
+        long workoutId = testContainer.insertWorkout("Quiet");
+        AppContainer container = testContainer.getAppContainer();
+        viewModel = onMain(() -> new PlayerViewModel(container, workoutId));
+        runOnMain(viewModel::toggleSound);
+
+        PlayerViewModel nextWorkout = onMain(() -> new PlayerViewModel(container, workoutId));
+        try {
+            assertFalse(onMain(() -> nextWorkout.isSoundOn().getValue()));
+            runOnMain(nextWorkout::toggleSound);
+            assertTrue(container.soundSetting.isOn());
+        } finally {
+            runOnMain(nextWorkout::onCleared);
+        }
+    }
+
+    private static PlayerScreen next(BlockingQueue<PlayerScreen> screens)
             throws InterruptedException {
-        PlayerExerciseState state = states.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertNotNull("No further state", state);
-        return state;
+        PlayerScreen screen = screens.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertNotNull("No further screen", screen);
+        return screen;
     }
 
     /** Runs {@code action} on the main thread and returns its result. */
