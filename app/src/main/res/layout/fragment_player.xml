@@ -16,7 +16,8 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:fillViewport="true">
 
         <LinearLayout
@@ -104,7 +105,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="12dp"
                 android:orientation="horizontal">
 
                 <TextView
@@ -121,12 +121,14 @@
                     android:textSize="12sp"/>
             </LinearLayout>
 
-            <!-- Sized to fit, since "Start in 3" is much wider than "00:48". -->
+            <!-- Sized to fit, since "Start in 3" is much wider than "00:48". No font padding,
+                 so the digits sit close to the progress row above. -->
             <TextView
                 android:id="@+id/txtTimer"
                 android:layout_width="match_parent"
-                android:layout_height="96dp"
+                android:layout_height="88dp"
                 android:gravity="center"
+                android:includeFontPadding="false"
                 android:maxLines="1"
                 android:text="00:00"
                 android:textStyle="bold"
@@ -208,14 +210,16 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:gravity="start"/>
-
-            <Button
-                android:id="@+id/btnCancel"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Workout abbrechen"/>
         </LinearLayout>
     </ScrollView>
+
+    <!-- Outside the scrolling area, so it is always at hand at the bottom edge. -->
+    <Button
+        android:id="@+id/btnCancel"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="8dp"
+        android:text="Workout abbrechen"/>
 </LinearLayout>

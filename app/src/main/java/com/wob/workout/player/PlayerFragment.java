@@ -1,6 +1,7 @@
 package com.wob.workout.player;
 
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -176,6 +177,9 @@ public class PlayerFragment extends Fragment {
         binding.txtTimer.setText(formatTime(summary.activeSeconds * 1000L));
         binding.txtTitle.setText("Gut gemacht 💪");
         binding.txtDescription.setText(summary.resultText());
+        // The exercise descriptions read from the start; the summary sits in the middle,
+        // like the timer and title above it.
+        binding.txtDescription.setGravity(Gravity.CENTER_HORIZONTAL);
 
         binding.progressWorkout.setVisibility(View.GONE);
         binding.rowWorkoutProgress.setVisibility(View.GONE);
