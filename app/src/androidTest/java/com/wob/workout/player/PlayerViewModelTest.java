@@ -78,8 +78,7 @@ public class PlayerViewModelTest {
         BlockingQueue<Event<PlayerSound>> sounds = observeValues(viewModel.getSound());
 
         assertEquals("ERSTE ÜBUNG", next(screens).mediaLabel);
-        PlayerScreen finished = next(screens);
-        while (!finished.finished) finished = next(screens);
+        PlayerScreen finished = awaitFinished(screens);
         assertEquals("Übung erledigt", finished.description);
         // Three beeps into the exercise, its start, the end of the workout.
         List<PlayerSound> played = new ArrayList<>();
@@ -130,8 +129,7 @@ public class PlayerViewModelTest {
         BlockingQueue<PlayerScreen> screens = observeValues(viewModel.getScreen());
         BlockingQueue<Event<PlayerSound>> sounds = observeValues(viewModel.getSound());
 
-        PlayerScreen screen = next(screens);
-        while (!screen.finished) screen = next(screens);
+        awaitFinished(screens);
 
         assertTrue(sounds.isEmpty());
     }
@@ -151,6 +149,17 @@ public class PlayerViewModelTest {
         } finally {
             runOnMain(nextWorkout::onCleared);
         }
+    }
+
+    /** Waits for the finished screen, then until the main thread is done with the callback
+     *  that showed it: the engine reports the end of the workout as a state and then its
+     *  sound, so only afterwards has every sound of the workout been handed over. */
+    private static PlayerScreen awaitFinished(BlockingQueue<PlayerScreen> screens)
+            throws InterruptedException {
+        PlayerScreen screen = next(screens);
+        while (!screen.finished) screen = next(screens);
+        runOnMain(() -> { });
+        return screen;
     }
 
     private static PlayerScreen next(BlockingQueue<PlayerScreen> screens)
