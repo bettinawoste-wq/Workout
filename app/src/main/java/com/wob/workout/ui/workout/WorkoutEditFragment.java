@@ -26,8 +26,7 @@ import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
 import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.ScreenToolbar;
-
-import java.util.function.Consumer;
+import com.wob.workout.ui.exercise.ExerciseEditFragment;
 
 public class WorkoutEditFragment extends Fragment {
 
@@ -96,7 +95,7 @@ public class WorkoutEditFragment extends Fragment {
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
 
-        adapter = new WorkoutExerciseAdapter(this::showExerciseMenu, appContainer.thumbnails);
+        adapter = new WorkoutExerciseAdapter(this::showExerciseDialog, appContainer.thumbnails);
         binding.listExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.listExercises.setAdapter(adapter);
         itemTouchHelper.attachToRecyclerView(binding.listExercises);
@@ -264,17 +263,18 @@ public class WorkoutEditFragment extends Fragment {
                 .show();
     }
 
-    private void showDurationInputDialog(
-            String title, int currentValue, Consumer<Integer> onConfirm) {
+    /** What tapping a workout exercise opens: its duration, ready to change, with
+     *  "Entfernen" and "Übung bearbeiten" below it. */
+    private void showExerciseDialog(WorkoutExerciseAdapter.ExerciseItem item) {
 
         View view = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_duration_input, null, false);
 
         TextInputEditText edtDuration = view.findViewById(R.id.edtDuration);
-        edtDuration.setText(String.valueOf(currentValue));
+        edtDuration.setText(String.valueOf(item.workoutExercise.durationSeconds));
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(title)
+                .setTitle(item.exercise.title)
                 .setView(view)
                 .setNegativeButton("Abbrechen", null)
                 .setPositiveButton("OK", null)
@@ -300,44 +300,37 @@ public class WorkoutEditFragment extends Fragment {
                 return;
             }
 
-            onConfirm.accept(value);
+            viewModel.changeDuration(item, value);
             dialog.dismiss();
+        });
+
+        view.findViewById(R.id.btnRemove).setOnClickListener(v -> {
+            dialog.dismiss();
+            removeExercise(item);
+        });
+        view.findViewById(R.id.btnEditExercise).setOnClickListener(v -> {
+            dialog.dismiss();
+            openExercise(item);
         });
     }
 
-    private void showDurationDialog(WorkoutExerciseAdapter.ExerciseItem item) {
-        showDurationInputDialog(
-                item.exercise.title,
-                item.workoutExercise.durationSeconds,
-                duration -> viewModel.changeDuration(item, duration));
-    }
-
-    private void showExerciseMenu(WorkoutExerciseAdapter.ExerciseItem item) {
-
-        String[] actions = {
-                "Dauer ändern",
-                "Entfernen"
-        };
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(item.exercise.title)
-                .setItems(actions, (dialog, which) -> {
-
-                    switch (which) {
-                        case 0 -> showDurationDialog(item);
-                        case 1 -> confirmRemoveExercise(item);
-                    }
-                })
+    /** No question first: nothing is saved before "Speichern", and the snackbar undoes it. */
+    private void removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
+        int position = viewModel.removeExercise(item);
+        if (position < 0) return;
+        Snackbar.make(binding.getRoot(),
+                        "„" + item.exercise.title + "“ entfernt", Snackbar.LENGTH_LONG)
+                .setAction("Rückgängig", v -> viewModel.restoreExercise(item, position))
                 .show();
     }
 
-    private void confirmRemoveExercise(WorkoutExerciseAdapter.ExerciseItem item) {
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Übung entfernen?")
-                .setMessage("\"" + item.exercise.title + "\" wird aus diesem Workout entfernt.")
-                .setNegativeButton("Abbrechen", null)
-                .setPositiveButton("Entfernen", (dialog, which) -> viewModel.removeExercise(item))
-                .show();
+    /** Edits the exercise itself, for every workout; this editor's draft waits on the back
+     *  stack and takes the changes over when it returns. */
+    private void openExercise(WorkoutExerciseAdapter.ExerciseItem item) {
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.main, ExerciseEditFragment.edit(item.exercise.id))
+                .addToBackStack(null)
+                .commit();
     }
 }

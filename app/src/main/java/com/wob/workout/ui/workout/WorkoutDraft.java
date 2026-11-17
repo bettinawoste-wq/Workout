@@ -62,8 +62,17 @@ public class WorkoutDraft {
         }
     }
 
-    public void remove(ExerciseItem item) {
-        items.remove(item);
+    /** @return where it was, for {@link #restore}; -1 if it wasn't in the draft */
+    public int remove(ExerciseItem item) {
+        int position = items.indexOf(item);
+        if (position >= 0) items.remove(position);
+        return position;
+    }
+
+    /** Puts a removed workout exercise back where it was, or at the end if the draft has
+     *  since become shorter. */
+    public void restore(ExerciseItem item, int position) {
+        items.add(Math.min(Math.max(position, 0), items.size()), item);
     }
 
     public void changeDuration(ExerciseItem item, int durationSeconds) {

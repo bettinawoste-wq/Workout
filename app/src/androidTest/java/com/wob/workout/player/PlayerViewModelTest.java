@@ -180,6 +180,48 @@ public class PlayerViewModelTest {
     }
 
     @Test
+    public void togglePauseDuringTheTransitionHoldsTheCountdown() throws InterruptedException {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+
+        PlayerTick paused = onMain(() -> {
+            viewModel.togglePause();
+            return viewModel.getTick().getValue();
+        });
+        assertFalse(paused.running);
+        assertEquals(Phase.TRANSITION, paused.phase);
+
+        Thread.sleep(1100);
+        assertSame(paused, onMain(() -> viewModel.getTick().getValue()));
+        assertEquals(Phase.TRANSITION, currentState().phase);
+
+        PlayerTick resumed = onMain(() -> {
+            viewModel.togglePause();
+            return viewModel.getTick().getValue();
+        });
+        assertTrue(resumed.running);
+        assertEquals(Phase.TRANSITION, resumed.phase);
+        assertEquals(paused.remainingMillis, resumed.remainingMillis);
+    }
+
+    @Test
+    public void togglePauseDoesNothingOnceFinished() {
+        finishCurrentPhase(); // READY -> ACTIVE (0)
+        finishCurrentPhase(); // ACTIVE (0) -> TRANSITION (1)
+        finishCurrentPhase(); // TRANSITION -> ACTIVE (1)
+        finishCurrentPhase(); // ACTIVE (1) -> FINISHED
+        PlayerTick before = onMain(() -> viewModel.getTick().getValue());
+
+        PlayerTick after = onMain(() -> {
+            viewModel.togglePause();
+            return viewModel.getTick().getValue();
+        });
+
+        assertSame(before, after);
+        assertEquals(Phase.FINISHED, currentState().phase);
+    }
+
+    @Test
     public void shouldPlayStartSoundReturnsTrueOncePerActiveState() {
         PlayerExerciseState ready = currentState();
         assertFalse(onMain(() -> viewModel.shouldPlayStartSound(ready)));

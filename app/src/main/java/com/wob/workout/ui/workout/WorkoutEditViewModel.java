@@ -139,9 +139,18 @@ public class WorkoutEditViewModel extends ViewModel {
         publish();
     }
 
-    public void removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
-        if (draft == null) return;
-        draft.remove(item);
+    /** @return where it was, for {@link #restoreExercise}; -1 if nothing was removed */
+    public int removeExercise(WorkoutExerciseAdapter.ExerciseItem item) {
+        if (draft == null) return -1;
+        int position = draft.remove(item);
+        publish();
+        return position;
+    }
+
+    /** Undoes {@link #removeExercise}: same place, same duration. */
+    public void restoreExercise(WorkoutExerciseAdapter.ExerciseItem item, int position) {
+        if (draft == null || position < 0) return;
+        draft.restore(item, position);
         publish();
     }
 

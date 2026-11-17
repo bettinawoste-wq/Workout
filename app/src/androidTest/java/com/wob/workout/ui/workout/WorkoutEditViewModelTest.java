@@ -218,6 +218,27 @@ public class WorkoutEditViewModelTest {
     }
 
     @Test
+    public void undoingARemovalPutsTheExerciseBackInItsPlace() throws Exception {
+        long workoutId = testContainer.insertWorkout("Legs");
+        long squatId = testContainer.insertExercise("Squat");
+        long lungeId = testContainer.insertExercise("Lunge");
+        long bridgeId = testContainer.insertExercise("Bridge");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, lungeId, 1, 30);
+        testContainer.insertWorkoutExercise(workoutId, bridgeId, 2, 60);
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        ExerciseItem lunge = getOrAwaitValue(viewModel.getExercises()).get(1);
+
+        int position = viewModel.removeExercise(lunge);
+        List<ExerciseItem> shown =
+                awaitEmissionAfter(viewModel, () -> viewModel.restoreExercise(lunge, position));
+
+        assertTitles(shown, "Squat", "Lunge", "Bridge");
+        assertEquals(30, shown.get(1).workoutExercise.durationSeconds);
+        assertFalse(viewModel.hasUnsavedChanges());
+    }
+
+    @Test
     public void unsavedChangesFollowTheDraft() throws Exception {
         long workoutId = testContainer.insertWorkout("Core");
         long plankId = testContainer.insertExercise("Plank");
