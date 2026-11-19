@@ -452,6 +452,55 @@ public class WorkoutEditViewModelTest {
     }
 
     @Test
+    public void aWorkoutFollowsTheDefaultTransitionUntilItGetsItsOwn() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        container.defaultTransitionSetting.setSeconds(7);
+
+        assertEquals("Standard (7 s)", transitionInFreshEditor(workoutId));
+
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getWorkout());
+        assertEquals(WorkoutDraft.TransitionAnswer.NOT_VALID_SECONDS,
+                viewModel.changeTransition("31"));
+        assertEquals(WorkoutDraft.TransitionAnswer.ACCEPTED, viewModel.changeTransition("12"));
+        assertTrue(getOrAwaitValue(viewModel.getUnsavedChanges()));
+        assertTrue(getOrAwaitValue(viewModel.save()));
+
+        assertEquals("12 s", transitionInFreshEditor(workoutId));
+        container.defaultTransitionSetting.setSeconds(4);
+        assertEquals("12 s", transitionInFreshEditor(workoutId));
+    }
+
+    @Test
+    public void aWorkoutCanGoBackToTheDefaultTransition() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getWorkout());
+        viewModel.changeTransition("12");
+        assertTrue(getOrAwaitValue(viewModel.save()));
+
+        WorkoutEditViewModel again = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(again.getWorkout());
+        again.followDefaultTransition();
+        assertTrue(getOrAwaitValue(again.save()));
+
+        container.defaultTransitionSetting.setSeconds(9);
+        assertEquals("Standard (9 s)", transitionInFreshEditor(workoutId));
+    }
+
+    @Test
+    public void duplicateKeepsTheTransitionChoice() throws Exception {
+        long workoutId = testContainer.insertWorkout("Stretching");
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getWorkout());
+        viewModel.changeTransition("20");
+
+        long copyId = getOrAwaitValue(viewModel.duplicate());
+
+        assertEquals("20 s", transitionInFreshEditor(copyId));
+    }
+
+    @Test
     public void duplicatingANewWorkoutCreatesItFirst() throws Exception {
         long squatId = testContainer.insertExercise("Squat");
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
@@ -501,6 +550,12 @@ public class WorkoutEditViewModelTest {
     }
 
     /** What the editor shows when the workout is opened again, e.g. after leaving it. */
+    private String transitionInFreshEditor(long workoutId) throws InterruptedException {
+        WorkoutEditViewModel fresh = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(fresh.getWorkout());
+        return getOrAwaitValue(fresh.getTransition());
+    }
+
     private String nameInFreshEditor(long workoutId) throws InterruptedException {
         return getOrAwaitValue(new WorkoutEditViewModel(container, workoutId).getWorkout()).name;
     }

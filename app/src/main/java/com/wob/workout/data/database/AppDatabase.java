@@ -1,5 +1,7 @@
 package com.wob.workout.data.database;
 
+import android.database.Cursor;
+
 import androidx.annotation.NonNull;
 import androidx.room.*;
 import androidx.room.migration.Migration;
@@ -25,7 +27,7 @@ import com.wob.workout.data.entity.WorkoutSession;
                 WorkoutSession.class,
                 ExerciseSession.class
         },
-        version = 6,
+        version = 7,
         exportSchema = true
 )
 @TypeConverters(MediaTypeConverter.class)
@@ -124,12 +126,44 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // A workout's transition becomes optional, and every existing workout follows
+            // the default transition (issue #103). SQLite can only drop NOT NULL by building
+            // the table anew; foreign keys are not enforced during a migration, so dropping
+            // the old table leaves the workout exercises that refer to it alone.
+            db.execSQL(
+                    "CREATE TABLE `Workout_new` ("
+                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                            + "`name` TEXT, "
+                            + "`transitionSeconds` INTEGER, "
+                            + "`countdownEnabled` INTEGER NOT NULL)");
+            db.execSQL(
+                    "INSERT INTO `Workout_new` (`id`, `name`, `transitionSeconds`, "
+                            + "`countdownEnabled`) "
+                            + "SELECT `id`, `name`, NULL, `countdownEnabled` FROM `Workout`");
+            // Ids of deleted workouts stay used: the history still refers to them.
+            long lastId = 0;
+            try (Cursor cursor = db.query(
+                    "SELECT `seq` FROM `sqlite_sequence` WHERE `name` = 'Workout'")) {
+                if (cursor.moveToFirst()) lastId = cursor.getLong(0);
+            }
+            db.execSQL("DROP TABLE `Workout`");
+            db.execSQL("ALTER TABLE `Workout_new` RENAME TO `Workout`");
+            db.execSQL("DELETE FROM `sqlite_sequence` WHERE `name` = 'Workout'");
+            db.execSQL("INSERT INTO `sqlite_sequence` (`name`, `seq`) VALUES ('Workout', "
+                    + "MAX(" + lastId + ", (SELECT IFNULL(MAX(`id`), 0) FROM `Workout`)))");
+        }
+    };
+
     /** Every migration, in order. {@link DatabaseProvider} registers exactly these, and
      *  {@code AllMigrationsTest} checks they lead from version 4 to the current schema. */
     public static final Migration[] ALL_MIGRATIONS = {
             MIGRATION_2_3,
             MIGRATION_3_4,
             MIGRATION_4_5,
-            MIGRATION_5_6
+            MIGRATION_5_6,
+            MIGRATION_6_7
     };
 }

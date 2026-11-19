@@ -41,7 +41,8 @@ public class WorkoutRepository {
                 .delete(workout);
     }
 
-    /** Copies the workout and its workout exercises (positions and durations) under
+    /** Copies the workout (its transition choice too) and its workout exercises (positions
+     *  and durations) under
      *  {@code name}, in one transaction. Its history stays with the original.
      *  @return the copy's id. */
     public long duplicate(long id, String name) {
@@ -60,20 +61,23 @@ public class WorkoutRepository {
         });
     }
 
-    /** Saves a workout as the editor leaves it, in one transaction: its name and exactly
-     *  these workout exercises, in this order, in place of the stored ones. Unsaved ones are
+    /** Saves a workout as the editor leaves it, in one transaction: its name, its own
+     *  transition length (null to follow the default transition) and exactly these workout
+     *  exercises, in this order, in place of the stored ones. Unsaved ones are
      *  added; the others keep their row id. Creates the workout if {@code id} is not
      *  positive.
      *  @return the workout's id. */
-    public long saveWithExercises(long id, String name, List<WorkoutExercise> workoutExercises) {
+    public long saveWithExercises(long id, String name, Integer transitionSeconds,
+                                  List<WorkoutExercise> workoutExercises) {
         AppDatabase db = DatabaseProvider.get(context);
         return db.runInTransaction(() -> {
             long workoutId = id;
             if (workoutId > 0) {
-                db.workoutDao().updateName(workoutId, name);
+                db.workoutDao().updateNameAndTransition(workoutId, name, transitionSeconds);
             } else {
                 Workout workout = new Workout();
                 workout.name = name;
+                workout.transitionSeconds = transitionSeconds;
                 workoutId = db.workoutDao().insert(workout);
             }
             db.workoutExerciseDao().deleteByWorkout(workoutId);

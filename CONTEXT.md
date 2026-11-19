@@ -72,11 +72,13 @@ lives in an on-device Room database.
   player, "Duplizieren" in the workout editor), and `showFirst` for the home screen. Fragments
   never touch the `FragmentManager` themselves. Input rules live in drafts and view models, not
   in fragments: the workout draft takes a duration as typed and answers whether it was a valid
-  number of seconds, the exercise editor's view model rejects a missing title, and both
+  number of seconds (and likewise a transition length of 0 to 30 seconds), the exercise editor's view model rejects a missing title, and both
   editors' view models name the workout or exercise in the delete confirmation.
 - **Player**: the rules of a workout session live in `WorkoutSessionEngine`, plain Java
   without Android: the phases (countdown before the first exercise, exercise, transition,
-  finished), next / previous / pause, when it beeps, the remaining time of the whole workout,
+  finished), next / previous / pause, when it beeps (the last 3 seconds before every exercise,
+  reaching back into the running exercise when the transition is shorter; a transition of 0
+  goes straight on), the remaining time of the whole workout,
   which positions are done, and the start / pause / resume / close-out timing of exercise
   sessions. It has two seams (ADR 0005): `SessionTime`, the countdown and clock it runs on
   (`AndroidSessionTime` in the app, a fake in JVM tests), and `SessionHistory`, where it writes
@@ -100,7 +102,11 @@ lives in an on-device Room database.
   `AppContainer` opens, one small class per choice: the design (`ui.settings.DesignSetting`,
   System / Light / Dark, a fresh install follows the system), the player's sound switch
   (`SoundSetting`, issue #71, on by default) and vibration (`VibrationSetting`, off by
-  default). `TestAppContainer` hands the container a test-only file instead (`getSettings()`),
+  default) and the default transition (`DefaultTransitionSetting`, 0 to 30 seconds, 3 on a
+  fresh install). A workout's own transition is optional (`Workout.transitionSeconds`, null
+  means "follows the default"); the workout draft owns that choice, and `PlayerViewModel`
+  resolves it to plain seconds before starting the engine (`DefaultTransitionSetting.resolve`).
+  `TestAppContainer` hands the container a test-only file instead (`getSettings()`),
   emptied on open and close. The **settings screen** (`ui.settings.SettingsFragment` with
   `SettingsViewModel`) is opened from a floating gear button on the home screen through the
   navigator. Its sound switch is the same `SoundSetting` as the player toolbar's. The design is

@@ -2,6 +2,7 @@ package com.wob.workout.ui.workout;
 
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.entity.Exercise;
+import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.ui.ExerciseCount;
 import com.wob.workout.ui.MinutesSeconds;
 
@@ -11,10 +12,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * What the workout editor shows and changes before "Speichern" writes it: the name and the
- * workout exercises in their order, with their durations. Knows whether it differs from
+ * What the workout editor shows and changes before "Speichern" writes it: the name, the
+ * transition choice (its own length or the default transition) and the workout exercises
+ * in their order, with their durations. Knows whether it differs from
  * what was loaded, so leaving can ask before throwing changes away.
  *
  * <p>It owns its workout exercises: they are immutable values, so a change replaces one,
@@ -30,15 +33,24 @@ public class WorkoutDraft {
 
     private final List<WorkoutExercise> workoutExercises;
     private String name;
-    /** What was loaded, to compare against: the trimmed name and {@link #rows()}. */
+    /** The workout's own transition length, or null to follow the default transition. */
+    private Integer transitionSeconds;
+    /** What was loaded, to compare against: the trimmed name, the transition choice and
+     *  {@link #rows()}. */
     private final String loadedName;
+    private final Integer loadedTransitionSeconds;
     private final List<List<Long>> loadedRows;
 
-    /** @param name the stored name, empty for a new workout */
-    public WorkoutDraft(String name, List<WorkoutExercise> workoutExercises) {
+    /** @param name              the stored name, empty for a new workout
+     *  @param transitionSeconds the workout's own transition length, null if it follows
+     *                           the default transition */
+    public WorkoutDraft(String name, Integer transitionSeconds,
+                        List<WorkoutExercise> workoutExercises) {
         this.name = name;
+        this.transitionSeconds = transitionSeconds;
         this.workoutExercises = new ArrayList<>(workoutExercises);
         this.loadedName = name.trim();
+        this.loadedTransitionSeconds = transitionSeconds;
         this.loadedRows = rows();
     }
 
@@ -49,6 +61,49 @@ public class WorkoutDraft {
 
     public void changeName(String name) {
         this.name = name;
+    }
+
+    /** The workout's own transition length, or null while it follows the default
+     *  transition. */
+    public Integer transitionSeconds() {
+        return transitionSeconds;
+    }
+
+    /** What {@link #changeTransition(String)} makes of a typed transition length. */
+    public enum TransitionAnswer {
+        ACCEPTED,
+        /** Not a whole number of seconds from 0 to 30; nothing changed. */
+        NOT_VALID_SECONDS
+    }
+
+    /** Takes the workout's own transition length as typed, e.g. into the transition dialog.
+     *  @return whether it was taken over */
+    public TransitionAnswer changeTransition(String typed) {
+        int seconds;
+        try {
+            seconds = Integer.parseInt(typed.trim());
+        } catch (NumberFormatException e) {
+            return TransitionAnswer.NOT_VALID_SECONDS;
+        }
+        if (seconds < DefaultTransitionSetting.MIN_SECONDS
+                || seconds > DefaultTransitionSetting.MAX_SECONDS) {
+            return TransitionAnswer.NOT_VALID_SECONDS;
+        }
+        transitionSeconds = seconds;
+        return TransitionAnswer.ACCEPTED;
+    }
+
+    /** Lets the workout follow the default transition again ("Standard"). */
+    public void followDefaultTransition() {
+        transitionSeconds = null;
+    }
+
+    /** E.g. "Standard (3 s)" while following the default transition, otherwise "12 s".
+     *  @param defaultSeconds the default transition's current length */
+    public String transitionText(int defaultSeconds) {
+        return transitionSeconds == null
+                ? "Standard (" + defaultSeconds + " s)"
+                : transitionSeconds + " s";
     }
 
     /** Appends the exercises after the existing ones, in the given order (the order they
@@ -137,7 +192,9 @@ public class WorkoutDraft {
     }
 
     public boolean hasUnsavedChanges() {
-        return !name.trim().equals(loadedName) || !rows().equals(loadedRows);
+        return !name.trim().equals(loadedName)
+                || !Objects.equals(transitionSeconds, loadedTransitionSeconds)
+                || !rows().equals(loadedRows);
     }
 
     /** The exercises' durations added up, without the transitions, so it matches the

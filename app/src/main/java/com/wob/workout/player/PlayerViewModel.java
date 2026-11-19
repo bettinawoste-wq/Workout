@@ -117,10 +117,12 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
     private void load(AppContainer container, long workoutId) {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             Workout workout = container.workoutRepository.getById(workoutId);
+            // The workout's own transition, otherwise the default transition as it is now.
             return new Loaded(
                     container.workoutRepository.getWorkoutExercises(workoutId),
                     workout != null ? workout.name : null,
-                    (workout != null ? workout : new Workout()).transitionSeconds);
+                    container.defaultTransitionSetting.resolve(
+                            workout != null ? workout.transitionSeconds : null));
         }, () -> !cleared, loaded -> {
             if (loaded == null) return;
             engine.start(workoutId, loaded.workoutName, loaded.exercises,

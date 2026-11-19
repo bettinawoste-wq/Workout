@@ -28,7 +28,7 @@ public class WorkoutDraftTest {
             stored.add(stored(i + 1, "Übung " + i, 60));
         }
 
-        WorkoutDraft draft = new WorkoutDraft("Ganzkörper", stored);
+        WorkoutDraft draft = new WorkoutDraft("Ganzkörper", null, stored);
 
         assertEquals(600, draft.totalSeconds());
         assertEquals("10 Übungen · 10:00", draft.summaryText());
@@ -182,7 +182,7 @@ public class WorkoutDraftTest {
 
     @Test
     public void aNewWorkoutHasUnsavedChangesOnlyOnceSomethingIsEntered() {
-        WorkoutDraft draft = new WorkoutDraft("", new ArrayList<>());
+        WorkoutDraft draft = new WorkoutDraft("", null, new ArrayList<>());
         assertFalse(draft.hasUnsavedChanges());
 
         draft.changeName("   ");
@@ -271,6 +271,77 @@ public class WorkoutDraftTest {
         assertTitles(draft, "Squat", "Lunge");
     }
 
+    // Transition.
+
+    @Test
+    public void aWorkoutWithoutItsOwnTransitionShowsTheDefault() {
+        WorkoutDraft draft = legDay();
+
+        assertNull(draft.transitionSeconds());
+        assertEquals("Standard (3 s)", draft.transitionText(3));
+        assertEquals("Standard (0 s)", draft.transitionText(0));
+    }
+
+    @Test
+    public void aWorkoutsOwnTransitionShowsItsLength() {
+        WorkoutDraft draft = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+
+        assertEquals(Integer.valueOf(12), draft.transitionSeconds());
+        assertEquals("12 s", draft.transitionText(3));
+    }
+
+    @Test
+    public void aTransitionAsTypedIsAcceptedFromZeroToThirtySeconds() {
+        WorkoutDraft draft = legDay();
+
+        assertEquals(WorkoutDraft.TransitionAnswer.ACCEPTED, draft.changeTransition(" 0 "));
+        assertEquals(Integer.valueOf(0), draft.transitionSeconds());
+
+        assertEquals(WorkoutDraft.TransitionAnswer.ACCEPTED, draft.changeTransition("30"));
+        assertEquals(Integer.valueOf(30), draft.transitionSeconds());
+    }
+
+    @Test
+    public void aTransitionOutsideZeroToThirtySecondsIsRejectedAndChangesNothing() {
+        WorkoutDraft draft = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+
+        for (String typed : new String[] {"31", "-1", "", "2.5", "drei"}) {
+            assertEquals(typed, WorkoutDraft.TransitionAnswer.NOT_VALID_SECONDS,
+                    draft.changeTransition(typed));
+        }
+
+        assertEquals(Integer.valueOf(12), draft.transitionSeconds());
+        assertFalse(draft.hasUnsavedChanges());
+    }
+
+    @Test
+    public void aWorkoutCanGoBackToTheDefaultTransition() {
+        WorkoutDraft draft = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+
+        draft.followDefaultTransition();
+
+        assertNull(draft.transitionSeconds());
+        assertEquals("Standard (5 s)", draft.transitionText(5));
+    }
+
+    @Test
+    public void theTransitionChoiceIsAnUnsavedChangeUntilItIsChangedBack() {
+        WorkoutDraft draft = legDay();
+
+        draft.changeTransition("3");
+        assertTrue("own 3 s is not the default, even at the same length",
+                draft.hasUnsavedChanges());
+
+        draft.followDefaultTransition();
+        assertFalse(draft.hasUnsavedChanges());
+
+        WorkoutDraft own = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+        own.followDefaultTransition();
+        assertTrue(own.hasUnsavedChanges());
+        own.changeTransition("12");
+        assertFalse(own.hasUnsavedChanges());
+    }
+
     private static void assertTitles(WorkoutDraft draft, String... expectedTitles) {
         List<String> titles = new ArrayList<>();
         for (WorkoutExercise workoutExercise : draft.workoutExercises()) {
@@ -287,7 +358,7 @@ public class WorkoutDraftTest {
     }
 
     private static WorkoutDraft legDay() {
-        return new WorkoutDraft("Leg Day",
+        return new WorkoutDraft("Leg Day", null,
                 Arrays.asList(stored(1, "Squat", 45), stored(2, "Lunge", 30)));
     }
 

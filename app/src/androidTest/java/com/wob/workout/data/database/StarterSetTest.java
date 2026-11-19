@@ -107,7 +107,7 @@ public class StarterSetTest {
         assertEquals(1, workouts.size());
         Workout workout = workouts.get(0);
         assertEquals(resources.getString(R.string.starter_workout_name), workout.name);
-        assertEquals(new Workout().transitionSeconds, workout.transitionSeconds);
+        assertNull(workout.transitionSeconds);
         assertEquals(new Workout().countdownEnabled, workout.countdownEnabled);
     }
 

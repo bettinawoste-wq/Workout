@@ -9,6 +9,7 @@ import com.wob.workout.data.repository.WorkoutHistoryRepository;
 import com.wob.workout.data.repository.WorkoutRepository;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
 import com.wob.workout.media.ExerciseThumbnails;
+import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.SoundSetting;
 import com.wob.workout.player.VibrationSetting;
 import com.wob.workout.ui.settings.DesignSetting;
@@ -47,6 +48,7 @@ public class AppContainer {
     public final SoundSetting soundSetting;
     public final VibrationSetting vibrationSetting;
     public final DesignSetting designSetting;
+    public final DefaultTransitionSetting defaultTransitionSetting;
 
     public AppContainer(Context appContext) {
         this(appContext, appContext.getSharedPreferences(SETTINGS_FILE, Context.MODE_PRIVATE));
@@ -59,6 +61,7 @@ public class AppContainer {
         soundSetting = new SoundSetting(settings);
         vibrationSetting = new VibrationSetting(settings);
         designSetting = new DesignSetting(settings);
+        defaultTransitionSetting = new DefaultTransitionSetting(settings);
 
         thumbnails = new ExerciseThumbnails(appContext, mediaExecutor);
 

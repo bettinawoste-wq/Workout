@@ -54,6 +54,16 @@ public class SettingsFragment extends Fragment {
         binding.switchVibration.setOnCheckedChangeListener(
                 (button, checked) -> viewModel.setVibrationOn(checked));
 
+        viewModel.getDefaultTransitionSeconds().observe(getViewLifecycleOwner(), seconds -> {
+            binding.txtDefaultTransition.setText(getString(R.string.sekunden_kurz, seconds));
+            if (binding.sliderDefaultTransition.getValue() != seconds) {
+                binding.sliderDefaultTransition.setValue(seconds);
+            }
+        });
+        binding.sliderDefaultTransition.addOnChangeListener((slider, value, fromUser) -> {
+            if (fromUser) viewModel.setDefaultTransitionSeconds(Math.round(value));
+        });
+
         return binding.getRoot();
     }
 

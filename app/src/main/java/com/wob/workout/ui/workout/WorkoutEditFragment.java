@@ -143,6 +143,12 @@ public class WorkoutEditFragment extends Fragment {
                     binding.emptyState, workoutExercises.isEmpty(), binding.btnAddExercise);
         });
         viewModel.getSummary().observe(getViewLifecycleOwner(), binding.txtSummary::setText);
+        viewModel.getTransition().observe(getViewLifecycleOwner(), text -> {
+            binding.btnTransition.setText(text);
+            binding.btnTransition.setContentDescription(
+                    getString(R.string.uebergang) + ": " + text);
+        });
+        binding.btnTransition.setOnClickListener(v -> showTransitionDialog());
 
         // Not just the first creation: this Fragment can sit on the back stack while the
         // user edits or deletes an Exercise from the catalog on a different screen, so the
@@ -293,6 +299,37 @@ public class WorkoutEditFragment extends Fragment {
         view.findViewById(R.id.btnEditExercise).setOnClickListener(v -> {
             dialog.dismiss();
             openExercise(workoutExercise.exerciseId());
+        });
+    }
+
+    /** The workout's own transition length, ready to change, or "Standard" to follow the
+     *  default transition again. */
+    private void showTransitionDialog() {
+        View view = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_transition_input, null, false);
+        TextInputEditText edtTransition = view.findViewById(R.id.edtTransition);
+        edtTransition.setText(String.valueOf(viewModel.transitionSecondsToEdit()));
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.uebergang)
+                .setView(view)
+                .setNeutralButton(R.string.standard,
+                        (d, which) -> viewModel.followDefaultTransition())
+                .setNegativeButton("Abbrechen", null)
+                .setPositiveButton("OK", null)
+                .show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String typed =
+                    edtTransition.getText() != null ? edtTransition.getText().toString() : "";
+            if (viewModel.changeTransition(typed)
+                    == WorkoutDraft.TransitionAnswer.NOT_VALID_SECONDS) {
+                Snackbar.make(binding.getRoot(),
+                        "Bitte 0 bis 30 Sekunden eingeben",
+                        Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            dialog.dismiss();
         });
     }
 

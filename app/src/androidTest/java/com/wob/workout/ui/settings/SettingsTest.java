@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.TestAppContainer;
+import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.VibrationSetting;
 
 import org.junit.After;
@@ -16,7 +17,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /** The app-wide choices of the settings screen (issue #102), on the test container's
- *  preferences file: each one's default on a fresh install, and that it persists. */
+ *  preferences file: each one's default on a fresh install, and that it persists; the
+ *  default transition (issue #103) too. */
 @RunWith(AndroidJUnit4.class)
 public class SettingsTest {
 
@@ -61,5 +63,32 @@ public class SettingsTest {
 
         container.vibrationSetting.setOn(false);
         assertFalse(new VibrationSetting(testContainer.getSettings()).isOn());
+    }
+
+    @Test
+    public void theDefaultTransitionLastsThreeSecondsOnAFreshInstall() {
+        assertEquals(3, container.defaultTransitionSetting.getSeconds());
+    }
+
+    @Test
+    public void theDefaultTransitionIsRememberedAcrossRestartsFromZeroToThirtySeconds() {
+        for (int seconds : new int[] {0, 30, 12}) {
+            container.defaultTransitionSetting.setSeconds(seconds);
+
+            assertEquals(seconds,
+                    new DefaultTransitionSetting(testContainer.getSettings()).getSeconds());
+        }
+    }
+
+    @Test
+    public void changingTheDefaultChangesEveryWorkoutWithoutItsOwnTransition() {
+        container.defaultTransitionSetting.setSeconds(8);
+        assertEquals(8, container.defaultTransitionSetting.resolve(null));
+        assertEquals(12, container.defaultTransitionSetting.resolve(12));
+        assertEquals(0, container.defaultTransitionSetting.resolve(0));
+
+        container.defaultTransitionSetting.setSeconds(0);
+        assertEquals(0, container.defaultTransitionSetting.resolve(null));
+        assertEquals(12, container.defaultTransitionSetting.resolve(12));
     }
 }

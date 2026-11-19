@@ -19,7 +19,7 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
 - **Workouts** — a named, ordered list of exercises with a duration each, reordered by drag and
   drop, kept as a draft until "Speichern" (leaving asks before discarding changes), duplicable,
   and shown with a thumbnail of every exercise.
-- **Player** — countdowns, a soft start tone, a 3-second transition that beeps 3-2-1, the coming exercise darkened, skip and
+- **Player** — countdowns, a soft start tone, a transition of 0 to 30 seconds (a default in the settings, or the workout's own) with 3-2-1 beeps before every exercise, the coming exercise darkened, skip and
   back; a bar of exercise time left in the workout; a chime and a summary of total time and skipped exercises.
 - **History** — every workout session, completed or aborted, with planned vs. actual duration per
   exercise; browse and delete sessions, which survive deleting the workout they were recorded against.

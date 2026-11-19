@@ -11,8 +11,10 @@ public class Workout {
 
     public String name;
 
-    /** 3 for every workout; {@code AppDatabase.MIGRATION_5_6} set existing ones to it. */
-    public int transitionSeconds = 3;
+    /** The workout's own transition length, or null to follow the default transition
+     *  ({@code DefaultTransitionSetting}); {@code AppDatabase.MIGRATION_6_7} made every
+     *  existing workout follow it. */
+    public Integer transitionSeconds;
 
     public boolean countdownEnabled = true;
 }

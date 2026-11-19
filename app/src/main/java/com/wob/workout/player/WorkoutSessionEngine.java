@@ -9,9 +9,10 @@ import java.util.Set;
 
 /**
  * The rules of one workout session, without Android: the phases (a countdown before the
- * first exercise, the exercises, a transition between two of them, finished), stepping and
- * pausing, when it beeps, how much of the whole workout is left, which positions are done,
- * and the timing of its exercise sessions. Runs on {@link SessionTime} and writes to
+ * first exercise, the exercises, a transition between two of them unless it lasts 0
+ * seconds, finished), stepping and pausing, when it beeps (the last 3 seconds before every
+ * exercise), how much of the whole workout is left, which positions are done, and the
+ * timing of its exercise sessions. Runs on {@link SessionTime} and writes to
  * {@link SessionHistory}; what goes on is reported to its {@link Listener} as a
  * {@link SessionState}, and each sound once, when it is due.
  *
@@ -23,7 +24,7 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     /** The countdown before the first exercise. */
     static final long COUNTDOWN_MILLIS = 3000;
 
-    /** The last seconds of a countdown or transition beep, one beep each. */
+    /** The last seconds before every exercise starts beep, one beep each. */
     private static final int BEEP_SECONDS = 3;
 
     public interface Listener {
@@ -145,7 +146,11 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
                     finish();
                 } else {
                     index++;
-                    enter(SessionState.Phase.TRANSITION, transitionMillis);
+                    if (transitionMillis > 0) {
+                        enter(SessionState.Phase.TRANSITION, transitionMillis);
+                    } else {
+                        beginExercise(true);
+                    }
                 }
                 break;
             case FINISHED:
@@ -178,7 +183,8 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     private void enter(SessionState.Phase phase, long millis) {
         this.phase = phase;
         scene++;
-        lastBeepSecond = -1;
+        // A transition goes on with the beeps the exercise before it began.
+        if (phase != SessionState.Phase.TRANSITION) lastBeepSecond = -1;
         time.start(millis, this);
         publish(millis);
         beepIfDue(millis);
@@ -223,14 +229,26 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
                 workoutRemainingMillis(millisLeft), totalMillis, null));
     }
 
-    /** Beeps count down into every exercise: in the countdown before the first one and in
-     *  the transition before each of the others, once for each of the last three seconds,
-     *  however often a second is reported. An exercise's own last seconds stay quiet. */
+    /** Beeps count down into every exercise, once for each of the last three seconds before
+     *  it starts, however often a second is reported: in the countdown before the first one,
+     *  and before each of the others in the transition, reaching back into the exercise
+     *  before when the transition is shorter. The last exercise's own last seconds stay
+     *  quiet. */
     private void beepIfDue(long millisLeft) {
-        if (phase != SessionState.Phase.READY && phase != SessionState.Phase.TRANSITION) {
-            return;
+        long untilNextExercise;
+        switch (phase) {
+            case READY:
+            case TRANSITION:
+                untilNextExercise = millisLeft;
+                break;
+            case ACTIVE:
+                if (index >= exercises.size() - 1) return;
+                untilNextExercise = millisLeft + transitionMillis;
+                break;
+            default:
+                return;
         }
-        long second = (millisLeft + 999) / 1000;
+        long second = (untilNextExercise + 999) / 1000;
         if (second <= BEEP_SECONDS && second > 0 && second != lastBeepSecond) {
             lastBeepSecond = second;
             listener.onSound(PlayerSound.BEEP);

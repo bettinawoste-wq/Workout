@@ -23,6 +23,29 @@
             android:layout_height="wrap_content"
             android:hint="Name"/>
 
+        <!-- The workout's transition: "Standard (3 s)" or its own length; tap to change. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:labelFor="@id/btnTransition"
+                android:text="@string/uebergang"
+                android:textStyle="bold"/>
+
+            <Button
+                android:id="@+id/btnTransition"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

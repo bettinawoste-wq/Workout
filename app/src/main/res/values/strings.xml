@@ -45,4 +45,9 @@
     <string name="player">Player</string>
     <string name="ton">Ton</string>
     <string name="vibration">Vibration</string>
+    <string name="standard_uebergang">Standard-Übergang</string>
+    <string name="uebergang">Übergang</string>
+    <string name="sekunden_kurz">%d s</string>
+    <string name="uebergang_in_sekunden">Übergang in Sekunden (0–30)</string>
+    <string name="standard">Standard</string>
 </resources>

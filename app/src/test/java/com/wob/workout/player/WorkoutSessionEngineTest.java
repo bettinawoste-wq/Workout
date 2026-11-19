@@ -28,6 +28,8 @@ public class WorkoutSessionEngineTest {
     private final RecordedHistory history = new RecordedHistory();
     private final List<SessionState> states = new ArrayList<>();
     private final List<PlayerSound> sounds = new ArrayList<>();
+    /** When each beep sounded, on {@link #time}'s clock. */
+    private final List<Long> beepTimes = new ArrayList<>();
     private int nothingToPlay;
     private final WorkoutSessionEngine.Listener listener = new WorkoutSessionEngine.Listener() {
         @Override
@@ -38,6 +40,7 @@ public class WorkoutSessionEngineTest {
         @Override
         public void onSound(PlayerSound sound) {
             sounds.add(sound);
+            if (sound == PlayerSound.BEEP) beepTimes.add(time.now());
         }
 
         @Override
@@ -230,11 +233,55 @@ public class WorkoutSessionEngineTest {
     }
 
     @Test
-    public void anExercisesOwnLastSecondsStayQuiet() {
+    public void aTransitionOfZeroGoesStraightToTheNextExercise() {
+        startOther(0, 10, 10);
+        time.advance(3000 + 10_000);
+
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals(1, state().position);
+        assertEquals(10_000, state().millisLeft);
+        assertEquals(2, count(PlayerSound.START));
+        for (SessionState state : states) assertTrue(state.phase != Phase.TRANSITION);
+    }
+
+    @Test
+    public void theLastThreeSecondsBeforeEveryExerciseBeepWhateverTheTransition() {
+        for (int transitionSeconds : new int[] {0, 1, 2, 3, 5}) {
+            assertEquals("transition " + transitionSeconds,
+                    Arrays.asList(-3000L, -2000L, -1000L),
+                    beepsBeforeTheSecondExercise(transitionSeconds));
+        }
+    }
+
+    @Test
+    public void theCountdownBeforeTheFirstExerciseStaysAsItWas() {
+        startOther(0, 10, 10);
+        long start = time.now();
+
         time.advance(3000);
+
+        assertEquals(Arrays.asList(start, start + 1000, start + 2000), beepTimes);
+    }
+
+    @Test
+    public void anExerciseShorterThanTheBeepsBeepsForWhatItHas() {
+        startOther(0, 10, 2, 10);
+        long secondStarts = time.now() + 3000 + 10_000;
+        time.advance(3000 + 9_999);
+        int before = beepTimes.size();
+
+        time.advance(1 + 2000);
+
+        assertEquals(Arrays.asList(secondStarts, secondStarts + 1000),
+                beepTimes.subList(before, beepTimes.size()));
+    }
+
+    @Test
+    public void theLastExercisesOwnLastSecondsStayQuiet() {
+        time.advance(3000 + 60_000 + 3000);
         int before = beeps();
 
-        time.advance(59_999);
+        time.advance(30_000);
 
         assertEquals(before, beeps());
     }
@@ -489,12 +536,32 @@ public class WorkoutSessionEngineTest {
         engine.close();
         states.clear();
         sounds.clear();
+        beepTimes.clear();
         List<WorkoutExercise> workoutExercises = new ArrayList<>();
         for (int i = 0; i < seconds.length; i++) {
             workoutExercises.add(workoutExercise(10 + i, "Übung " + i, seconds[i]));
         }
         engine = new WorkoutSessionEngine(time, new RecordedHistory(), listener);
         engine.start(WORKOUT_ID, "Other", workoutExercises, transitionSeconds);
+    }
+
+    /** Runs a workout of two 10-second exercises with this transition up to the second
+     *  exercise's start and gives the beeps after the countdown, relative to that start. */
+    private List<Long> beepsBeforeTheSecondExercise(int transitionSeconds) {
+        startOther(transitionSeconds, 10, 10);
+        long secondStarts = time.now() + 3000 + 10_000 + transitionSeconds * 1000L;
+        time.advance(3000);
+        int afterCountdown = beepTimes.size();
+
+        time.advance(10_000 + transitionSeconds * 1000L);
+
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals(1, state().position);
+        List<Long> relative = new ArrayList<>();
+        for (long beepTime : beepTimes.subList(afterCountdown, beepTimes.size())) {
+            relative.add(beepTime - secondStarts);
+        }
+        return relative;
     }
 
     private SessionState state() {
