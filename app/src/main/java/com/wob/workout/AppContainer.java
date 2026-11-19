@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.wob.workout.data.repository.ExerciseRepository;
+import com.wob.workout.data.repository.WeeklyGoalRepository;
 import com.wob.workout.data.repository.WorkoutExerciseRepository;
 import com.wob.workout.data.repository.WorkoutHistoryRepository;
 import com.wob.workout.data.repository.WorkoutRepository;
@@ -33,6 +34,7 @@ public class AppContainer {
     public final WorkoutExerciseRepository workoutExerciseRepository;
     public final WorkoutSummaryRepository workoutSummaryRepository;
     public final WorkoutHistoryRepository workoutHistoryRepository;
+    public final WeeklyGoalRepository weeklyGoalRepository;
 
     /** Single background thread for all Room access — see wayfinder ticket #2.
      *  <b>Must stay single-threaded:</b> {@code DatabaseSessionHistory} relies on it to run
@@ -70,5 +72,6 @@ public class AppContainer {
         workoutExerciseRepository = new WorkoutExerciseRepository(appContext);
         workoutSummaryRepository = new WorkoutSummaryRepository(appContext);
         workoutHistoryRepository = new WorkoutHistoryRepository(appContext);
+        weeklyGoalRepository = new WeeklyGoalRepository(appContext);
     }
 }

@@ -10,7 +10,7 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
 
 | Home | Workout editor | Player | History | History detail | Settings |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| <img src="docs/screenshots/home.png" width="190" alt="Home screen"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout, with a rest before its last exercise"> | <img src="docs/screenshots/player.png" width="190" alt="Player during a rest, previewing the next exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> | <img src="docs/screenshots/history-detail.png" width="190" alt="A completed session with its exercises and rest time"> | <img src="docs/screenshots/settings.png" width="190" alt="Settings with design, sound and vibration"> |
+| <img src="docs/screenshots/home.png" width="190" alt="Home screen with the week's progress and streak"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout, with a rest before its last exercise"> | <img src="docs/screenshots/player.png" width="190" alt="Player during a rest, previewing the next exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> | <img src="docs/screenshots/history-detail.png" width="190" alt="A completed session with its exercises and rest time"> | <img src="docs/screenshots/settings.png" width="190" alt="Settings with design, sound, vibration, default transition and weekly goal"> |
 
 ## Features
 
@@ -27,7 +27,8 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
 - **Starter set** — a fresh install comes with 10 bodyweight exercises and a full-body workout at one
   minute per exercise; afterwards they are ordinary data you can edit or delete.
 - **Settings** — a gear button on the home screen opens them: the design (System, Light or Dark,
-  applied at once), the player's sound switch, and vibration at every sound, one pattern per sound.
+  applied at once), the player's sound switch, and vibration at every sound, one pattern per sound;
+  a weekly goal of training days, shown on the home screen as "2 / 3 diese Woche · Serie: 4 Wochen".
 - **Design** — Material 3 with a petrol palette, light or dark as the system or the settings say.
 
 ## Architecture

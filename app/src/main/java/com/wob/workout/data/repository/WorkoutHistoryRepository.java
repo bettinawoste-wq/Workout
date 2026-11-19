@@ -102,6 +102,11 @@ public class WorkoutHistoryRepository {
         return result;
     }
 
+    /** Every workout session, aborted ones included, kept live. */
+    public LiveData<List<WorkoutSession>> observeSessions() {
+        return database.workoutSessionDao().observeAll();
+    }
+
     public WorkoutSession getSession(long sessionId) {
         return database.workoutSessionDao().getById(sessionId);
     }

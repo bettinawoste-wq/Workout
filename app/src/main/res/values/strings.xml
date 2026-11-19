@@ -52,4 +52,16 @@
     <string name="standard">Standard</string>
     <string name="pause">Pause</string>
     <string name="wird_uebersprungen">wird übersprungen</string>
+    <string name="training">Training</string>
+    <string name="wochenziel">Wochenziel</string>
+    <string name="kein_wochenziel">Kein Ziel</string>
+    <plurals name="trainingstage_pro_woche">
+        <item quantity="one">%d Trainingstag pro Woche</item>
+        <item quantity="other">%d Trainingstage pro Woche</item>
+    </plurals>
+    <string name="wochenfortschritt">%1$d / %2$d diese Woche · Serie: %3$s</string>
+    <plurals name="wochen">
+        <item quantity="one">%d Woche</item>
+        <item quantity="other">%d Wochen</item>
+    </plurals>
 </resources>

@@ -2,12 +2,14 @@ package com.wob.workout.ui.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.TestAppContainer;
+import com.wob.workout.data.entity.WeeklyGoalChange;
 import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.VibrationSetting;
 
@@ -16,11 +18,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.TimeZone;
+
 /** The app-wide choices of the settings screen (issue #102), on the test container's
  *  preferences file: each one's default on a fresh install, and that it persists; the
- *  default transition (issue #103) too. */
+ *  default transition (issue #103) too. The weekly goal (issue #105) lives in the
+ *  in-memory database, with its history of changes. */
 @RunWith(AndroidJUnit4.class)
 public class SettingsTest {
+
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
 
     private TestAppContainer testContainer;
     private AppContainer container;
@@ -90,5 +100,55 @@ public class SettingsTest {
         container.defaultTransitionSetting.setSeconds(0);
         assertEquals(0, container.defaultTransitionSetting.resolve(null));
         assertEquals(12, container.defaultTransitionSetting.resolve(12));
+    }
+
+    @Test
+    public void thereIsNoWeeklyGoalOnAFreshInstall() {
+        assertNull(container.weeklyGoalRepository.getGoal(at(2026, 11, 18), zone()));
+        assertTrue(container.weeklyGoalRepository.getChanges().isEmpty());
+    }
+
+    @Test
+    public void settingChangingAndRemovingTheWeeklyGoalRecordsEachWithItsWeek() {
+        // Wednesday 4, Thursday 12 and Monday 16 November 2026, in three weeks in a row.
+        container.weeklyGoalRepository.setGoal(3, at(2026, 11, 4), zone());
+        container.weeklyGoalRepository.setGoal(4, at(2026, 11, 12), zone());
+        container.weeklyGoalRepository.setGoal(null, at(2026, 11, 16), zone());
+
+        List<WeeklyGoalChange> changes = container.weeklyGoalRepository.getChanges();
+        assertEquals(3, changes.size());
+        assertChange(changes.get(0), 2026, 11, 2, 3);
+        assertChange(changes.get(1), 2026, 11, 9, 4);
+        assertChange(changes.get(2), 2026, 11, 16, null);
+        assertEquals(Integer.valueOf(4),
+                container.weeklyGoalRepository.getGoal(at(2026, 11, 15), zone()));
+        assertNull(container.weeklyGoalRepository.getGoal(at(2026, 11, 18), zone()));
+    }
+
+    @Test
+    public void aSecondChangeInTheSameWeekReplacesTheFirst() {
+        container.weeklyGoalRepository.setGoal(2, at(2026, 11, 2), zone());
+        container.weeklyGoalRepository.setGoal(3, at(2026, 11, 16), zone());
+        container.weeklyGoalRepository.setGoal(5, at(2026, 11, 22), zone());
+
+        List<WeeklyGoalChange> changes = container.weeklyGoalRepository.getChanges();
+        assertEquals(2, changes.size());
+        assertChange(changes.get(1), 2026, 11, 16, 5);
+    }
+
+    private static void assertChange(WeeklyGoalChange change, int year, int month,
+            int monday, Integer trainingDays) {
+        assertEquals(LocalDateTime.of(year, month, monday, 0, 0).toLocalDate().toEpochDay(),
+                change.weekStartDay);
+        assertEquals(trainingDays, change.trainingDays);
+    }
+
+    private static long at(int year, int month, int day) {
+        return LocalDateTime.of(year, month, day, 12, 0).atZone(BERLIN).toInstant()
+                .toEpochMilli();
+    }
+
+    private static TimeZone zone() {
+        return TimeZone.getTimeZone(BERLIN);
     }
 }

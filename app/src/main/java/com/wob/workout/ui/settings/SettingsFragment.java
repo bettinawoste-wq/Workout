@@ -29,6 +29,7 @@ public class SettingsFragment extends Fragment {
         ScreenToolbar.setUp(this, binding.toolbar);
         ViewCompat.setAccessibilityHeading(binding.txtAppearanceHeading, true);
         ViewCompat.setAccessibilityHeading(binding.txtPlayerHeading, true);
+        ViewCompat.setAccessibilityHeading(binding.txtTrainingHeading, true);
 
         AppContainer appContainer =
                 ((WorkoutApplication) requireActivity().getApplication()).getAppContainer();
@@ -62,6 +63,22 @@ public class SettingsFragment extends Fragment {
         });
         binding.sliderDefaultTransition.addOnChangeListener((slider, value, fromUser) -> {
             if (fromUser) viewModel.setDefaultTransitionSeconds(Math.round(value));
+        });
+
+        viewModel.getWeeklyGoal().observe(getViewLifecycleOwner(), trainingDays -> {
+            binding.txtWeeklyGoal.setText(trainingDays == null
+                    ? getString(R.string.kein_wochenziel)
+                    : getResources().getQuantityString(
+                            R.plurals.trainingstage_pro_woche, trainingDays, trainingDays));
+            int value = trainingDays == null ? 0 : trainingDays;
+            if (binding.sliderWeeklyGoal.getValue() != value) {
+                binding.sliderWeeklyGoal.setValue(value);
+            }
+        });
+        binding.sliderWeeklyGoal.addOnChangeListener((slider, value, fromUser) -> {
+            if (!fromUser) return;
+            int trainingDays = Math.round(value);
+            viewModel.setWeeklyGoal(trainingDays == 0 ? null : trainingDays);
         });
 
         return binding.getRoot();

@@ -1,31 +1,28 @@
 package com.wob.workout.data.database;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import androidx.room.Room;
+import android.database.Cursor;
+
 import androidx.room.testing.MigrationTestHelper;
 import androidx.sqlite.db.SupportSQLiteDatabase;
-import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import com.wob.workout.data.entity.WorkoutExerciseRow;
-import com.wob.workout.data.entity.WorkoutSession;
-
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Creates a version 7 database from its exported schema, migrates it with
- * {@link AppDatabase#MIGRATION_7_8}, and lets Room validate the result against the version 8
- * schema before the DAOs read it.
+ * {@link AppDatabase#MIGRATION_7_8}, lets Room validate the result against the version 8
+ * schema and reads it as stored then (the database has since moved on, see
+ * {@link Migration8To9Test}).
  */
 @RunWith(AndroidJUnit4.class)
 public class Migration7To8Test {
@@ -36,82 +33,93 @@ public class Migration7To8Test {
     public final MigrationTestHelper helper = new MigrationTestHelper(
             InstrumentationRegistry.getInstrumentation(), AppDatabase.class);
 
-    private AppDatabase database;
+    private SupportSQLiteDatabase db;
 
     @Before
     public void setUp() throws IOException {
-        try (SupportSQLiteDatabase db = helper.createDatabase(DB_NAME, 7)) {
-            db.execSQL("INSERT INTO `Exercise` (`id`, `title`) VALUES (1, 'Squat')");
-            db.execSQL("INSERT INTO `Exercise` (`id`, `title`) VALUES (2, 'Lunge')");
-            db.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`) "
+        try (SupportSQLiteDatabase old = helper.createDatabase(DB_NAME, 7)) {
+            old.execSQL("INSERT INTO `Exercise` (`id`, `title`) VALUES (1, 'Squat')");
+            old.execSQL("INSERT INTO `Exercise` (`id`, `title`) VALUES (2, 'Lunge')");
+            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`) "
                     + "VALUES (1, 'Leg Day', 1)");
-            db.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`, "
+            old.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`, "
                     + "`position`, `durationSeconds`) VALUES (10, 1, 2, 1, 30)");
-            db.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`, "
+            old.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`, "
                     + "`position`, `durationSeconds`) VALUES (11, 1, 1, 0, 45)");
-            db.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`, "
+            old.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`, "
                     + "`startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`) "
                     + "VALUES (1, 1, 'Leg Day', 1000, 2000, 75, 1)");
         }
-        helper.runMigrationsAndValidate(DB_NAME, 8, true, AppDatabase.MIGRATION_7_8).close();
+        db = helper.runMigrationsAndValidate(DB_NAME, 8, true, AppDatabase.MIGRATION_7_8);
+    }
 
-        database = Room.databaseBuilder(
-                        ApplicationProvider.getApplicationContext(), AppDatabase.class, DB_NAME)
-                .addMigrations(AppDatabase.MIGRATION_7_8)
-                .allowMainThreadQueries()
-                .build();
-        helper.closeWhenFinished(database);
+    @After
+    public void tearDown() throws IOException {
+        db.close();
     }
 
     @Test
     public void existingPlacesKeepTheirExerciseIdAndOrder() {
-        List<WorkoutExerciseRow> rows = database.workoutExerciseDao().getByWorkout(1);
-
-        assertEquals(2, rows.size());
-        assertEquals(11, rows.get(0).id);
-        assertEquals(Long.valueOf(1), rows.get(0).exerciseId);
-        assertEquals(45, rows.get(0).durationSeconds);
-        assertEquals(10, rows.get(1).id);
-        assertEquals(Long.valueOf(2), rows.get(1).exerciseId);
+        try (Cursor cursor = places()) {
+            assertEquals(2, cursor.getCount());
+            cursor.moveToNext();
+            assertEquals(11, cursor.getLong(0));
+            assertEquals(1, cursor.getLong(1));
+            assertEquals(45, cursor.getInt(2));
+            cursor.moveToNext();
+            assertEquals(10, cursor.getLong(0));
+            assertEquals(2, cursor.getLong(1));
+        }
     }
 
     @Test
     public void aPlaceCanNowBeARestWithoutAnExercise() {
-        WorkoutExerciseRow rest = new WorkoutExerciseRow();
-        rest.workoutId = 1;
-        rest.exerciseId = null;
-        rest.position = 2;
-        rest.durationSeconds = 30;
-        database.workoutExerciseDao().insert(rest);
+        insertRest();
 
-        List<WorkoutExerciseRow> rows = database.workoutExerciseDao().getByWorkout(1);
-        assertEquals(3, rows.size());
-        assertNull(rows.get(2).exerciseId);
-        assertEquals(30, rows.get(2).durationSeconds);
+        try (Cursor cursor = places()) {
+            assertEquals(3, cursor.getCount());
+            cursor.moveToLast();
+            assertTrue(cursor.isNull(1));
+            assertEquals(30, cursor.getInt(2));
+        }
     }
 
     @Test
     public void deletingAnExerciseStillDeletesItsPlacesButNotTheRests() {
-        WorkoutExerciseRow rest = new WorkoutExerciseRow();
-        rest.workoutId = 1;
-        rest.position = 2;
-        rest.durationSeconds = 30;
-        database.workoutExerciseDao().insert(rest);
+        insertRest();
+        // Room switches foreign keys on for every connection it opens.
+        db.execSQL("PRAGMA foreign_keys = ON");
 
-        database.exerciseDao().delete(database.exerciseDao().getById(1));
+        db.execSQL("DELETE FROM `Exercise` WHERE `id` = 1");
 
-        List<WorkoutExerciseRow> rows = database.workoutExerciseDao().getByWorkout(1);
-        assertEquals(2, rows.size());
-        assertEquals(Long.valueOf(2), rows.get(0).exerciseId);
-        assertNull(rows.get(1).exerciseId);
+        try (Cursor cursor = places()) {
+            assertEquals(2, cursor.getCount());
+            cursor.moveToNext();
+            assertEquals(2, cursor.getLong(1));
+            cursor.moveToNext();
+            assertTrue(cursor.isNull(1));
+        }
     }
 
     @Test
     public void existingWorkoutSessionsHaveNoRestTime() {
-        WorkoutSession session = database.workoutSessionDao().getById(1);
+        try (Cursor cursor = db.query("SELECT `activeDurationSeconds`, `completed`, "
+                + "`restSeconds` FROM `WorkoutSession` WHERE `id` = 1")) {
+            cursor.moveToFirst();
+            assertEquals(75, cursor.getInt(0));
+            assertEquals(1, cursor.getInt(1));
+            assertTrue(cursor.isNull(2));
+        }
+    }
 
-        assertEquals(75, session.activeDurationSeconds);
-        assertTrue(session.completed);
-        assertNull(session.restSeconds);
+    private void insertRest() {
+        db.execSQL("INSERT INTO `WorkoutExercise` (`workoutId`, `exerciseId`, `position`, "
+                + "`durationSeconds`) VALUES (1, NULL, 2, 30)");
+    }
+
+    /** The places of the workout, in order: id, exercise id, duration. */
+    private Cursor places() {
+        return db.query("SELECT `id`, `exerciseId`, `durationSeconds` FROM `WorkoutExercise` "
+                + "WHERE `workoutId` = 1 ORDER BY `position`");
     }
 }

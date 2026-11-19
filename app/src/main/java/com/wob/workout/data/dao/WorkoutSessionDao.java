@@ -25,6 +25,10 @@ public interface WorkoutSessionDao {
     @Query("SELECT * FROM WorkoutSession ORDER BY startedAt DESC")
     LiveData<List<WorkoutSessionWithExercises>> getAllWithExercisesOrderByStartedAtDesc();
 
+    /** Every workout session, reactive: for the weekly progress. */
+    @Query("SELECT * FROM WorkoutSession")
+    LiveData<List<WorkoutSession>> observeAll();
+
     @Query("SELECT * FROM WorkoutSession WHERE id = :id LIMIT 1")
     WorkoutSession getById(long id);
 }
