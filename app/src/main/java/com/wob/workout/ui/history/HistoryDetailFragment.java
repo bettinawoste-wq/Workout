@@ -65,6 +65,9 @@ public class HistoryDetailFragment extends Fragment {
             binding.txtInfo.setText(
                     dateFormat.format(new Date(detail.session.startedAt))
                             + " • " + (detail.session.completed ? "Abgeschlossen" : "Abgebrochen"));
+            String rest = detail.restText();
+            binding.txtRest.setText(rest);
+            binding.txtRest.setVisibility(rest != null ? View.VISIBLE : View.GONE);
 
             adapter.setData(detail.exercises);
         });

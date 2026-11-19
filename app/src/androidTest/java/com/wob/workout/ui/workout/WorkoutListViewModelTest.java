@@ -66,6 +66,28 @@ public class WorkoutListViewModelTest {
     }
 
     @Test
+    public void restsCountNeitherAsExercisesNorTowardsTheLength() throws InterruptedException {
+        long legDay = testContainer.insertWorkout("Leg Day");
+        long exerciseId = testContainer.insertExercise("Squat");
+        testContainer.insertWorkoutExercise(legDay, exerciseId, 0, 45);
+        testContainer.insertRest(legDay, 1, 30);
+        testContainer.insertWorkoutExercise(legDay, exerciseId, 2, 45);
+        long onlyRests = testContainer.insertWorkout("Only Rests");
+        testContainer.insertRest(onlyRests, 0, 30);
+
+        List<WorkoutListItem> items = getOrAwaitValue(repository.observeAll());
+
+        WorkoutListItem rests = items.get(0).workout.name.equals("Only Rests")
+                ? items.get(0) : items.get(1);
+        WorkoutListItem legs = rests == items.get(0) ? items.get(1) : items.get(0);
+        assertEquals(2, legs.exerciseCount);
+        assertEquals(90, legs.totalDurationSeconds);
+        assertEquals(2, legs.exercises.size());
+        assertEquals(0, rests.exerciseCount);
+        assertEquals("a workout of rests only is empty", false, rests.canStart());
+    }
+
+    @Test
     public void exercisesFollowTheWorkoutOrderWithOrWithoutMedia()
             throws InterruptedException {
         long workoutId = testContainer.insertWorkout("Leg Day");

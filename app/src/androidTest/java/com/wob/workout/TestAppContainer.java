@@ -147,6 +147,15 @@ public class TestAppContainer {
         return appContainer.workoutExerciseRepository.save(workoutExercise);
     }
 
+    public long insertRest(long workoutId, int position, int durationSeconds) {
+        WorkoutExerciseRow rest = new WorkoutExerciseRow();
+        rest.workoutId = workoutId;
+        rest.exerciseId = null;
+        rest.position = position;
+        rest.durationSeconds = durationSeconds;
+        return appContainer.workoutExerciseRepository.save(rest);
+    }
+
     /** Records a workout session that started at {@code startedAt}, as the player would. */
     public long insertSession(long workoutId, long startedAt, boolean completed) {
         WorkoutSession session = new WorkoutSession();

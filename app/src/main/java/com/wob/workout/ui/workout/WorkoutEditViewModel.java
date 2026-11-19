@@ -164,6 +164,13 @@ public class WorkoutEditViewModel extends ViewModel {
         publish();
     }
 
+    /** Appends a rest of {@link WorkoutDraft#NEW_REST_SECONDS}. */
+    public void addRest() {
+        if (draft == null) return;
+        draft.addRest();
+        publish();
+    }
+
     /** Takes a duration as typed in the duration dialog; the dialog only shows the answer.
      *  Before the draft has loaded there is nothing to change. */
     public WorkoutDraft.DurationAnswer changeDuration(int position, String typed) {
@@ -203,8 +210,9 @@ public class WorkoutEditViewModel extends ViewModel {
         // Exercises added while this runs are not in here, so the draft keeps them.
         Set<Long> exerciseIds = new HashSet<>();
         for (WorkoutExercise workoutExercise : draft.workoutExercises()) {
-            exerciseIds.add(workoutExercise.exerciseId());
+            if (!workoutExercise.isRest()) exerciseIds.add(workoutExercise.exerciseId());
         }
+        if (exerciseIds.isEmpty()) return;
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             Map<Long, Exercise> found = new HashMap<>();
             for (Exercise exercise : container.exerciseRepository.getByIds(exerciseIds)) {

@@ -65,13 +65,16 @@ public class WorkoutHistoryRepository {
         return database.exerciseSessionDao().insert(exerciseSession);
     }
 
-    public void finishSession(long sessionId, boolean completed) {
+    /** @param restSeconds the workout session's rest time, stored on its own: the duration
+     *                     counts exercise time only */
+    public void finishSession(long sessionId, boolean completed, int restSeconds) {
         WorkoutSession session = database.workoutSessionDao().getById(sessionId);
 
         if (session == null) return;
 
         session.finishedAt = System.currentTimeMillis();
         session.completed = completed;
+        session.restSeconds = restSeconds;
         session.activeDurationSeconds =
                 database.exerciseSessionDao().getTotalActiveSeconds(sessionId);
 

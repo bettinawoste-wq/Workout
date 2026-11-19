@@ -50,4 +50,6 @@
     <string name="sekunden_kurz">%d s</string>
     <string name="uebergang_in_sekunden">Übergang in Sekunden (0–30)</string>
     <string name="standard">Standard</string>
+    <string name="pause">Pause</string>
+    <string name="wird_uebersprungen">wird übersprungen</string>
 </resources>

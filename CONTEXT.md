@@ -9,13 +9,21 @@ lives in an on-device Room database.
 - **Exercise** — a single movement, with an optional photo/video demo (`MediaStorageManager`
   copies the picked file into app storage; `MediaThumbnailLoader` handles EXIF rotation and
   video-frame preview).
-- **Workout** — a named, ordered list of exercises. A **workout exercise** is the immutable
-  value `data.WorkoutExercise`: the exercise, its duration and the stored row's id (0 while
-  unsaved); its position is its place in the list. The stored row is the Room entity
-  `WorkoutExerciseRow` (table `WorkoutExercise`, carrying `durationSeconds` and `position`).
+- **Workout** — a named, ordered list of exercises and rests. A **workout exercise** is the
+  immutable value `data.WorkoutExercise`: the exercise, its duration and the stored row's id
+  (0 while unsaved); its position is its place in the list. A **rest** is the same value
+  without an exercise (`isRest()`), stored in the same table with no exercise reference.
+  `WorkoutExercise.isSkippedRest` is the one rule for which rests run: only one right after
+  an exercise with another exercise somewhere after it, so rests at either end and rests
+  right after another rest are skipped (the editor greys them out, the player passes them
+  over; nothing removes them). Exercise counts, workout lengths and whether a workout can
+  start count exercises only. The stored row is the Room entity
+  `WorkoutExerciseRow` (table `WorkoutExercise`, carrying `durationSeconds`, `position` and
+  an `exerciseId` that is null for a rest).
   Both the editor and the player load a workout's exercises through one method,
   `WorkoutRepository.getWorkoutExercises`, built on the `WorkoutWithExercises` relation; it is
-  the only place that leaves out a workout exercise whose exercise is missing. Built and
+  the only place that leaves out a workout exercise whose exercise is missing, and it keeps
+  rests. Built and
   reordered in `WorkoutEditFragment`, which works on a `WorkoutDraft`: the draft owns its
   workout exercises (a change replaces a value, a drag step moves one from a position to
   another; the list adapter only renders), and every change stays in it until "Speichern"
@@ -23,7 +31,11 @@ lives in an on-device Room database.
   changes asks before throwing it away, and a new workout is only created by saving.
 - **WorkoutSession / ExerciseSession** — a historical record of one run through a workout:
   when it started/finished, whether it was completed or aborted, and the actual vs. planned
-  duration per exercise. Written by the player's `WorkoutSessionEngine` as it runs, read by the
+  duration per exercise. Its duration counts exercise time only; the actual rest time,
+  pauses left out, is stored on its own (`WorkoutSession.restSeconds`, null for sessions
+  recorded before rests existed) and shown as "Pausen: 1:30" on the completion screen and
+  the history detail; rests get no exercise session. Written by the player's
+  `WorkoutSessionEngine` as it runs, read by the
   `ui/history` screens. `WorkoutSession.workoutId` is deliberately **not** a cascading foreign
   key — deleting a `Workout` must not delete the history recorded against it.
 
@@ -76,11 +88,15 @@ lives in an on-device Room database.
   editors' view models name the workout or exercise in the delete confirmation.
 - **Player**: the rules of a workout session live in `WorkoutSessionEngine`, plain Java
   without Android: the phases (countdown before the first exercise, exercise, transition,
-  finished), next / previous / pause, when it beeps (the last 3 seconds before every exercise,
-  reaching back into the running exercise when the transition is shorter; a transition of 0
-  goes straight on), the remaining time of the whole workout,
+  rest, finished), next / previous / pause, when it beeps (the last 3 seconds before every
+  exercise, reaching back into the running exercise when the transition or rest is shorter;
+  a transition of 0 goes straight on), the remaining time of the whole workout,
   which positions are done, and the start / pause / resume / close-out timing of exercise
-  sessions. It has two seams (ADR 0005): `SessionTime`, the countdown and clock it runs on
+  sessions. It takes a workout's exercises and rests and keeps the exercises as its
+  positions, with the length of the rest that runs after each: a rest takes the place of the
+  transition, "next" in a rest ends it, "previous" goes to the exercise before it, and
+  stepping between exercises passes over rests; it measures the actual rest time, which goes
+  into the completion summary and `SessionHistory.finishSession`. It has two seams (ADR 0005): `SessionTime`, the countdown and clock it runs on
   (`AndroidSessionTime` in the app, a fake in JVM tests), and `SessionHistory`, where it writes
   the workout session and its exercise sessions (`DatabaseSessionHistory` in the app, on the
   single-threaded io executor; in memory in tests). `WorkoutSessionEngineTest` covers the rules

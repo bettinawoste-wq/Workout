@@ -157,6 +157,7 @@ public class WorkoutEditFragment extends Fragment {
         viewModel.refreshExercises();
 
         binding.btnAddExercise.setOnClickListener(v -> ExercisePickerSheet.show(this));
+        binding.btnAddRest.setOnClickListener(v -> viewModel.addRest());
         binding.btnSave.setOnClickListener(v -> save());
         // Nothing to save or copy until an existing workout has loaded into the draft.
         viewModel.getReady().observe(getViewLifecycleOwner(), ready -> {
@@ -259,8 +260,8 @@ public class WorkoutEditFragment extends Fragment {
                 .show();
     }
 
-    /** What tapping a workout exercise opens: its duration, ready to change, with
-     *  "Entfernen" and "Übung bearbeiten" below it. */
+    /** What tapping a workout exercise or rest opens: its duration, ready to change, with
+     *  "Entfernen" and, for an exercise, "Übung bearbeiten" below it. */
     private void showExerciseDialog(int position) {
         List<WorkoutExercise> shown = viewModel.getExercises().getValue();
         if (shown == null || position >= shown.size()) return;
@@ -271,9 +272,11 @@ public class WorkoutEditFragment extends Fragment {
 
         TextInputEditText edtDuration = view.findViewById(R.id.edtDuration);
         edtDuration.setText(String.valueOf(workoutExercise.durationSeconds));
+        view.findViewById(R.id.btnEditExercise)
+                .setVisibility(workoutExercise.isRest() ? View.GONE : View.VISIBLE);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(workoutExercise.exercise.title)
+                .setTitle(titleOf(workoutExercise))
                 .setView(view)
                 .setNegativeButton("Abbrechen", null)
                 .setPositiveButton("OK", null)
@@ -338,9 +341,16 @@ public class WorkoutEditFragment extends Fragment {
         WorkoutExercise removed = viewModel.removeExercise(position);
         if (removed == null) return;
         Snackbar.make(binding.getRoot(),
-                        "„" + removed.exercise.title + "“ entfernt", Snackbar.LENGTH_LONG)
+                        "„" + titleOf(removed) + "“ entfernt", Snackbar.LENGTH_LONG)
                 .setAction("Rückgängig", v -> viewModel.restoreExercise(position, removed))
                 .show();
+    }
+
+    /** The exercise's title, or "Pause" for a rest. */
+    private String titleOf(WorkoutExercise workoutExercise) {
+        return workoutExercise.isRest()
+                ? getString(R.string.pause)
+                : workoutExercise.exercise.title;
     }
 
     /** Edits the exercise itself, for every workout; this editor's draft waits on the back

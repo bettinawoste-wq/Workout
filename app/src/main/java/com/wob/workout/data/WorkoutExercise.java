@@ -2,9 +2,12 @@ package com.wob.workout.data;
 
 import com.wob.workout.data.entity.Exercise;
 
+import java.util.List;
+
 /**
- * One exercise's place inside a workout: the exercise and how long it lasts there. Its
- * position is where it stands in its workout's list. Immutable: a change makes a new value.
+ * One place inside a workout: an exercise and how long it lasts there, or a rest, which has
+ * a duration and no exercise. Its position is where it stands in its workout's list.
+ * Immutable: a change makes a new value.
  *
  * <p>The workout editor and the player both work with it; both load it through
  * {@code WorkoutRepository.getWorkoutExercises}. What is stored is a
@@ -14,6 +17,7 @@ public final class WorkoutExercise {
 
     /** The stored row's id, or {@link #UNSAVED} for one added in the editor and not saved. */
     public final long rowId;
+    /** Null for a rest. */
     public final Exercise exercise;
     public final int durationSeconds;
 
@@ -30,6 +34,15 @@ public final class WorkoutExercise {
         return new WorkoutExercise(UNSAVED, exercise, durationSeconds);
     }
 
+    /** A rest, not yet stored. */
+    public static WorkoutExercise addedRest(int durationSeconds) {
+        return new WorkoutExercise(UNSAVED, null, durationSeconds);
+    }
+
+    public boolean isRest() {
+        return exercise == null;
+    }
+
     public WorkoutExercise withDuration(int durationSeconds) {
         return new WorkoutExercise(rowId, exercise, durationSeconds);
     }
@@ -39,7 +52,21 @@ public final class WorkoutExercise {
         return new WorkoutExercise(rowId, exercise, durationSeconds);
     }
 
-    public long exerciseId() {
-        return exercise.id;
+    /** Null for a rest. */
+    public Long exerciseId() {
+        return exercise != null ? exercise.id : null;
+    }
+
+    /** Whether the rest at {@code position} is skipped: one at the start or the end (no
+     *  exercise before or after it) or right after another rest. Only a rest between two
+     *  exercises runs, and of several rests in a row only the first. False for an
+     *  exercise. */
+    public static boolean isSkippedRest(List<WorkoutExercise> places, int position) {
+        if (!places.get(position).isRest()) return false;
+        if (position == 0 || places.get(position - 1).isRest()) return true;
+        for (int i = position + 1; i < places.size(); i++) {
+            if (!places.get(i).isRest()) return false;
+        }
+        return true;
     }
 }

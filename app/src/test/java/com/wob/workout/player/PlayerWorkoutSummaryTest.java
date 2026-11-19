@@ -1,6 +1,7 @@
 package com.wob.workout.player;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
@@ -8,7 +9,7 @@ public class PlayerWorkoutSummaryTest {
 
     @Test
     public void reportsDoneAndSkippedExercises() {
-        PlayerWorkoutSummary summary = new PlayerWorkoutSummary(300, 8, 10);
+        PlayerWorkoutSummary summary = new PlayerWorkoutSummary(300, 8, 10, 0);
 
         assertEquals(2, summary.skippedExercises());
         assertEquals("8 von 10 erledigt, 2 übersprungen", summary.resultText());
@@ -17,11 +18,23 @@ public class PlayerWorkoutSummaryTest {
     @Test
     public void nothingSkippedReadsAsAllDone() {
         assertEquals("Alle 10 Übungen erledigt",
-                new PlayerWorkoutSummary(600, 10, 10).resultText());
+                new PlayerWorkoutSummary(600, 10, 10, 0).resultText());
     }
 
     @Test
     public void aSingleExerciseIsNotCalledAll() {
-        assertEquals("Übung erledigt", new PlayerWorkoutSummary(60, 1, 1).resultText());
+        assertEquals("Übung erledigt", new PlayerWorkoutSummary(60, 1, 1, 0).resultText());
+    }
+
+    @Test
+    public void theRestTimeReadsAsMinutesAndSeconds() {
+        assertEquals("Pausen: 1:30", new PlayerWorkoutSummary(600, 10, 10, 90).restText());
+        assertEquals("Pausen: 0:07", PlayerWorkoutSummary.restText(7));
+    }
+
+    @Test
+    public void noRestTimeAndNoneRecordedShowNothing() {
+        assertNull(new PlayerWorkoutSummary(600, 10, 10, 0).restText());
+        assertNull("recorded before rests existed", PlayerWorkoutSummary.restText(null));
     }
 }

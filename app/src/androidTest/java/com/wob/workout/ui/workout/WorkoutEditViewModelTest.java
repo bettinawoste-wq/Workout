@@ -501,6 +501,30 @@ public class WorkoutEditViewModelTest {
     }
 
     @Test
+    public void restsAreSavedWithTheWorkoutAndKeptByDuplicating() throws Exception {
+        long workoutId = testContainer.insertWorkout("Leg Day");
+        long squatId = testContainer.insertExercise("Squat");
+        testContainer.insertWorkoutExercise(workoutId, squatId, 0, 45);
+        testContainer.insertWorkoutExercise(workoutId, squatId, 1, 45);
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, workoutId);
+        getOrAwaitValue(viewModel.getExercises());
+
+        viewModel.addRest();
+        viewModel.moveExercise(2, 1);
+        viewModel.changeDuration(1, "40");
+        assertEquals("2 Übungen · 1:30", getOrAwaitValue(viewModel.getSummary()));
+        long copyId = getOrAwaitValue(viewModel.duplicate());
+
+        for (long id : new long[] {workoutId, copyId}) {
+            List<WorkoutExercise> items = exercisesInFreshEditor(id);
+            assertEquals(3, items.size());
+            assertTrue(items.get(1).isRest());
+            assertEquals(40, items.get(1).durationSeconds);
+            assertEquals("Squat", items.get(2).exercise.title);
+        }
+    }
+
+    @Test
     public void duplicatingANewWorkoutCreatesItFirst() throws Exception {
         long squatId = testContainer.insertExercise("Squat");
         WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);

@@ -1,13 +1,15 @@
 """Renews the README screenshots in docs/screenshots from a release build on the attached phone.
 
-Installs the release build, so the starter set appears as a user sees it, and runs the starter
-workout twice: once aborted, once to the end, so the history shows both. Takes about two
-minutes. The phone must stay unlocked. The release app is uninstalled again at the end, so
+Installs the release build, so the starter set appears as a user sees it, puts a rest before
+the starter workout's last exercise, and runs the workout twice: once aborted, once to the
+end through the rest, so the history shows both and the detail its rest time. Takes about
+five minutes. The phone must stay unlocked. The release app is uninstalled again at the end, so
 the script refuses to run while a release build is already installed: its data would be lost.
 The status bar is painted over, so no personal notifications end up in the repo.
 
     python scripts/readme-screenshots.py
 """
+import re
 import time
 
 from PIL import Image
@@ -78,6 +80,38 @@ def wait_for_text(text, seconds):
     fail("'%s' did not appear; a tap probably missed its button" % text)
 
 
+def drag(start, end, steps=10):
+    """A long press on start, then a slow move to end, as a finger drags a list row."""
+    adb("shell", "input", "motionevent", "DOWN", str(start[0]), str(start[1]))
+    time.sleep(1)
+    for step in range(1, steps + 1):
+        y = start[1] + (end[1] - start[1]) * step // steps
+        adb("shell", "input", "motionevent", "MOVE", str(start[0]), str(y))
+        time.sleep(0.05)
+    time.sleep(0.5)
+    adb("shell", "input", "motionevent", "UP", str(start[0]), str(end[1]))
+
+
+def add_rest_before_last_exercise():
+    """In the open workout editor: adds a rest, which lands at the end, scrolls there and
+    drags it above the last exercise, so that it runs."""
+    tap_view(PKG, "btnAddRest")
+    time.sleep(1)
+    x1, y1, x2, y2 = map(int, re.findall(
+        r"\d+", find_all(PKG, "listExercises")["listExercises"].get("bounds")))
+    for _ in range(3):
+        adb("shell", "input", "swipe", str((x1 + x2) // 2), str(y2 - 60),
+            str((x1 + x2) // 2), str(y1 + 60), "300")
+        time.sleep(0.8)
+    titles = [node for node in ui_nodes()
+              if node.get("resource-id") == PKG + ":id/txtTitle"]
+    if len(titles) < 2 or titles[-1].get("text") != "Pause":
+        fail("the added rest is not the last row of the editor")
+    rest, last_exercise = centre(titles[-1]), centre(titles[-2])
+    drag(rest, (rest[0], last_exercise[1] - 30))
+    time.sleep(1)
+
+
 def start_and_pause_first_exercise(probe):
     """Starts the first recent workout and pauses it once the first exercise runs. Returns the
     positions of the transport buttons, which only uiautomator can read while paused."""
@@ -87,6 +121,17 @@ def start_and_pause_first_exercise(probe):
     tap(*pause_button_centre(probe))
     time.sleep(1)
     return paused_player()
+
+
+def run_out_current(buttons, what):
+    """Reads the running exercise's time left while paused, then lets it run out."""
+    tap(*buttons["btnPause"])
+    time.sleep(1)
+    _, nodes = paused_player()
+    left = seconds_of(nodes["txtTimer"].get("text"))
+    tap(*buttons["btnPause"])
+    print("waiting %d s for %s to run out" % (left, what))
+    time.sleep(left + 1)
 
 
 def main():
@@ -115,8 +160,9 @@ def main():
 
         tap_view(PKG, "txtName")
         time.sleep(2)
+        add_rest_before_last_exercise()
         save_shot(SHOTS / "workout-edit.png")
-        key("BACK")
+        tap_view(PKG, "btnSave")
         time.sleep(1.5)
 
         # First run: abort it, so the history shows an aborted session too.
@@ -126,24 +172,19 @@ def main():
         tap_view(PKG, text="Abbrechen")
         time.sleep(2)
 
-        # Second run: step to the second exercise for the player shot, then on to the last
-        # and let it run out.
+        # Second run: step to the exercise before the rest and let it run out, shoot the
+        # player in the rest, then let the rest and the last exercise run out.
         buttons, nodes = start_and_pause_first_exercise(probe)
         exercises = int(nodes["txtProgress"].get("text").split("/")[1])
         tap(*buttons["btnPause"])
-        tap(*buttons["btnNext"])
-        time.sleep(1.5)
-        save_shot(SHOTS / "player.png")
         for _ in range(exercises - 2):
             tap(*buttons["btnNext"])
             time.sleep(0.5)
-        tap(*buttons["btnPause"])
-        time.sleep(1)
-        _, last = paused_player()
-        left = seconds_of(last["txtTimer"].get("text"))
-        tap(*buttons["btnPause"])
-        print("waiting %d s for the last exercise to run out" % left)
-        time.sleep(left)
+        run_out_current(buttons, "the exercise before the rest")
+        time.sleep(2.5)
+        save_shot(SHOTS / "player.png")
+        time.sleep(30)
+        run_out_current(buttons, "the last exercise")
         wait_for_text("Fertig", 15)
         tap_view(PKG, "btnDone")
         time.sleep(1.5)
@@ -151,6 +192,9 @@ def main():
         tap_view(PKG, "btnHistory")
         time.sleep(2)
         save_shot(SHOTS / "history.png")
+        tap_view(PKG, "txtName")
+        time.sleep(2)
+        save_shot(SHOTS / "history-detail.png")
     finally:
         adb("uninstall", PKG, check=False)
         probe.unlink(missing_ok=True)

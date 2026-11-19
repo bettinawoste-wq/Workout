@@ -15,6 +15,8 @@ public final class SessionState {
         ACTIVE,
         /** The transition between two exercises. */
         TRANSITION,
+        /** A rest between two exercises, in place of the transition. */
+        REST,
         FINISHED
     }
 
@@ -25,8 +27,8 @@ public final class SessionState {
     /** Where the exercise shown or previewed stands in the workout, from 0. */
     public final int position;
     public final int total;
-    /** The exercise under way, or the one a countdown or transition leads to; null once
-     *  finished. */
+    /** The exercise under way, or the one a countdown, transition or rest leads to; null
+     *  once finished. Never a rest. */
     public final WorkoutExercise workoutExercise;
     /** What is left of the countdown, transition or exercise. */
     public final long millisLeft;

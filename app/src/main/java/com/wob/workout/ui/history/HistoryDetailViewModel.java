@@ -8,6 +8,7 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.data.LiveDataExecutor;
 import com.wob.workout.data.entity.ExerciseSession;
 import com.wob.workout.data.entity.WorkoutSession;
+import com.wob.workout.player.PlayerWorkoutSummary;
 
 import java.util.List;
 
@@ -46,6 +47,12 @@ public class HistoryDetailViewModel extends ViewModel {
         HistoryDetail(WorkoutSession session, List<ExerciseSession> exercises) {
             this.session = session;
             this.exercises = exercises;
+        }
+
+        /** E.g. "Pausen: 1:30", on its own rather than a row per rest; null without rest
+         *  time, and for a workout session recorded before rests existed. */
+        public String restText() {
+            return PlayerWorkoutSummary.restText(session.restSeconds);
         }
     }
 }

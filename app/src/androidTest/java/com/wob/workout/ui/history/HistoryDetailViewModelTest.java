@@ -65,7 +65,7 @@ public class HistoryDetailViewModelTest {
         // Recorded out of order to show the rows follow position, not insertion order.
         history.recordExercise(sessionId, 2, "Lunge", 1, 30, 25, 3_000, 4_000);
         history.recordExercise(sessionId, 1, "Squat", 0, 45, 40, 1_000, 2_000);
-        history.finishSession(sessionId, true);
+        history.finishSession(sessionId, true, 0);
 
         HistoryDetailViewModel viewModel = new HistoryDetailViewModel(container, sessionId);
         HistoryDetail detail = getOrAwaitValue(viewModel.getDetail());
@@ -96,7 +96,7 @@ public class HistoryDetailViewModelTest {
         history.recordExercise(otherId, 3, "Push-up", 0, 30, 30, 0, 0);
         long sessionId = history.startSession(2, "Pull Day");
         history.recordExercise(sessionId, 4, "Row", 0, 40, 35, 0, 0);
-        history.finishSession(sessionId, false);
+        history.finishSession(sessionId, false, 0);
 
         HistoryDetail detail =
                 getOrAwaitValue(new HistoryDetailViewModel(container, sessionId).getDetail());
@@ -109,7 +109,7 @@ public class HistoryDetailViewModelTest {
     public void sessionWithoutRecordedExercisesLoadsWithAnEmptyList()
             throws InterruptedException {
         long sessionId = history.startSession(5, "Core");
-        history.finishSession(sessionId, true);
+        history.finishSession(sessionId, true, 0);
 
         HistoryDetail detail =
                 getOrAwaitValue(new HistoryDetailViewModel(container, sessionId).getDetail());
@@ -117,6 +117,33 @@ public class HistoryDetailViewModelTest {
         assertEquals("Core", detail.session.workoutName);
         assertNotNull(detail.exercises);
         assertTrue(detail.exercises.isEmpty());
+    }
+
+    @Test
+    public void theRestTimeIsShownOnItsOwnWithoutARowPerRest() throws InterruptedException {
+        long sessionId = history.startSession(7, "Leg Day");
+        history.recordExercise(sessionId, 1, "Squat", 0, 45, 45, 1_000, 2_000);
+        history.recordExercise(sessionId, 2, "Lunge", 1, 30, 30, 3_000, 4_000);
+        history.finishSession(sessionId, true, 90);
+
+        HistoryDetail detail =
+                getOrAwaitValue(new HistoryDetailViewModel(container, sessionId).getDetail());
+
+        assertEquals("Pausen: 1:30", detail.restText());
+        assertEquals("exercise time only", 75, detail.session.activeDurationSeconds);
+        assertTitles(detail.exercises, "Squat", "Lunge");
+    }
+
+    @Test
+    public void aSessionWithoutRestTimeShowsNone() throws InterruptedException {
+        long sessionId = history.startSession(7, "Leg Day");
+        history.recordExercise(sessionId, 1, "Squat", 0, 45, 45, 1_000, 2_000);
+        history.finishSession(sessionId, true, 0);
+
+        HistoryDetail detail =
+                getOrAwaitValue(new HistoryDetailViewModel(container, sessionId).getDetail());
+
+        assertNull(detail.restText());
     }
 
     @Test
@@ -132,7 +159,7 @@ public class HistoryDetailViewModelTest {
     public void deletedSessionEmitsNothing() throws Exception {
         long sessionId = history.startSession(7, "Leg Day");
         history.recordExercise(sessionId, 1, "Squat", 0, 45, 40, 0, 0);
-        history.finishSession(sessionId, true);
+        history.finishSession(sessionId, true, 0);
         // Swiped away on the history list; a stale sessionId then reaches the detail screen.
         history.delete(history.getSession(sessionId));
 

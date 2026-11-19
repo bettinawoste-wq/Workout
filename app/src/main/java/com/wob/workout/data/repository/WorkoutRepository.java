@@ -41,8 +41,8 @@ public class WorkoutRepository {
                 .delete(workout);
     }
 
-    /** Copies the workout (its transition choice too) and its workout exercises (positions
-     *  and durations) under
+    /** Copies the workout (its transition choice too) and its workout exercises and rests
+     *  (positions and durations) under
      *  {@code name}, in one transaction. Its history stays with the original.
      *  @return the copy's id. */
     public long duplicate(long id, String name) {
@@ -63,7 +63,7 @@ public class WorkoutRepository {
 
     /** Saves a workout as the editor leaves it, in one transaction: its name, its own
      *  transition length (null to follow the default transition) and exactly these workout
-     *  exercises, in this order, in place of the stored ones. Unsaved ones are
+     *  exercises and rests, in this order, in place of the stored ones. Unsaved ones are
      *  added; the others keep their row id. Creates the workout if {@code id} is not
      *  positive.
      *  @return the workout's id. */
@@ -96,16 +96,16 @@ public class WorkoutRepository {
         });
     }
 
-    /** The workout's exercises in their order, empty if the workout is gone. The editor and
-     *  the player both load them here. */
+    /** The workout's exercises and rests in their order, empty if the workout is gone. The
+     *  editor and the player both load them here. */
     public List<WorkoutExercise> getWorkoutExercises(long workoutId) {
         WorkoutWithExercises workout =
                 DatabaseProvider.get(context).workoutDao().getWithExercises(workoutId);
         return workout != null ? workoutExercisesOf(workout) : new ArrayList<>();
     }
 
-    /** The one place that turns stored rows into workout exercises: in their position's
-     *  order, leaving out any whose exercise is missing. */
+    /** The one place that turns stored rows into workout exercises and rests: in their
+     *  position's order, leaving out any whose exercise is missing, but keeping rests. */
     static List<WorkoutExercise> workoutExercisesOf(WorkoutWithExercises workout) {
         Map<Long, Exercise> exercisesById = new HashMap<>();
         for (Exercise exercise : workout.exerciseDetails) {
@@ -113,6 +113,10 @@ public class WorkoutRepository {
         }
         List<WorkoutExercise> inOrder = new ArrayList<>();
         for (WorkoutExerciseRow row : workout.exercisesInOrder()) {
+            if (row.exerciseId == null) {
+                inOrder.add(new WorkoutExercise(row.id, null, row.durationSeconds));
+                continue;
+            }
             Exercise exercise = exercisesById.get(row.exerciseId);
             if (exercise != null) {
                 inOrder.add(new WorkoutExercise(row.id, exercise, row.durationSeconds));

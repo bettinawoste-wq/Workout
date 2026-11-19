@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * What the workout editor shows and changes before "Speichern" writes it: the name, the
  * transition choice (its own length or the default transition) and the workout exercises
- * in their order, with their durations. Knows whether it differs from
+ * and rests in their order, with their durations. Knows whether it differs from
  * what was loaded, so leaving can ask before throwing changes away.
  *
  * <p>It owns its workout exercises: they are immutable values, so a change replaces one,
@@ -30,6 +30,9 @@ public class WorkoutDraft {
 
     /** What an added exercise lasts until its duration is changed. */
     public static final int NEW_EXERCISE_SECONDS = 60;
+
+    /** What an added rest lasts until its duration is changed. */
+    public static final int NEW_REST_SECONDS = 30;
 
     private final List<WorkoutExercise> workoutExercises;
     private String name;
@@ -114,6 +117,17 @@ public class WorkoutDraft {
         }
     }
 
+    /** Appends a rest after the existing places, with {@link #NEW_REST_SECONDS}. */
+    public void addRest() {
+        workoutExercises.add(WorkoutExercise.addedRest(NEW_REST_SECONDS));
+    }
+
+    /** Whether the place at {@code position} is a rest that won't run: at the start, at the
+     *  end or right after another rest. The editor shows it greyed out and keeps it. */
+    public boolean isSkippedRest(int position) {
+        return isAt(position) && WorkoutExercise.isSkippedRest(workoutExercises, position);
+    }
+
     /** @return the removed one, for {@link #restore}; null if there is none at
      *          {@code position} */
     public WorkoutExercise remove(int position) {
@@ -171,8 +185,9 @@ public class WorkoutDraft {
     public void updateExercises(Collection<Long> lookedUp, Map<Long, Exercise> found) {
         List<WorkoutExercise> updated = new ArrayList<>();
         for (WorkoutExercise workoutExercise : workoutExercises) {
-            long exerciseId = workoutExercise.exerciseId();
-            if (!lookedUp.contains(exerciseId)) {
+            Long exerciseId = workoutExercise.exerciseId();
+            // A rest has no exercise to look up.
+            if (exerciseId == null || !lookedUp.contains(exerciseId)) {
                 updated.add(workoutExercise);
             } else if (found.containsKey(exerciseId)) {
                 updated.add(workoutExercise.withExercise(found.get(exerciseId)));
@@ -180,7 +195,7 @@ public class WorkoutDraft {
         }
         workoutExercises.clear();
         workoutExercises.addAll(updated);
-        loadedRows.removeIf(row -> lookedUp.contains(row.get(1))
+        loadedRows.removeIf(row -> row.get(1) != null && lookedUp.contains(row.get(1))
                 && !found.containsKey(row.get(1)));
     }
 
@@ -197,20 +212,23 @@ public class WorkoutDraft {
                 || !rows().equals(loadedRows);
     }
 
-    /** The exercises' durations added up, without the transitions, so it matches the
-     *  remaining time the player starts from. */
+    /** The exercises' durations added up, without the rests and transitions, so it matches
+     *  the remaining time the player starts from. */
     public int totalSeconds() {
         int total = 0;
         for (WorkoutExercise workoutExercise : workoutExercises) {
-            total += workoutExercise.durationSeconds;
+            if (!workoutExercise.isRest()) total += workoutExercise.durationSeconds;
         }
         return total;
     }
 
-    /** E.g. "10 Übungen · 10:00". */
+    /** E.g. "10 Übungen · 10:00"; rests count neither as exercises nor towards the time. */
     public String summaryText() {
-        return ExerciseCount.text(workoutExercises.size()) + " · "
-                + MinutesSeconds.text(totalSeconds());
+        int exercises = 0;
+        for (WorkoutExercise workoutExercise : workoutExercises) {
+            if (!workoutExercise.isRest()) exercises++;
+        }
+        return ExerciseCount.text(exercises) + " · " + MinutesSeconds.text(totalSeconds());
     }
 
     private boolean isAt(int position) {
@@ -218,7 +236,8 @@ public class WorkoutDraft {
     }
 
     /** What saving would write of the workout exercises, as comparable values: per workout
-     *  exercise in order its row id (0 while unsaved), exercise and duration. */
+     *  exercise in order its row id (0 while unsaved), exercise (null for a rest) and
+     *  duration. */
     private List<List<Long>> rows() {
         List<List<Long>> rows = new ArrayList<>();
         for (WorkoutExercise workoutExercise : workoutExercises) {

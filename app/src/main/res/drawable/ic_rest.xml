@@ -1,0 +1,16 @@
+<!-- An hourglass: a rest in a workout's list. Wide like the picture frame (3:2) and with a
+     margin, so that the frame shows all of it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="54dp"
+    android:height="36dp"
+    android:tint="?attr/colorOnSurfaceVariant"
+    android:viewportWidth="54"
+    android:viewportHeight="36">
+    <group
+        android:translateX="15"
+        android:translateY="6">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M6,2v6h0.01L6,8.01 10,12l-4,4 0.01,0.01H6V22h12v-5.99h-0.01L18,16l-4,-4 4,-3.99 -0.01,-0.01H18V2H6zM16,16.5V20H8v-3.5l4,-4 4,4zM12,11.5l-4,-4V4h8v3.5l-4,4z"/>
+    </group>
+</vector>

@@ -64,11 +64,11 @@ public class HistoryListViewModelTest {
         long legDayId = history.startSession(1, "Leg Day");
         recordExercise(legDayId, 0, 45);
         recordExercise(legDayId, 1, 30);
-        history.finishSession(legDayId, true);
+        history.finishSession(legDayId, true, 0);
         // Aborted mid-workout but with an exercise recorded: a real history entry.
         long pushDayId = history.startSession(2, "Push Day");
         recordExercise(pushDayId, 0, 20);
-        history.finishSession(pushDayId, false);
+        history.finishSession(pushDayId, false, 0);
         // startSession stamps System.currentTimeMillis(), which can tie within one test.
         setStartedAt(legDayId, 1_000L);
         setStartedAt(pushDayId, 2_000L);
@@ -96,12 +96,12 @@ public class HistoryListViewModelTest {
             throws InterruptedException {
         // Left the Player before the first exercise was recorded: an instant abort.
         long abortedId = history.startSession(1, "Aborted");
-        history.finishSession(abortedId, false);
+        history.finishSession(abortedId, false, 0);
         // Never finished at all (e.g. app killed) and nothing recorded: also filtered.
         history.startSession(1, "Unfinished");
         // Completed, even with no exercise rows (an empty workout): shown.
         long emptyCompletedId = history.startSession(2, "Empty Workout");
-        history.finishSession(emptyCompletedId, true);
+        history.finishSession(emptyCompletedId, true, 0);
 
         List<WorkoutSessionSummary> rows = getOrAwaitValue(viewModel.getHistory());
 
@@ -132,10 +132,10 @@ public class HistoryListViewModelTest {
     public void deleteDropsTheRowFromTheStillObservedList() throws InterruptedException {
         long keptId = history.startSession(1, "Kept");
         recordExercise(keptId, 0, 30);
-        history.finishSession(keptId, true);
+        history.finishSession(keptId, true, 0);
         long deletedId = history.startSession(2, "Deleted");
         recordExercise(deletedId, 0, 40);
-        history.finishSession(deletedId, true);
+        history.finishSession(deletedId, true, 0);
 
         // One still-active observer across the delete: proves Room's invalidation, not a
         // refresh() call, is what removes the row (there is no refresh() to call).

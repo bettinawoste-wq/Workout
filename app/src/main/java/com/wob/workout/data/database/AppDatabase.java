@@ -27,7 +27,7 @@ import com.wob.workout.data.entity.WorkoutSession;
                 WorkoutSession.class,
                 ExerciseSession.class
         },
-        version = 7,
+        version = 8,
         exportSchema = true
 )
 @TypeConverters(MediaTypeConverter.class)
@@ -157,6 +157,39 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // A place in a workout can be a rest, with no exercise (issue #104): the
+            // exercise reference becomes optional, which SQLite can only do by building the
+            // table anew. Existing places keep their exercise, id and order.
+            db.execSQL(
+                    "CREATE TABLE `WorkoutExercise_new` ("
+                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                            + "`workoutId` INTEGER NOT NULL, "
+                            + "`exerciseId` INTEGER, "
+                            + "`position` INTEGER NOT NULL, "
+                            + "`durationSeconds` INTEGER NOT NULL, "
+                            + "FOREIGN KEY(`workoutId`) REFERENCES `Workout`(`id`) "
+                            + "ON UPDATE NO ACTION ON DELETE CASCADE , "
+                            + "FOREIGN KEY(`exerciseId`) REFERENCES `Exercise`(`id`) "
+                            + "ON UPDATE NO ACTION ON DELETE CASCADE )");
+            db.execSQL(
+                    "INSERT INTO `WorkoutExercise_new` (`id`, `workoutId`, `exerciseId`, "
+                            + "`position`, `durationSeconds`) "
+                            + "SELECT `id`, `workoutId`, `exerciseId`, `position`, "
+                            + "`durationSeconds` FROM `WorkoutExercise`");
+            db.execSQL("DROP TABLE `WorkoutExercise`");
+            db.execSQL("ALTER TABLE `WorkoutExercise_new` RENAME TO `WorkoutExercise`");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkoutExercise_workoutId` "
+                    + "ON `WorkoutExercise` (`workoutId`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkoutExercise_exerciseId` "
+                    + "ON `WorkoutExercise` (`exerciseId`)");
+            // A workout session's rest time; none for those recorded before.
+            db.execSQL("ALTER TABLE `WorkoutSession` ADD COLUMN `restSeconds` INTEGER");
+        }
+    };
+
     /** Every migration, in order. {@link DatabaseProvider} registers exactly these, and
      *  {@code AllMigrationsTest} checks they lead from version 4 to the current schema. */
     public static final Migration[] ALL_MIGRATIONS = {
@@ -164,6 +197,7 @@ public abstract class AppDatabase extends RoomDatabase {
             MIGRATION_3_4,
             MIGRATION_4_5,
             MIGRATION_5_6,
-            MIGRATION_6_7
+            MIGRATION_6_7,
+            MIGRATION_7_8
     };
 }

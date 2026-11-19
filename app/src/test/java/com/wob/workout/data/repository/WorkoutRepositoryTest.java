@@ -1,6 +1,9 @@
 package com.wob.workout.data.repository;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.entity.Exercise;
@@ -58,6 +61,33 @@ public class WorkoutRepositoryTest {
 
         assertEquals(1, loaded.size());
         assertEquals("Lunge", loaded.get(0).exercise.title);
+    }
+
+    @Test
+    public void restsAreKeptInTheirPlace() {
+        Exercise squat = exercise(1, "Squat");
+        WorkoutWithExercises stored = stored(
+                Arrays.asList(row(31, 1, 2, 45), rest(30, 1, 20), row(29, 1, 0, 45)),
+                Arrays.asList(squat));
+
+        List<WorkoutExercise> loaded = WorkoutRepository.workoutExercisesOf(stored);
+
+        assertEquals(3, loaded.size());
+        assertFalse(loaded.get(0).isRest());
+        assertTrue(loaded.get(1).isRest());
+        assertNull(loaded.get(1).exercise);
+        assertEquals(20, loaded.get(1).durationSeconds);
+        assertEquals(30, loaded.get(1).rowId);
+        assertFalse(loaded.get(2).isRest());
+    }
+
+    private static WorkoutExerciseRow rest(long id, int position, int seconds) {
+        WorkoutExerciseRow row = new WorkoutExerciseRow();
+        row.id = id;
+        row.exerciseId = null;
+        row.position = position;
+        row.durationSeconds = seconds;
+        return row;
     }
 
     private static WorkoutWithExercises stored(List<WorkoutExerciseRow> rows,
