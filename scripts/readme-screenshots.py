@@ -1,7 +1,7 @@
 """Renews the README screenshots in docs/screenshots from a release build on the attached phone.
 
 Installs the release build, so the starter set appears as a user sees it, sets a weekly goal of
-3 training days, puts a rest before the starter workout's last exercise, and runs the workout
+3 training days and adds a reminder (allowing its notifications), puts a rest before the starter workout's last exercise, and runs the workout
 twice: once aborted, once to the end through the rest, so the history shows both, the detail
 its rest time and the home screen the week's progress. Takes about
 five minutes. The phone must stay unlocked. The release app is uninstalled again at the end, so
@@ -136,6 +136,21 @@ def set_weekly_goal(days):
     fail("the weekly goal did not reach %d" % days)
 
 
+def add_reminder():
+    """In the settings screen: adds a reminder at its default time and weekdays and allows
+    notifications when the app asks for them, so the screen shows no hint."""
+    tap_view(PKG, "btnAddReminder")
+    time.sleep(1.5)
+    tap_view(PKG, text="Speichern")
+    time.sleep(2)
+    allow = [node for node in ui_nodes()
+             if node.get("resource-id", "").endswith(":id/permission_allow_button")]
+    if allow:
+        tap(*centre(allow[0]))
+        time.sleep(1.5)
+    find_all(PKG, "txtReminderTime")
+
+
 def start_and_pause_first_exercise(probe):
     """Starts the first recent workout and pauses it once the first exercise runs. Returns the
     positions of the transport buttons, which only uiautomator can read while paused."""
@@ -178,6 +193,7 @@ def main():
         tap_view(PKG, "fabSettings")
         time.sleep(2)
         set_weekly_goal(WEEKLY_GOAL)
+        add_reminder()
         save_shot(SHOTS / "settings.png")
         key("BACK")
         time.sleep(1.5)

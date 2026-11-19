@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.TestAppContainer;
+import com.wob.workout.data.entity.Reminder;
 
 import org.junit.After;
 import org.junit.Before;
@@ -18,10 +19,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.List;
+
 /** The settings screen's Appearance and Player sections (issue #102) and its Training
- *  section's weekly goal (issue #105). */
+ *  section's weekly goal (issue #105) and reminders (issue #106). */
 @RunWith(AndroidJUnit4.class)
 public class SettingsViewModelTest {
+
+    private static final int MONDAY = Reminder.MONDAY;
+    private static final int FRIDAY = Reminder.MONDAY << 4;
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -105,5 +111,62 @@ public class SettingsViewModelTest {
         testContainer.drainIoExecutor();
 
         assertNull(getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
+    }
+
+    @Test
+    public void thereAreNoRemindersOnAFreshInstall() throws InterruptedException {
+        assertTrue(getOrAwaitValue(new SettingsViewModel(container).getReminders()).isEmpty());
+    }
+
+    @Test
+    public void anAddedReminderIsListedSwitchedOnAndScheduled() throws Exception {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+
+        viewModel.addReminder(18 * 60 + 30, MONDAY | FRIDAY);
+        testContainer.drainIoExecutor();
+
+        List<Reminder> reminders = getOrAwaitValue(viewModel.getReminders());
+        assertEquals(1, reminders.size());
+        assertEquals(18 * 60 + 30, reminders.get(0).minuteOfDay);
+        assertEquals(MONDAY | FRIDAY, reminders.get(0).weekdays);
+        assertTrue(reminders.get(0).enabled);
+        assertEquals(1, testContainer.getReminderAlarms().getRenewedWith().size());
+    }
+
+    @Test
+    public void aReminderCanBeChangedSwitchedOffAndDeleted() throws Exception {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+        viewModel.addReminder(18 * 60, MONDAY);
+        viewModel.addReminder(7 * 60, FRIDAY);
+        testContainer.drainIoExecutor();
+        Reminder evening = getOrAwaitValue(viewModel.getReminders()).get(1);
+
+        viewModel.changeReminder(evening, 19 * 60, MONDAY | FRIDAY);
+        testContainer.drainIoExecutor();
+        Reminder changed = getOrAwaitValue(viewModel.getReminders()).get(1);
+        assertEquals(19 * 60, changed.minuteOfDay);
+        assertEquals(MONDAY | FRIDAY, changed.weekdays);
+
+        viewModel.setReminderOn(changed, false);
+        testContainer.drainIoExecutor();
+        assertFalse(getOrAwaitValue(viewModel.getReminders()).get(1).enabled);
+        assertFalse(testContainer.getReminderAlarms().getRenewedWith().get(1).enabled);
+
+        viewModel.deleteReminder(changed);
+        testContainer.drainIoExecutor();
+        List<Reminder> left = getOrAwaitValue(viewModel.getReminders());
+        assertEquals(1, left.size());
+        assertEquals(7 * 60, left.get(0).minuteOfDay);
+        assertEquals(1, testContainer.getReminderAlarms().getRenewedWith().size());
+    }
+
+    @Test
+    public void aReminderWithoutWeekdaysIsNotStored() throws Exception {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+
+        viewModel.addReminder(18 * 60, 0);
+        testContainer.drainIoExecutor();
+
+        assertTrue(getOrAwaitValue(viewModel.getReminders()).isEmpty());
     }
 }

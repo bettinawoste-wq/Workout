@@ -29,6 +29,10 @@ public interface WorkoutSessionDao {
     @Query("SELECT * FROM WorkoutSession")
     LiveData<List<WorkoutSession>> observeAll();
 
+    /** Every workout session, read once: for a reminder's silence rule. */
+    @Query("SELECT * FROM WorkoutSession")
+    List<WorkoutSession> getAll();
+
     @Query("SELECT * FROM WorkoutSession WHERE id = :id LIMIT 1")
     WorkoutSession getById(long id);
 }

@@ -164,6 +164,54 @@
                 android:stepSize="1"
                 android:valueFrom="0"
                 android:valueTo="7"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/erinnerungen"/>
+
+            <!-- Shown while notifications are not allowed and there are reminders. -->
+            <LinearLayout
+                android:id="@+id/groupNotificationsOff"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/benachrichtigungen_aus"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorError"/>
+
+                <Button
+                    android:id="@+id/btnNotificationSettings"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/benachrichtigungen_erlauben"/>
+            </LinearLayout>
+
+            <!-- One item_reminder per reminder, ordered by time of day. -->
+            <LinearLayout
+                android:id="@+id/listReminders"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+
+            <Button
+                android:id="@+id/btnAddReminder"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/erinnerung_hinzufuegen"
+                app:icon="@drawable/ic_add"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

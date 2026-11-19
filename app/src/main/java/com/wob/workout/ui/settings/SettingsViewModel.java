@@ -6,11 +6,15 @@ import androidx.lifecycle.ViewModel;
 
 import com.wob.workout.AppContainer;
 import com.wob.workout.data.LiveDataExecutor;
+import com.wob.workout.data.entity.Reminder;
+import com.wob.workout.data.repository.ReminderRepository;
 import com.wob.workout.data.repository.WeeklyGoalRepository;
 import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.SoundSetting;
 import com.wob.workout.player.VibrationSetting;
+import com.wob.workout.reminders.ReminderAlarms;
 
+import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 
@@ -19,7 +23,8 @@ import java.util.concurrent.ExecutorService;
  * and stored on every change. The sound switch is the player's own {@link SoundSetting}, so
  * switching it here or in the player's toolbar switches both; only one screen is visible at
  * a time, so reading it when the screen opens keeps them in step. The weekly goal lives in
- * the database with its history of changes, so it loads and stores off the main thread.
+ * the database with its history of changes, so it loads and stores off the main thread,
+ * and so do the reminders, which renew the reminder alarm after every change.
  */
 public class SettingsViewModel extends ViewModel {
 
@@ -28,6 +33,8 @@ public class SettingsViewModel extends ViewModel {
     private final VibrationSetting vibrationSetting;
     private final DefaultTransitionSetting defaultTransitionSetting;
     private final WeeklyGoalRepository weeklyGoalRepository;
+    private final ReminderRepository reminderRepository;
+    private final ReminderAlarms reminderAlarms;
     private final ExecutorService ioExecutor;
 
     private final MutableLiveData<Design> design = new MutableLiveData<>();
@@ -46,6 +53,8 @@ public class SettingsViewModel extends ViewModel {
         vibrationOn.setValue(vibrationSetting.isOn());
         defaultTransitionSeconds.setValue(defaultTransitionSetting.getSeconds());
         weeklyGoalRepository = container.weeklyGoalRepository;
+        reminderRepository = container.reminderRepository;
+        reminderAlarms = container.reminderAlarms;
         ioExecutor = container.ioExecutor;
         LiveDataExecutor.runOnExecutorOnce(ioExecutor,
                 () -> weeklyGoalRepository.getGoal(
@@ -106,5 +115,49 @@ public class SettingsViewModel extends ViewModel {
             weeklyGoalRepository.setGoal(trainingDays, now, zone);
             return null;
         }, result -> { });
+    }
+
+    /** The reminders, ordered by time of day, kept live. */
+    public LiveData<List<Reminder>> getReminders() {
+        return reminderRepository.observeAll();
+    }
+
+    /** Adds a reminder, switched on; one without weekdays is not stored. */
+    public void addReminder(int minuteOfDay, int weekdays) {
+        if (weekdays == 0) return;
+        Reminder reminder = new Reminder(minuteOfDay, weekdays, true);
+        changeReminders(() -> reminderRepository.insert(reminder));
+    }
+
+    /** Changes a reminder's time and weekdays; without weekdays it stays as it was. */
+    public void changeReminder(Reminder reminder, int minuteOfDay, int weekdays) {
+        if (weekdays == 0) return;
+        Reminder changed = copyOf(reminder);
+        changed.minuteOfDay = minuteOfDay;
+        changed.weekdays = weekdays;
+        changeReminders(() -> reminderRepository.update(changed));
+    }
+
+    public void setReminderOn(Reminder reminder, boolean on) {
+        Reminder changed = copyOf(reminder);
+        changed.enabled = on;
+        changeReminders(() -> reminderRepository.update(changed));
+    }
+
+    public void deleteReminder(Reminder reminder) {
+        changeReminders(() -> reminderRepository.delete(reminder));
+    }
+
+    private void changeReminders(Runnable change) {
+        ioExecutor.execute(() -> {
+            change.run();
+            reminderAlarms.renew(reminderRepository.getAll());
+        });
+    }
+
+    private static Reminder copyOf(Reminder reminder) {
+        Reminder copy = new Reminder(reminder.minuteOfDay, reminder.weekdays, reminder.enabled);
+        copy.id = reminder.id;
+        return copy;
     }
 }

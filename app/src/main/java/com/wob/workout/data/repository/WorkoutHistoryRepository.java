@@ -107,6 +107,11 @@ public class WorkoutHistoryRepository {
         return database.workoutSessionDao().observeAll();
     }
 
+    /** Every workout session, aborted ones included, read once; off the main thread. */
+    public List<WorkoutSession> getSessions() {
+        return database.workoutSessionDao().getAll();
+    }
+
     public WorkoutSession getSession(long sessionId) {
         return database.workoutSessionDao().getById(sessionId);
     }

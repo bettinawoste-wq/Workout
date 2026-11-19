@@ -60,6 +60,28 @@
         <item quantity="other">%d Trainingstage pro Woche</item>
     </plurals>
     <string name="wochenfortschritt">%1$d / %2$d diese Woche · Serie: %3$s</string>
+    <string name="abbrechen">Abbrechen</string>
+    <string name="erinnerungen">Erinnerungen</string>
+    <string name="erinnerung_hinzufuegen">Erinnerung hinzufügen</string>
+    <string name="neue_erinnerung">Neue Erinnerung</string>
+    <string name="erinnerung_bearbeiten">Erinnerung bearbeiten</string>
+    <string name="erinnerung_loeschen">Erinnerung löschen?</string>
+    <string name="erinnerung_loeschen_text">Die Erinnerung um %1$s wird gelöscht.</string>
+    <string name="erinnerung_an">Erinnerung um %1$s</string>
+    <string name="erinnerung_titel">Zeit fürs Training</string>
+    <string name="erinnerung_text">Starte jetzt ein Workout.</string>
+    <string name="taeglich">Täglich</string>
+    <string name="benachrichtigungen_aus">Benachrichtigungen sind nicht erlaubt, deshalb bleiben die Erinnerungen stumm.</string>
+    <string name="benachrichtigungen_erlauben">Erlauben</string>
+    <string-array name="wochentage_kurz">
+        <item>Mo</item>
+        <item>Di</item>
+        <item>Mi</item>
+        <item>Do</item>
+        <item>Fr</item>
+        <item>Sa</item>
+        <item>So</item>
+    </string-array>
     <plurals name="wochen">
         <item quantity="one">%d Woche</item>
         <item quantity="other">%d Wochen</item>

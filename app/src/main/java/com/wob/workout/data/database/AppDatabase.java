@@ -10,12 +10,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import com.wob.workout.data.converter.MediaTypeConverter;
 import com.wob.workout.data.dao.ExerciseDao;
 import com.wob.workout.data.dao.ExerciseSessionDao;
+import com.wob.workout.data.dao.ReminderDao;
 import com.wob.workout.data.dao.WeeklyGoalDao;
 import com.wob.workout.data.dao.WorkoutDao;
 import com.wob.workout.data.dao.WorkoutExerciseDao;
 import com.wob.workout.data.dao.WorkoutSessionDao;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.ExerciseSession;
+import com.wob.workout.data.entity.Reminder;
 import com.wob.workout.data.entity.WeeklyGoalChange;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExerciseRow;
@@ -28,9 +30,10 @@ import com.wob.workout.data.entity.WorkoutSession;
                 WorkoutExerciseRow.class,
                 WorkoutSession.class,
                 ExerciseSession.class,
-                WeeklyGoalChange.class
+                WeeklyGoalChange.class,
+                Reminder.class
         },
-        version = 9,
+        version = 10,
         exportSchema = true
 )
 @TypeConverters(MediaTypeConverter.class)
@@ -41,6 +44,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract WorkoutSessionDao workoutSessionDao();
     public abstract ExerciseSessionDao exerciseSessionDao();
     public abstract WeeklyGoalDao weeklyGoalDao();
+    public abstract ReminderDao reminderDao();
 
     public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
         @Override
@@ -207,6 +211,19 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // Reminders (issue #106). None yet: there are none until the user adds one.
+            db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `Reminder` ("
+                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                            + "`minuteOfDay` INTEGER NOT NULL, "
+                            + "`weekdays` INTEGER NOT NULL, "
+                            + "`enabled` INTEGER NOT NULL)");
+        }
+    };
+
     /** Every migration, in order. {@link DatabaseProvider} registers exactly these, and
      *  {@code AllMigrationsTest} checks they lead from version 4 to the current schema. */
     public static final Migration[] ALL_MIGRATIONS = {
@@ -216,6 +233,7 @@ public abstract class AppDatabase extends RoomDatabase {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
-            MIGRATION_8_9
+            MIGRATION_8_9,
+            MIGRATION_9_10
     };
 }

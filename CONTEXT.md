@@ -49,6 +49,25 @@ lives in an on-device Room database.
   weeks run Monday to Sunday. `HomeViewModel` observes the history and the goal's changes
   and works the progress out again on every change, so deleting a workout session updates
   the line. `WeeklyProgressTest` (JVM) covers the rules.
+- **Reminders** — stored data, not preferences and not part of the backup (`Reminder`: a
+  local time of day in minutes, the weekdays as one bit each from Monday, on/off), listed,
+  added, changed, switched and deleted in the settings screen's Training section through
+  `SettingsViewModel` and `ReminderRepository`. The pure `training.ReminderSchedule` answers
+  when the next one is due from the reminders, the current time and the time zone, in local
+  wall-clock time, so a reminder keeps its hour across daylight-saving changes
+  (`ReminderScheduleTest`, JVM). The Android glue sits behind one seam, `ReminderAlarms`
+  (`container.reminderAlarms`; a recording fake in `TestAppContainer`, so tests never move
+  the installed app's alarm): `AndroidReminderAlarms` sets one inexact alarm for the next
+  due reminder (`setWindow` with a 10-minute window, so no exact-alarm permission; it may
+  come a few minutes late, a plain inexact alarm could come hours late) or cancels it while
+  none is on. It is renewed after every change to the
+  reminders, at app start, and by `reminders.ReminderReceiver` after boot, a time or
+  time-zone change and an app update. When the alarm goes off, the receiver asks
+  `WeeklyProgress.isReminderSilentToday()`, posts `ReminderNotification` (tapping it opens
+  the home screen in a fresh task) unless silent, and renews the alarm. The notification
+  permission is asked for when the first reminder is added; while notifications are not
+  allowed and reminders exist, the settings screen shows a hint with a link to the
+  system's notification settings.
 
 ## Architecture
 
