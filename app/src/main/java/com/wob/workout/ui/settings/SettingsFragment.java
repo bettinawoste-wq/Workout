@@ -2,7 +2,6 @@ package com.wob.workout.ui.settings;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,7 +14,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -34,6 +32,7 @@ import com.wob.workout.databinding.DialogReminderBinding;
 import com.wob.workout.databinding.FragmentSettingsBinding;
 import com.wob.workout.databinding.ItemReminderBinding;
 import com.wob.workout.reminders.ReminderNotification;
+import com.wob.workout.training.Weekdays;
 import com.wob.workout.ui.ScreenToolbar;
 
 import java.text.SimpleDateFormat;
@@ -45,10 +44,6 @@ import java.util.Locale;
 
 /** The settings screen, opened from the gear button on the home screen. */
 public class SettingsFragment extends Fragment {
-
-    /** A new reminder's time and weekdays until changed: 18:00, Monday to Friday. */
-    private static final int NEW_REMINDER_MINUTE = 18 * 60;
-    private static final int NEW_REMINDER_WEEKDAYS = 0b0011111;
 
     private FragmentSettingsBinding binding;
     private SettingsViewModel viewModel;
@@ -129,9 +124,7 @@ public class SettingsFragment extends Fragment {
             }
         });
         binding.sliderWeeklyGoal.addOnChangeListener((slider, value, fromUser) -> {
-            if (!fromUser) return;
-            int trainingDays = Math.round(value);
-            viewModel.setWeeklyGoal(trainingDays == 0 ? null : trainingDays);
+            if (fromUser) viewModel.setWeeklyGoal(Math.round(value));
         });
 
         viewModel.getReminders().observe(getViewLifecycleOwner(), list -> {
@@ -160,7 +153,7 @@ public class SettingsFragment extends Fragment {
                     getLayoutInflater(), binding.listReminders, true);
             String time = timeOf(reminder.minuteOfDay);
             item.txtReminderTime.setText(time);
-            item.txtReminderWeekdays.setText(weekdaysOf(reminder));
+            item.txtReminderWeekdays.setText(weekdaysText(reminder.days()));
             item.switchReminder.setChecked(reminder.enabled);
             item.switchReminder.setContentDescription(getString(R.string.erinnerung_an, time));
             item.switchReminder.setOnCheckedChangeListener(
@@ -173,18 +166,19 @@ public class SettingsFragment extends Fragment {
     /** Adds a reminder when {@code reminder} is null, otherwise changes it. */
     private void showReminderDialog(Reminder reminder) {
         DialogReminderBinding dialogBinding = DialogReminderBinding.inflate(getLayoutInflater());
-        int minuteOfDay = reminder == null ? NEW_REMINDER_MINUTE : reminder.minuteOfDay;
-        int weekdays = reminder == null ? NEW_REMINDER_WEEKDAYS : reminder.weekdays;
+        int minuteOfDay =
+                reminder == null ? viewModel.newReminderMinuteOfDay() : reminder.minuteOfDay;
+        Weekdays weekdays = reminder == null ? viewModel.newReminderWeekdays() : reminder.days();
         dialogBinding.timePicker.setIs24HourView(true);
         dialogBinding.timePicker.setHour(minuteOfDay / 60);
         dialogBinding.timePicker.setMinute(minuteOfDay % 60);
         String[] names = getResources().getStringArray(R.array.wochentage_kurz);
         List<Chip> chips = new ArrayList<>();
-        for (int day = 0; day < names.length; day++) {
+        for (int day = 0; day < Weekdays.COUNT; day++) {
             Chip chip = new Chip(requireContext());
             chip.setText(names[day]);
             chip.setCheckable(true);
-            chip.setChecked((weekdays & (Reminder.MONDAY << day)) != 0);
+            chip.setChecked(weekdays.contains(day));
             dialogBinding.groupWeekdays.addView(chip);
             chips.add(chip);
         }
@@ -199,7 +193,7 @@ public class SettingsFragment extends Fragment {
                     dialogBinding.timePicker.clearFocus();
                     int chosenMinute = dialogBinding.timePicker.getHour() * 60
                             + dialogBinding.timePicker.getMinute();
-                    int chosenWeekdays = weekdaysOf(chips);
+                    Weekdays chosenWeekdays = checkedWeekdays(chips);
                     if (reminder != null) {
                         viewModel.changeReminder(reminder, chosenMinute, chosenWeekdays);
                         return;
@@ -209,9 +203,8 @@ public class SettingsFragment extends Fragment {
                     if (first) askForNotificationPermission();
                 })
                 .show();
-        // A reminder needs at least one weekday.
         Runnable updateSave = () -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setEnabled(weekdaysOf(chips) != 0);
+                .setEnabled(viewModel.canSaveReminder(checkedWeekdays(chips)));
         for (Chip chip : chips) {
             chip.setOnCheckedChangeListener((button, checked) -> updateSave.run());
         }
@@ -229,18 +222,16 @@ public class SettingsFragment extends Fragment {
     }
 
     private void askForNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && ContextCompat.checkSelfPermission(requireContext(),
-                        Manifest.permission.POST_NOTIFICATIONS)
-                        != PackageManager.PERMISSION_GRANTED) {
+        if (ReminderNotification.needsPermission(requireContext())) {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
         }
     }
 
-    /** The hint shows while there are reminders but notifications are not allowed. */
+    /** The hint shows while notifications are not allowed, with or without reminders yet:
+     *  it says that reminders stay silent, also before the first one is added. */
     private void showNotificationHint() {
         if (binding == null) return;
-        boolean off = !reminders.isEmpty() && !ReminderNotification.isAllowed(requireContext());
+        boolean off = !ReminderNotification.isAllowed(requireContext());
         binding.groupNotificationsOff.setVisibility(off ? View.VISIBLE : View.GONE);
     }
 
@@ -258,20 +249,22 @@ public class SettingsFragment extends Fragment {
         return String.format(Locale.GERMANY, "%02d:%02d", minuteOfDay / 60, minuteOfDay % 60);
     }
 
-    private String weekdaysOf(Reminder reminder) {
+    /** For example "Mo, Mi, Fr", or "Täglich". */
+    private String weekdaysText(Weekdays weekdays) {
+        if (weekdays.isEveryDay()) return getString(R.string.taeglich);
         String[] names = getResources().getStringArray(R.array.wochentage_kurz);
         List<String> days = new ArrayList<>();
-        for (int day = 0; day < names.length; day++) {
-            if (reminder.isOn(day)) days.add(names[day]);
+        for (int day = 0; day < Weekdays.COUNT; day++) {
+            if (weekdays.contains(day)) days.add(names[day]);
         }
-        return days.size() == names.length
-                ? getString(R.string.taeglich) : String.join(", ", days);
+        return String.join(", ", days);
     }
 
-    private static int weekdaysOf(List<Chip> chips) {
-        int weekdays = 0;
+    /** The weekdays whose chips are checked, one chip per day from Monday. */
+    private static Weekdays checkedWeekdays(List<Chip> chips) {
+        Weekdays weekdays = Weekdays.NONE;
         for (int day = 0; day < chips.size(); day++) {
-            if (chips.get(day).isChecked()) weekdays |= Reminder.MONDAY << day;
+            weekdays = weekdays.with(day, chips.get(day).isChecked());
         }
         return weekdays;
     }
@@ -317,7 +310,7 @@ public class SettingsFragment extends Fragment {
         }
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.backup_importieren)
-                .setMessage(getString(R.string.backup_inhalt, preview.text()))
+                .setMessage(getString(R.string.backup_inhalt, contentsText(preview)))
                 .setPositiveButton(R.string.ersetzen, (dialog, which) ->
                         backupViewModel.replace())
                 .setNeutralButton(R.string.zusammenfuehren, (dialog, which) ->
@@ -326,6 +319,17 @@ public class SettingsFragment extends Fragment {
                         backupViewModel.cancel())
                 .setOnCancelListener(dialog -> backupViewModel.cancel())
                 .show();
+    }
+
+    /** For example "12 Übungen, 3 Workouts, 40 Einträge im Verlauf". */
+    private String contentsText(BackupPreview preview) {
+        return getString(R.string.backup_umfang,
+                getResources().getQuantityString(R.plurals.backup_uebungen,
+                        preview.exercises, preview.exercises),
+                getResources().getQuantityString(R.plurals.backup_workouts,
+                        preview.workouts, preview.workouts),
+                getResources().getQuantityString(R.plurals.backup_eintraege_im_verlauf,
+                        preview.workoutSessions, preview.workoutSessions));
     }
 
     /** Zusammenführen warns about duplicates first. */

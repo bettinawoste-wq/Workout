@@ -37,11 +37,11 @@ public class Migration8To9Test {
     @Before
     public void setUp() throws IOException {
         try (SupportSQLiteDatabase old = helper.createDatabase(DB_NAME, 8)) {
-            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`) "
-                    + "VALUES (1, 'Leg Day', 1)");
-            old.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`, "
-                    + "`startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`, "
-                    + "`restSeconds`) VALUES (1, 1, 'Leg Day', 1000, 2000, 75, 1, 30)");
+            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`)"
+                    + " VALUES (1, 'Leg Day', 1)");
+            old.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`,"
+                    + " `startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`,"
+                    + " `restSeconds`) VALUES (1, 1, 'Leg Day', 1000, 2000, 75, 1, 30)");
         }
         db = helper.runMigrationsAndValidate(DB_NAME, 9, true, AppDatabase.MIGRATION_8_9);
     }
@@ -60,8 +60,8 @@ public class Migration8To9Test {
 
     @Test
     public void aWeeklyGoalChangeCanBeRecorded() {
-        db.execSQL("INSERT INTO `WeeklyGoalChange` (`weekStartDay`, `trainingDays`) "
-                + "VALUES (20408, 3)");
+        db.execSQL("INSERT INTO `WeeklyGoalChange` (`weekStartDay`, `trainingDays`)"
+                + " VALUES (20408, 3)");
 
         try (Cursor cursor = goalChanges()) {
             assertEquals(1, cursor.getCount());
@@ -73,8 +73,8 @@ public class Migration8To9Test {
 
     @Test
     public void theHistoryIsUntouched() {
-        try (Cursor cursor = db.query("SELECT `activeDurationSeconds`, `completed`, "
-                + "`restSeconds` FROM `WorkoutSession` WHERE `id` = 1")) {
+        try (Cursor cursor = db.query("SELECT `activeDurationSeconds`, `completed`,"
+                + " `restSeconds` FROM `WorkoutSession` WHERE `id` = 1")) {
             cursor.moveToFirst();
             assertEquals(75, cursor.getInt(0));
             assertEquals(1, cursor.getInt(1));

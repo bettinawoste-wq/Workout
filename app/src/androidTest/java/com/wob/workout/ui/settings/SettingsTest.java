@@ -12,6 +12,7 @@ import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.entity.WeeklyGoalChange;
 import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.VibrationSetting;
+import com.wob.workout.training.Clock;
 
 import org.junit.After;
 import org.junit.Before;
@@ -104,16 +105,16 @@ public class SettingsTest {
 
     @Test
     public void thereIsNoWeeklyGoalOnAFreshInstall() {
-        assertNull(container.weeklyGoalRepository.getGoal(at(2026, 11, 18), zone()));
+        assertNull(container.weeklyGoalRepository.getGoal(at(2026, 11, 18)));
         assertTrue(container.weeklyGoalRepository.getChanges().isEmpty());
     }
 
     @Test
     public void settingChangingAndRemovingTheWeeklyGoalRecordsEachWithItsWeek() {
         // Wednesday 4, Thursday 12 and Monday 16 November 2026, in three weeks in a row.
-        container.weeklyGoalRepository.setGoal(3, at(2026, 11, 4), zone());
-        container.weeklyGoalRepository.setGoal(4, at(2026, 11, 12), zone());
-        container.weeklyGoalRepository.setGoal(null, at(2026, 11, 16), zone());
+        container.weeklyGoalRepository.setGoal(3, at(2026, 11, 4));
+        container.weeklyGoalRepository.setGoal(4, at(2026, 11, 12));
+        container.weeklyGoalRepository.setGoal(null, at(2026, 11, 16));
 
         List<WeeklyGoalChange> changes = container.weeklyGoalRepository.getChanges();
         assertEquals(3, changes.size());
@@ -121,15 +122,15 @@ public class SettingsTest {
         assertChange(changes.get(1), 2026, 11, 9, 4);
         assertChange(changes.get(2), 2026, 11, 16, null);
         assertEquals(Integer.valueOf(4),
-                container.weeklyGoalRepository.getGoal(at(2026, 11, 15), zone()));
-        assertNull(container.weeklyGoalRepository.getGoal(at(2026, 11, 18), zone()));
+                container.weeklyGoalRepository.getGoal(at(2026, 11, 15)));
+        assertNull(container.weeklyGoalRepository.getGoal(at(2026, 11, 18)));
     }
 
     @Test
     public void aSecondChangeInTheSameWeekReplacesTheFirst() {
-        container.weeklyGoalRepository.setGoal(2, at(2026, 11, 2), zone());
-        container.weeklyGoalRepository.setGoal(3, at(2026, 11, 16), zone());
-        container.weeklyGoalRepository.setGoal(5, at(2026, 11, 22), zone());
+        container.weeklyGoalRepository.setGoal(2, at(2026, 11, 2));
+        container.weeklyGoalRepository.setGoal(3, at(2026, 11, 16));
+        container.weeklyGoalRepository.setGoal(5, at(2026, 11, 22));
 
         List<WeeklyGoalChange> changes = container.weeklyGoalRepository.getChanges();
         assertEquals(2, changes.size());
@@ -143,12 +144,9 @@ public class SettingsTest {
         assertEquals(trainingDays, change.trainingDays);
     }
 
-    private static long at(int year, int month, int day) {
-        return LocalDateTime.of(year, month, day, 12, 0).atZone(BERLIN).toInstant()
-                .toEpochMilli();
-    }
-
-    private static TimeZone zone() {
-        return TimeZone.getTimeZone(BERLIN);
+    /** Noon of the given day in Berlin. */
+    private static Clock at(int year, int month, int day) {
+        return Clock.fixed(LocalDateTime.of(year, month, day, 12, 0).atZone(BERLIN).toInstant()
+                .toEpochMilli(), TimeZone.getTimeZone(BERLIN));
     }
 }

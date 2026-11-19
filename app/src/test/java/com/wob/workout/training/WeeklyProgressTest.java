@@ -192,14 +192,15 @@ public class WeeklyProgressTest {
     }
 
     private WeeklyProgress progressAt(LocalDateTime now) {
-        return WeeklyProgress.of(sessions, goalChanges, millis(now),
-                TimeZone.getTimeZone(BERLIN));
+        return WeeklyProgress.of(sessions, goalChanges,
+                Clock.fixed(millis(now), TimeZone.getTimeZone(BERLIN)));
     }
 
     /** Sets the goal in the week of the given day, as the settings screen would then. */
     private void goalFrom(int year, int month, int day, Integer trainingDays) {
         long dayMillis = millis(LocalDate.of(year, month, day).atTime(12, 0));
-        long weekStart = WeeklyProgress.weekStartDay(dayMillis, TimeZone.getTimeZone(BERLIN));
+        long weekStart = WeeklyProgress.weekStartDay(
+                Clock.fixed(dayMillis, TimeZone.getTimeZone(BERLIN)));
         goalChanges.removeIf(change -> change.weekStartDay == weekStart);
         goalChanges.add(new WeeklyGoalChange(weekStart, trainingDays));
     }

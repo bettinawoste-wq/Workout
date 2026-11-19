@@ -8,8 +8,6 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.training.WeeklyProgress;
 
-import java.util.TimeZone;
-
 /**
  * Receives the reminders' alarm and the system broadcasts after which it must be set
  * again (boot, a changed time or time zone, an app update). When a reminder is due, it
@@ -38,8 +36,7 @@ public class ReminderReceiver extends BroadcastReceiver {
 
     private static boolean silentToday(AppContainer container) {
         return WeeklyProgress.of(container.workoutHistoryRepository.getSessions(),
-                        container.weeklyGoalRepository.getChanges(),
-                        System.currentTimeMillis(), TimeZone.getDefault())
+                        container.weeklyGoalRepository.getChanges(), container.clock)
                 .isReminderSilentToday();
     }
 }

@@ -49,8 +49,8 @@ public class HistoryDetailViewModel extends ViewModel {
             this.exercises = exercises;
         }
 
-        /** E.g. "Pausen: 1:30", on its own rather than a row per rest; null without rest
-         *  time, and for a workout session recorded before rests existed. */
+        /** E.g. "Pausen: 1:30", on its own rather than a row per rest; null when no rest
+         *  ran, and for a workout session recorded before rests existed. */
         public String restText() {
             return PlayerWorkoutSummary.restText(session.restSeconds);
         }

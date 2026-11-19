@@ -19,7 +19,7 @@ public interface SessionHistory {
     void recordExercise(int position, WorkoutExercise workoutExercise, int actualSeconds,
                         long startedAt, long finishedAt);
 
-    /** @param restSeconds how long the workout session rested, pauses left out; rests are
-     *                     not exercise sessions */
-    void finishSession(boolean completed, int restSeconds);
+    /** @param restSeconds how long the workout session rested, pauses left out, or null
+     *                     when no rest ran; rests are not exercise sessions */
+    void finishSession(boolean completed, Integer restSeconds);
 }

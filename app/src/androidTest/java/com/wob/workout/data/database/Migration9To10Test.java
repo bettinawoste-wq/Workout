@@ -13,6 +13,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import com.wob.workout.data.entity.Reminder;
 import com.wob.workout.data.entity.WeeklyGoalChange;
 import com.wob.workout.data.entity.WorkoutSession;
+import com.wob.workout.training.Weekdays;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -41,13 +42,13 @@ public class Migration9To10Test {
     @Before
     public void setUp() throws IOException {
         try (SupportSQLiteDatabase db = helper.createDatabase(DB_NAME, 9)) {
-            db.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`) "
-                    + "VALUES (1, 'Leg Day', 1)");
-            db.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`, "
-                    + "`startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`, "
-                    + "`restSeconds`) VALUES (1, 1, 'Leg Day', 1000, 2000, 75, 1, 30)");
-            db.execSQL("INSERT INTO `WeeklyGoalChange` (`weekStartDay`, `trainingDays`) "
-                    + "VALUES (20408, 3)");
+            db.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`)"
+                    + " VALUES (1, 'Leg Day', 1)");
+            db.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`,"
+                    + " `startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`,"
+                    + " `restSeconds`) VALUES (1, 1, 'Leg Day', 1000, 2000, 75, 1, 30)");
+            db.execSQL("INSERT INTO `WeeklyGoalChange` (`weekStartDay`, `trainingDays`)"
+                    + " VALUES (20408, 3)");
         }
         helper.runMigrationsAndValidate(DB_NAME, 10, true, AppDatabase.MIGRATION_9_10).close();
 
@@ -66,12 +67,12 @@ public class Migration9To10Test {
 
     @Test
     public void aReminderCanBeStored() {
-        database.reminderDao().insert(new Reminder(18 * 60, Reminder.MONDAY, true));
+        database.reminderDao().insert(new Reminder(18 * 60, Weekdays.of(Weekdays.MONDAY), true));
 
         List<Reminder> reminders = database.reminderDao().getAll();
         assertEquals(1, reminders.size());
         assertEquals(18 * 60, reminders.get(0).minuteOfDay);
-        assertEquals(Reminder.MONDAY, reminders.get(0).weekdays);
+        assertEquals(Weekdays.of(Weekdays.MONDAY), reminders.get(0).days());
         assertTrue(reminders.get(0).enabled);
     }
 

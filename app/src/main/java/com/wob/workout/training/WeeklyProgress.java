@@ -35,20 +35,22 @@ public final class WeeklyProgress {
      * @param sessions    the history's workout sessions; only completed ones count, on the
      *                    day they started
      * @param goalChanges every change of the weekly goal, in any order
+     * @param clock       now, and the time zone days are counted in
      */
     public static WeeklyProgress of(List<WorkoutSession> sessions,
-            List<WeeklyGoalChange> goalChanges, long nowMillis, TimeZone zone) {
+            List<WeeklyGoalChange> goalChanges, Clock clock) {
+        TimeZone zone = clock.zone();
         Set<Long> days = new HashSet<>();
         for (WorkoutSession session : sessions) {
             if (session.completed) days.add(day(session.startedAt, zone));
         }
-        return new WeeklyProgress(days, goalChanges, day(nowMillis, zone));
+        return new WeeklyProgress(days, goalChanges, day(clock.nowMillis(), zone));
     }
 
-    /** The Monday of the week {@code millis} falls in, as days since 1970-01-01: the week a
-     *  goal set at that moment applies from. */
-    public static long weekStartDay(long millis, TimeZone zone) {
-        return weekStartOf(day(millis, zone));
+    /** The Monday of the current week, as days since 1970-01-01: the week a goal set now
+     *  applies from. */
+    public static long weekStartDay(Clock clock) {
+        return weekStartOf(day(clock.nowMillis(), clock.zone()));
     }
 
     private static long weekStartOf(long day) {

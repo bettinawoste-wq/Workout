@@ -18,6 +18,7 @@ import com.wob.workout.player.SoundSetting;
 import com.wob.workout.player.VibrationSetting;
 import com.wob.workout.reminders.AndroidReminderAlarms;
 import com.wob.workout.reminders.ReminderAlarms;
+import com.wob.workout.training.Clock;
 import com.wob.workout.ui.settings.DesignSetting;
 
 import java.util.concurrent.ExecutorService;
@@ -60,12 +61,15 @@ public class AppContainer {
     public final ReminderRepository reminderRepository;
     public final ReminderAlarms reminderAlarms;
 
+    /** Now and the time zone, for the weekly goal and the reminders: the phone's own. */
+    public final Clock clock = Clock.SYSTEM;
+
     /** Export and import of the backup, over the database and the exercises' media. */
     public final Backup backup;
 
     public AppContainer(Context appContext) {
         this(appContext, appContext.getSharedPreferences(SETTINGS_FILE, Context.MODE_PRIVATE),
-                new AndroidReminderAlarms(appContext));
+                new AndroidReminderAlarms(appContext, Clock.SYSTEM));
     }
 
     /** Test seam: tests pass a preferences file and reminder alarms of their own, so they

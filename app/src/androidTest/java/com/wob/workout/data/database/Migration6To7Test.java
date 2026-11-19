@@ -41,16 +41,16 @@ public class Migration6To7Test {
     public void setUp() throws IOException {
         try (SupportSQLiteDatabase old = helper.createDatabase(DB_NAME, 6)) {
             old.execSQL("INSERT INTO `Exercise` (`id`, `title`) VALUES (1, 'Squat')");
-            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `transitionSeconds`, "
-                    + "`countdownEnabled`) VALUES (1, 'Push Day', 3, 1)");
-            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `transitionSeconds`, "
-                    + "`countdownEnabled`) VALUES (2, 'Long Rest', 3, 0)");
+            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `transitionSeconds`,"
+                    + " `countdownEnabled`) VALUES (1, 'Push Day', 3, 1)");
+            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `transitionSeconds`,"
+                    + " `countdownEnabled`) VALUES (2, 'Long Rest', 3, 0)");
             // A deleted workout's id, still referred to by its history.
-            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `transitionSeconds`, "
-                    + "`countdownEnabled`) VALUES (5, 'Gone', 3, 1)");
+            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `transitionSeconds`,"
+                    + " `countdownEnabled`) VALUES (5, 'Gone', 3, 1)");
             old.execSQL("DELETE FROM `Workout` WHERE `id` = 5");
-            old.execSQL("INSERT INTO `WorkoutExercise` (`workoutId`, `exerciseId`, `position`, "
-                    + "`durationSeconds`) VALUES (1, 1, 0, 45)");
+            old.execSQL("INSERT INTO `WorkoutExercise` (`workoutId`, `exerciseId`, `position`,"
+                    + " `durationSeconds`) VALUES (1, 1, 0, 45)");
         }
         db = helper.runMigrationsAndValidate(DB_NAME, 7, true, AppDatabase.MIGRATION_6_7);
     }

@@ -171,7 +171,7 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/erinnerungen"/>
 
-            <!-- Shown while notifications are not allowed and there are reminders. -->
+            <!-- Shown while notifications are not allowed. -->
             <LinearLayout
                 android:id="@+id/groupNotificationsOff"
                 android:layout_width="match_parent"

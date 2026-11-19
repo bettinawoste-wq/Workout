@@ -17,9 +17,11 @@ public final class ReminderSchedule {
     private ReminderSchedule() {
     }
 
-    /** The first moment after {@code nowMillis} at which a reminder switched on is due, or
-     *  null while none is on. */
-    public static Long nextDue(List<Reminder> reminders, long nowMillis, TimeZone zone) {
+    /** The first moment after now at which a reminder switched on is due, or null while
+     *  none is on. */
+    public static Long nextDue(List<Reminder> reminders, Clock clock) {
+        long nowMillis = clock.nowMillis();
+        TimeZone zone = clock.zone();
         Calendar now = new GregorianCalendar(zone);
         now.setTimeInMillis(nowMillis);
         // Today and the next seven days: the eighth reaches today's weekday again, for a
@@ -32,7 +34,7 @@ public final class ReminderSchedule {
                 due.clear();
                 due.set(now.get(Calendar.YEAR), now.get(Calendar.MONTH),
                         now.get(Calendar.DAY_OF_MONTH) + dayOffset);
-                if (!reminder.isOn(weekdayOf(due))) continue;
+                if (!reminder.days().contains(weekdayOf(due))) continue;
                 due.set(Calendar.HOUR_OF_DAY, reminder.minuteOfDay / 60);
                 due.set(Calendar.MINUTE, reminder.minuteOfDay % 60);
                 long dueMillis = due.getTimeInMillis();
@@ -45,7 +47,7 @@ public final class ReminderSchedule {
         return null;
     }
 
-    /** 0 for Monday through 6 for Sunday. */
+    /** 0 for Monday through 6 for Sunday, as {@link Weekdays} numbers them. */
     private static int weekdayOf(Calendar day) {
         return (day.get(Calendar.DAY_OF_WEEK) + 5) % 7;
     }

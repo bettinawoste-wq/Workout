@@ -13,9 +13,10 @@ import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.SoundSetting;
 import com.wob.workout.player.VibrationSetting;
 import com.wob.workout.reminders.ReminderAlarms;
+import com.wob.workout.training.Clock;
+import com.wob.workout.training.Weekdays;
 
 import java.util.List;
-import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -24,9 +25,15 @@ import java.util.concurrent.ExecutorService;
  * switching it here or in the player's toolbar switches both; only one screen is visible at
  * a time, so reading it when the screen opens keeps them in step. The weekly goal lives in
  * the database with its history of changes, so it loads and stores off the main thread,
- * and so do the reminders, which renew the reminder alarm after every change.
+ * and so do the reminders, which renew the reminder alarm after every change. The input
+ * rules live here: a goal of 0 training days is none, a new reminder's time and weekdays,
+ * and that a reminder needs at least one weekday.
  */
 public class SettingsViewModel extends ViewModel {
+
+    /** A new reminder's time and weekdays until changed: 18:00, Monday to Friday. */
+    private static final int NEW_REMINDER_MINUTE_OF_DAY = 18 * 60;
+    private static final Weekdays NEW_REMINDER_WEEKDAYS = Weekdays.MONDAY_TO_FRIDAY;
 
     private final DesignSetting designSetting;
     private final SoundSetting soundSetting;
@@ -36,6 +43,7 @@ public class SettingsViewModel extends ViewModel {
     private final ReminderRepository reminderRepository;
     private final ReminderAlarms reminderAlarms;
     private final ExecutorService ioExecutor;
+    private final Clock clock;
 
     private final MutableLiveData<Design> design = new MutableLiveData<>();
     private final MutableLiveData<Boolean> soundOn = new MutableLiveData<>();
@@ -56,10 +64,9 @@ public class SettingsViewModel extends ViewModel {
         reminderRepository = container.reminderRepository;
         reminderAlarms = container.reminderAlarms;
         ioExecutor = container.ioExecutor;
+        clock = container.clock;
         LiveDataExecutor.runOnExecutorOnce(ioExecutor,
-                () -> weeklyGoalRepository.getGoal(
-                        System.currentTimeMillis(), TimeZone.getDefault()),
-                weeklyGoal::setValue);
+                () -> weeklyGoalRepository.getGoal(clock), weeklyGoal::setValue);
     }
 
     public LiveData<Design> getDesign() {
@@ -106,13 +113,12 @@ public class SettingsViewModel extends ViewModel {
         return weeklyGoal;
     }
 
-    /** Sets the weekly goal from the current week on, or removes it with null. */
-    public void setWeeklyGoal(Integer trainingDays) {
-        weeklyGoal.setValue(trainingDays);
-        long now = System.currentTimeMillis();
-        TimeZone zone = TimeZone.getDefault();
+    /** Sets the weekly goal from the current week on; 0 training days removes it. */
+    public void setWeeklyGoal(int trainingDays) {
+        Integer goal = trainingDays == 0 ? null : trainingDays;
+        weeklyGoal.setValue(goal);
         LiveDataExecutor.runOnExecutorOnce(ioExecutor, () -> {
-            weeklyGoalRepository.setGoal(trainingDays, now, zone);
+            weeklyGoalRepository.setGoal(goal, clock);
             return null;
         }, result -> { });
     }
@@ -122,19 +128,34 @@ public class SettingsViewModel extends ViewModel {
         return reminderRepository.observeAll();
     }
 
-    /** Adds a reminder, switched on; one without weekdays is not stored. */
-    public void addReminder(int minuteOfDay, int weekdays) {
-        if (weekdays == 0) return;
+    /** The time of day, in minutes, a new reminder starts with. */
+    public int newReminderMinuteOfDay() {
+        return NEW_REMINDER_MINUTE_OF_DAY;
+    }
+
+    /** The weekdays a new reminder starts with. */
+    public Weekdays newReminderWeekdays() {
+        return NEW_REMINDER_WEEKDAYS;
+    }
+
+    /** Whether a reminder on these weekdays can be saved: it needs at least one. */
+    public boolean canSaveReminder(Weekdays weekdays) {
+        return !weekdays.isEmpty();
+    }
+
+    /** Adds a reminder, switched on; one that can't be saved is not stored. */
+    public void addReminder(int minuteOfDay, Weekdays weekdays) {
+        if (!canSaveReminder(weekdays)) return;
         Reminder reminder = new Reminder(minuteOfDay, weekdays, true);
         changeReminders(() -> reminderRepository.insert(reminder));
     }
 
-    /** Changes a reminder's time and weekdays; without weekdays it stays as it was. */
-    public void changeReminder(Reminder reminder, int minuteOfDay, int weekdays) {
-        if (weekdays == 0) return;
+    /** Changes a reminder's time and weekdays; if it can't be saved, it stays as it was. */
+    public void changeReminder(Reminder reminder, int minuteOfDay, Weekdays weekdays) {
+        if (!canSaveReminder(weekdays)) return;
         Reminder changed = copyOf(reminder);
         changed.minuteOfDay = minuteOfDay;
-        changed.weekdays = weekdays;
+        changed.weekdays = weekdays.bits();
         changeReminders(() -> reminderRepository.update(changed));
     }
 
@@ -156,7 +177,7 @@ public class SettingsViewModel extends ViewModel {
     }
 
     private static Reminder copyOf(Reminder reminder) {
-        Reminder copy = new Reminder(reminder.minuteOfDay, reminder.weekdays, reminder.enabled);
+        Reminder copy = new Reminder(reminder.minuteOfDay, reminder.days(), reminder.enabled);
         copy.id = reminder.id;
         return copy;
     }

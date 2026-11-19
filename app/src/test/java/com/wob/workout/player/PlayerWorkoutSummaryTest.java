@@ -33,8 +33,13 @@ public class PlayerWorkoutSummaryTest {
     }
 
     @Test
-    public void noRestTimeAndNoneRecordedShowNothing() {
-        assertNull(new PlayerWorkoutSummary(600, 10, 10, 0).restText());
+    public void restsEndedAtOnceShowNoTime() {
+        assertEquals("Pausen: 0:00", new PlayerWorkoutSummary(600, 10, 10, 0).restText());
+    }
+
+    @Test
+    public void noRestShowsNothing() {
+        assertNull("no rest ran", new PlayerWorkoutSummary(600, 10, 10, null).restText());
         assertNull("recorded before rests existed", PlayerWorkoutSummary.restText(null));
     }
 }

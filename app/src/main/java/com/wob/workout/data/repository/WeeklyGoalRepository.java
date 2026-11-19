@@ -9,12 +9,12 @@ import com.wob.workout.data.dao.WeeklyGoalDao;
 import com.wob.workout.data.database.AppDatabase;
 import com.wob.workout.data.database.DatabaseProvider;
 import com.wob.workout.data.entity.WeeklyGoalChange;
+import com.wob.workout.training.Clock;
 import com.wob.workout.training.WeeklyProgress;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.TimeZone;
 
 /**
  * The weekly goal with its history of changes: each change applies from the week it was
@@ -36,17 +36,15 @@ public class WeeklyGoalRepository {
         this.dao = database.weeklyGoalDao();
     }
 
-    /** The goal in training days that applies at {@code nowMillis}, or null without one. */
-    public Integer getGoal(long nowMillis, TimeZone zone) {
-        return WeeklyProgress.of(Collections.emptyList(), dao.getAll(), nowMillis, zone)
-                .getGoal();
+    /** The goal in training days that applies now, or null without one. */
+    public Integer getGoal(Clock clock) {
+        return WeeklyProgress.of(Collections.emptyList(), dao.getAll(), clock).getGoal();
     }
 
-    /** Sets the goal, or removes it with null, from the week of {@code nowMillis} on. */
-    public void setGoal(Integer trainingDays, long nowMillis, TimeZone zone) {
-        if (Objects.equals(trainingDays, getGoal(nowMillis, zone))) return;
-        dao.insert(new WeeklyGoalChange(
-                WeeklyProgress.weekStartDay(nowMillis, zone), trainingDays));
+    /** Sets the goal, or removes it with null, from the current week on. */
+    public void setGoal(Integer trainingDays, Clock clock) {
+        if (Objects.equals(trainingDays, getGoal(clock))) return;
+        dao.insert(new WeeklyGoalChange(WeeklyProgress.weekStartDay(clock), trainingDays));
     }
 
     /** Every change, oldest first. */

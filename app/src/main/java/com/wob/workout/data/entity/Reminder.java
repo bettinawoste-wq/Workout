@@ -4,6 +4,8 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import com.wob.workout.training.Weekdays;
+
 /**
  * A reminder: a time of day on chosen weekdays, switched on or off on its own. Not part of
  * the backup.
@@ -11,16 +13,13 @@ import androidx.room.PrimaryKey;
 @Entity
 public class Reminder {
 
-    /** Monday's bit in {@link #weekdays}; Tuesday is the next bit up, through Sunday. */
-    public static final int MONDAY = 1;
-
     @PrimaryKey(autoGenerate = true)
     public long id;
 
     /** Local time of day in minutes after midnight, 0 to 1439. */
     public int minuteOfDay;
 
-    /** One bit per weekday, Monday's lowest ({@link #MONDAY}) through Sunday's. */
+    /** The weekdays as stored, {@link Weekdays#bits()}; read them through {@link #days()}. */
     public int weekdays;
 
     public boolean enabled;
@@ -29,14 +28,14 @@ public class Reminder {
     }
 
     @Ignore
-    public Reminder(int minuteOfDay, int weekdays, boolean enabled) {
+    public Reminder(int minuteOfDay, Weekdays days, boolean enabled) {
         this.minuteOfDay = minuteOfDay;
-        this.weekdays = weekdays;
+        this.weekdays = days.bits();
         this.enabled = enabled;
     }
 
-    /** Whether it is set for a weekday, 0 for Monday through 6 for Sunday. */
-    public boolean isOn(int weekday) {
-        return (weekdays & (MONDAY << weekday)) != 0;
+    /** The weekdays it is set for. */
+    public Weekdays days() {
+        return Weekdays.fromBits(weekdays);
     }
 }

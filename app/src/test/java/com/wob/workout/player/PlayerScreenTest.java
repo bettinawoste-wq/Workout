@@ -90,7 +90,7 @@ public class PlayerScreenTest {
     public void aFinishedWorkoutShowsItsSummary() {
         PlayerScreen screen = PlayerScreen.of(new SessionState(Phase.FINISHED, 5, 2, 3, null,
                 0, false, false, false, false, 0, 120_000,
-                new PlayerWorkoutSummary(95, 2, 3, 0)));
+                new PlayerWorkoutSummary(95, 2, 3, null)));
 
         assertTrue(screen.finished);
         assertEquals("01:35", screen.timerText);

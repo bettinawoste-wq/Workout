@@ -48,7 +48,8 @@
     <string name="standard_uebergang">Standard-Übergang</string>
     <string name="uebergang">Übergang</string>
     <string name="sekunden_kurz">%d s</string>
-    <string name="uebergang_in_sekunden">Übergang in Sekunden (0–30)</string>
+    <string name="uebergang_in_sekunden">Übergang in Sekunden (%1$d–%2$d)</string>
+    <string name="uebergang_ungueltig">Bitte %1$d bis %2$d Sekunden eingeben</string>
     <string name="standard">Standard</string>
     <string name="pause">Pause</string>
     <string name="wird_uebersprungen">wird übersprungen</string>
@@ -84,6 +85,19 @@
     <plurals name="wochen">
         <item quantity="one">%d Woche</item>
         <item quantity="other">%d Wochen</item>
+    </plurals>
+    <string name="backup_umfang">%1$s, %2$s, %3$s</string>
+    <plurals name="backup_uebungen">
+        <item quantity="one">%d Übung</item>
+        <item quantity="other">%d Übungen</item>
+    </plurals>
+    <plurals name="backup_workouts">
+        <item quantity="one">%d Workout</item>
+        <item quantity="other">%d Workouts</item>
+    </plurals>
+    <plurals name="backup_eintraege_im_verlauf">
+        <item quantity="one">%d Eintrag im Verlauf</item>
+        <item quantity="other">%d Einträge im Verlauf</item>
     </plurals>
     <string name="daten">Daten</string>
     <string name="exportieren">Exportieren</string>

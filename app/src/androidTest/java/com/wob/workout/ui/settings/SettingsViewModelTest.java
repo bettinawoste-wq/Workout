@@ -12,6 +12,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.wob.workout.AppContainer;
 import com.wob.workout.TestAppContainer;
 import com.wob.workout.data.entity.Reminder;
+import com.wob.workout.training.Weekdays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -26,8 +27,10 @@ import java.util.List;
 @RunWith(AndroidJUnit4.class)
 public class SettingsViewModelTest {
 
-    private static final int MONDAY = Reminder.MONDAY;
-    private static final int FRIDAY = Reminder.MONDAY << 4;
+    private static final Weekdays MONDAY = Weekdays.of(Weekdays.MONDAY);
+    private static final Weekdays FRIDAY = Weekdays.of(Weekdays.FRIDAY);
+    private static final Weekdays MONDAY_AND_FRIDAY =
+            Weekdays.of(Weekdays.MONDAY, Weekdays.FRIDAY);
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -107,10 +110,40 @@ public class SettingsViewModelTest {
         assertEquals(Integer.valueOf(3),
                 getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
 
-        viewModel.setWeeklyGoal(null);
+        viewModel.setWeeklyGoal(0);
         testContainer.drainIoExecutor();
 
         assertNull(getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
+    }
+
+    @Test
+    public void noTrainingDaysOnTheSliderMeansNoGoal() throws Exception {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+        getOrAwaitValue(viewModel.getWeeklyGoal());
+        viewModel.setWeeklyGoal(4);
+
+        viewModel.setWeeklyGoal(0);
+
+        assertNull(getOrAwaitValue(viewModel.getWeeklyGoal()));
+        testContainer.drainIoExecutor();
+        assertNull(container.weeklyGoalRepository.getGoal(container.clock));
+    }
+
+    @Test
+    public void aNewReminderStartsAtSixInTheEveningOnWorkingDays() {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+
+        assertEquals(18 * 60, viewModel.newReminderMinuteOfDay());
+        assertEquals(Weekdays.of(Weekdays.MONDAY, Weekdays.TUESDAY, Weekdays.WEDNESDAY,
+                Weekdays.THURSDAY, Weekdays.FRIDAY), viewModel.newReminderWeekdays());
+    }
+
+    @Test
+    public void aReminderCanOnlyBeSavedWithAWeekday() {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+
+        assertFalse(viewModel.canSaveReminder(Weekdays.NONE));
+        assertTrue(viewModel.canSaveReminder(FRIDAY));
     }
 
     @Test
@@ -122,13 +155,13 @@ public class SettingsViewModelTest {
     public void anAddedReminderIsListedSwitchedOnAndScheduled() throws Exception {
         SettingsViewModel viewModel = new SettingsViewModel(container);
 
-        viewModel.addReminder(18 * 60 + 30, MONDAY | FRIDAY);
+        viewModel.addReminder(18 * 60 + 30, MONDAY_AND_FRIDAY);
         testContainer.drainIoExecutor();
 
         List<Reminder> reminders = getOrAwaitValue(viewModel.getReminders());
         assertEquals(1, reminders.size());
         assertEquals(18 * 60 + 30, reminders.get(0).minuteOfDay);
-        assertEquals(MONDAY | FRIDAY, reminders.get(0).weekdays);
+        assertEquals(MONDAY_AND_FRIDAY, reminders.get(0).days());
         assertTrue(reminders.get(0).enabled);
         assertEquals(1, testContainer.getReminderAlarms().getRenewedWith().size());
     }
@@ -141,11 +174,11 @@ public class SettingsViewModelTest {
         testContainer.drainIoExecutor();
         Reminder evening = getOrAwaitValue(viewModel.getReminders()).get(1);
 
-        viewModel.changeReminder(evening, 19 * 60, MONDAY | FRIDAY);
+        viewModel.changeReminder(evening, 19 * 60, MONDAY_AND_FRIDAY);
         testContainer.drainIoExecutor();
         Reminder changed = getOrAwaitValue(viewModel.getReminders()).get(1);
         assertEquals(19 * 60, changed.minuteOfDay);
-        assertEquals(MONDAY | FRIDAY, changed.weekdays);
+        assertEquals(MONDAY_AND_FRIDAY, changed.days());
 
         viewModel.setReminderOn(changed, false);
         testContainer.drainIoExecutor();
@@ -164,7 +197,7 @@ public class SettingsViewModelTest {
     public void aReminderWithoutWeekdaysIsNotStored() throws Exception {
         SettingsViewModel viewModel = new SettingsViewModel(container);
 
-        viewModel.addReminder(18 * 60, 0);
+        viewModel.addReminder(18 * 60, Weekdays.NONE);
         testContainer.drainIoExecutor();
 
         assertTrue(getOrAwaitValue(viewModel.getReminders()).isEmpty());

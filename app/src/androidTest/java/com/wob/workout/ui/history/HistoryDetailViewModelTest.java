@@ -138,12 +138,24 @@ public class HistoryDetailViewModelTest {
     public void aSessionWithoutRestTimeShowsNone() throws InterruptedException {
         long sessionId = history.startSession(7, "Leg Day");
         history.recordExercise(sessionId, 1, "Squat", 0, 45, 45, 1_000, 2_000);
-        history.finishSession(sessionId, true, 0);
+        history.finishSession(sessionId, true, null);
 
         HistoryDetail detail =
                 getOrAwaitValue(new HistoryDetailViewModel(container, sessionId).getDetail());
 
         assertNull(detail.restText());
+    }
+
+    @Test
+    public void restsEndedAtOnceShowNoTime() throws InterruptedException {
+        long sessionId = history.startSession(7, "Leg Day");
+        history.recordExercise(sessionId, 1, "Squat", 0, 45, 45, 1_000, 2_000);
+        history.finishSession(sessionId, true, 0);
+
+        HistoryDetail detail =
+                getOrAwaitValue(new HistoryDetailViewModel(container, sessionId).getDetail());
+
+        assertEquals("Pausen: 0:00", detail.restText());
     }
 
     @Test

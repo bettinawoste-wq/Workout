@@ -32,9 +32,10 @@ lives in an on-device Room database.
 - **WorkoutSession / ExerciseSession** — a historical record of one run through a workout:
   when it started/finished, whether it was completed or aborted, and the actual vs. planned
   duration per exercise. Its duration counts exercise time only; the actual rest time,
-  pauses left out, is stored on its own (`WorkoutSession.restSeconds`, null for sessions
-  recorded before rests existed) and shown as "Pausen: 1:30" on the completion screen and
-  the history detail; rests get no exercise session. Written by the player's
+  pauses left out, is stored on its own (`WorkoutSession.restSeconds`: 0 when every rest was
+  ended at once, null when no rest ran and for sessions recorded before rests existed) and
+  shown as "Pausen: 1:30" on the completion screen and the history detail, or not at all
+  while null; rests get no exercise session. Written by the player's
   `WorkoutSessionEngine` as it runs, read by the
   `ui/history` screens. `WorkoutSession.workoutId` is deliberately **not** a cascading foreign
   key — deleting a `Workout` must not delete the history recorded against it.
@@ -43,31 +44,35 @@ lives in an on-device Room database.
   the training days, null once removed; one per week, a later change in the same week
   replaces it), read and set through `WeeklyGoalRepository` from the settings screen's
   Training section. The pure `training.WeeklyProgress` takes the workout sessions, the goal's
-  changes, the current time and the time zone and answers the current week's training days
+  changes and a `training.Clock` (now and the time zone, read together: `Clock.SYSTEM` as
+  `container.clock` in the app, `Clock.fixed` in tests) and answers the current week's training days
   and goal, the streak, whether the home screen shows its line, and whether a reminder stays
   silent today. A training day is a local day on which a completed workout session started;
   weeks run Monday to Sunday. `HomeViewModel` observes the history and the goal's changes
   and works the progress out again on every change, so deleting a workout session updates
   the line. `WeeklyProgressTest` (JVM) covers the rules.
 - **Reminders** — stored data, not preferences and not part of the backup (`Reminder`: a
-  local time of day in minutes, the weekdays as one bit each from Monday, on/off), listed,
+  local time of day in minutes, the weekdays as the value `training.Weekdays`, stored as one
+  bit each from Monday, on/off), listed,
   added, changed, switched and deleted in the settings screen's Training section through
   `SettingsViewModel` and `ReminderRepository`. The pure `training.ReminderSchedule` answers
-  when the next one is due from the reminders, the current time and the time zone, in local
+  when the next one is due from the reminders and the clock, in local
   wall-clock time, so a reminder keeps its hour across daylight-saving changes
   (`ReminderScheduleTest`, JVM). The Android glue sits behind one seam, `ReminderAlarms`
   (`container.reminderAlarms`; a recording fake in `TestAppContainer`, so tests never move
   the installed app's alarm): `AndroidReminderAlarms` sets one inexact alarm for the next
-  due reminder (`setWindow` with a 10-minute window, so no exact-alarm permission; it may
-  come a few minutes late, a plain inexact alarm could come hours late) or cancels it while
+  due reminder (`setAndAllowWhileIdle`, so no exact-alarm permission; it may go off while
+  the phone dozes and comes at most a few minutes late, where a window or plain inexact
+  alarm could wait hours for a maintenance window) or cancels it while
   none is on. It is renewed after every change to the
   reminders, at app start, and by `reminders.ReminderReceiver` after boot, a time or
   time-zone change and an app update. When the alarm goes off, the receiver asks
   `WeeklyProgress.isReminderSilentToday()`, posts `ReminderNotification` (tapping it opens
   the home screen in a fresh task) unless silent, and renews the alarm. The notification
-  permission is asked for when the first reminder is added; while notifications are not
-  allowed and reminders exist, the settings screen shows a hint with a link to the
-  system's notification settings.
+  permission is asked for when the first reminder is added
+  (`ReminderNotification.needsPermission` is the one check); while notifications are not
+  allowed, the settings screen shows a hint with a link to the system's notification
+  settings, with or without reminders yet.
 
 ## Architecture
 
@@ -115,7 +120,9 @@ lives in an on-device Room database.
   never touch the `FragmentManager` themselves. Input rules live in drafts and view models, not
   in fragments: the workout draft takes a duration as typed and answers whether it was a valid
   number of seconds (and likewise a transition length of 0 to 30 seconds), the exercise editor's view model rejects a missing title, and both
-  editors' view models name the workout or exercise in the delete confirmation.
+  editors' view models name the workout or exercise in the delete confirmation. The settings
+  view model makes a weekly goal of 0 training days none, gives a new reminder its time and
+  weekdays (18:00, Monday to Friday) and allows saving a reminder only with a weekday.
 - **Player**: the rules of a workout session live in `WorkoutSessionEngine`, plain Java
   without Android: the phases (countdown before the first exercise, exercise, transition,
   rest, finished), next / previous / pause, when it beeps (the last 3 seconds before every
@@ -169,9 +176,11 @@ lives in an on-device Room database.
   document `data.json` (`BackupDocument`: the stored rows of exercises, workouts with their
   places and rests, workout sessions and exercise sessions, with a format version) plus the
   exercises' media under `media/`. Settings, reminders and the weekly goal are not part of
-  it. Reading back first gives a `BackupPreview` (counts, or a `BackupRefused.Reason`: a
+  it. Reading back first gives a `BackupPreview` (counts, which the settings screen words
+  from plural resources, or a `BackupRefused.Reason`: a
   newer format version or an unreadable file); "Ersetzen" (`replaceWith`) deletes all
-  exercises, workouts and history first, "Zusammenführen" (`addAlongside`) keeps them. Both
+  exercises, workouts and history first, "Zusammenführen" (`addAlongside`) keeps them
+  (`importFrom` takes either as an `ImportMode`). Both
   insert everything with new ids, the file's references remapped, in one transaction; a
   workout session of a workout deleted since gets an id no workout will have (a placeholder
   workout inserted and deleted, since workout ids are never reused). Media are copied under

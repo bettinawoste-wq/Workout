@@ -24,7 +24,6 @@ import org.junit.runner.RunWith;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -105,7 +104,7 @@ public class HomeViewModelTest {
     public void theProgressFollowsTheGoalAndTheHistory() throws Exception {
         long now = System.currentTimeMillis();
         testContainer.getAppContainer().weeklyGoalRepository
-                .setGoal(3, now, TimeZone.getDefault());
+                .setGoal(3, testContainer.getAppContainer().clock);
         long workout = testContainer.insertWorkout("A");
         long today = testContainer.insertSession(workout, now, true);
         testContainer.insertSession(workout, now, false);

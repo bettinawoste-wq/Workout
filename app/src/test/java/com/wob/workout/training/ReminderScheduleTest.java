@@ -24,14 +24,15 @@ public class ReminderScheduleTest {
     private static final TimeZone BERLIN = TimeZone.getTimeZone("Europe/Berlin");
 
     // Weekdays, Monday first.
-    private static final int MON = Reminder.MONDAY;
-    private static final int TUE = MON << 1;
-    private static final int WED = MON << 2;
-    private static final int THU = MON << 3;
-    private static final int FRI = MON << 4;
-    private static final int SAT = MON << 5;
-    private static final int SUN = MON << 6;
-    private static final int EVERY_DAY = MON | TUE | WED | THU | FRI | SAT | SUN;
+    private static final Weekdays THU = Weekdays.of(Weekdays.THURSDAY);
+    private static final Weekdays FRI = Weekdays.of(Weekdays.FRIDAY);
+    private static final Weekdays THU_FRI = Weekdays.of(Weekdays.THURSDAY, Weekdays.FRIDAY);
+    private static final Weekdays MON_WED = Weekdays.of(Weekdays.MONDAY, Weekdays.WEDNESDAY);
+    private static final Weekdays SAT = Weekdays.of(Weekdays.SATURDAY);
+    private static final Weekdays SUN = Weekdays.of(Weekdays.SUNDAY);
+    private static final Weekdays EVERY_DAY = Weekdays.of(Weekdays.MONDAY, Weekdays.TUESDAY,
+            Weekdays.WEDNESDAY, Weekdays.THURSDAY, Weekdays.FRIDAY, Weekdays.SATURDAY,
+            Weekdays.SUNDAY);
 
     // Thursday 19 November 2026, 10:00 in Berlin.
     private static final long THURSDAY_10_00 = utc(2026, 11, 19, 9, 0);
@@ -65,7 +66,7 @@ public class ReminderScheduleTest {
     @Test
     public void aReminderDueRightNowIsNextDueOnItsNextWeekday() {
         assertEquals(Long.valueOf(utc(2026, 11, 20, 9, 0)),
-                nextDue(Collections.singletonList(reminder(10, 0, THU | FRI, true)),
+                nextDue(Collections.singletonList(reminder(10, 0, THU_FRI, true)),
                         THURSDAY_10_00));
     }
 
@@ -73,7 +74,7 @@ public class ReminderScheduleTest {
     public void theNextDueTimeSkipsDaysThatAreNotItsWeekdays() {
         // Monday and Wednesday: from Thursday on, the coming Monday.
         assertEquals(Long.valueOf(utc(2026, 11, 23, 17, 0)),
-                nextDue(Collections.singletonList(reminder(18, 0, MON | WED, true)),
+                nextDue(Collections.singletonList(reminder(18, 0, MON_WED, true)),
                         THURSDAY_10_00));
     }
 
@@ -112,10 +113,11 @@ public class ReminderScheduleTest {
     }
 
     private static Long nextDue(List<Reminder> reminders, long nowMillis) {
-        return ReminderSchedule.nextDue(reminders, nowMillis, BERLIN);
+        return ReminderSchedule.nextDue(reminders, Clock.fixed(nowMillis, BERLIN));
     }
 
-    private static Reminder reminder(int hour, int minute, int weekdays, boolean enabled) {
+    private static Reminder reminder(int hour, int minute, Weekdays weekdays,
+            boolean enabled) {
         return new Reminder(hour * 60 + minute, weekdays, enabled);
     }
 

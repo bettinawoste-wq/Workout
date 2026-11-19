@@ -110,22 +110,29 @@ public class Backup {
      *  @throws BackupRefused if the file can't be read back; nothing changed
      *  @throws IOException if its media couldn't be stored; nothing changed */
     public void replaceWith(InputStream in) throws BackupRefused, IOException {
-        List<String> replacedMedia = importFrom(in, true);
-        for (String name : replacedMedia) {
-            //noinspection ResultOfMethodCallIgnored
-            new File(mediaFolder, name).delete();
-        }
+        importFrom(in, ImportMode.REPLACE);
     }
 
     /** Adds the file's exercises, workouts and history alongside what is there, as copies.
      *  @throws BackupRefused if the file can't be read back; nothing changed
      *  @throws IOException if its media couldn't be stored; nothing changed */
     public void addAlongside(InputStream in) throws BackupRefused, IOException {
-        importFrom(in, false);
+        importFrom(in, ImportMode.ADD_ALONGSIDE);
+    }
+
+    /** {@link #replaceWith} or {@link #addAlongside}, as {@code mode} says.
+     *  @throws BackupRefused if the file can't be read back; nothing changed
+     *  @throws IOException if its media couldn't be stored; nothing changed */
+    public void importFrom(InputStream in, ImportMode mode) throws BackupRefused, IOException {
+        // The replaced exercises' media go once the import holds.
+        for (String name : insertAll(in, mode)) {
+            //noinspection ResultOfMethodCallIgnored
+            new File(mediaFolder, name).delete();
+        }
     }
 
     /** @return the media files of what was replaced, to remove once the import holds */
-    private List<String> importFrom(InputStream in, boolean replace)
+    private List<String> insertAll(InputStream in, ImportMode mode)
             throws BackupRefused, IOException {
         Map<String, String> newNames = new HashMap<>();
         List<File> copied = new ArrayList<>();
@@ -145,7 +152,7 @@ public class Backup {
             try {
                 replacedMedia = db.runInTransaction(() -> {
                     List<String> previous = new ArrayList<>();
-                    if (replace) {
+                    if (mode == ImportMode.REPLACE) {
                         for (Exercise exercise : db.exerciseDao().getAll()) {
                             if (exercise.mediaFile != null) previous.add(exercise.mediaFile);
                         }

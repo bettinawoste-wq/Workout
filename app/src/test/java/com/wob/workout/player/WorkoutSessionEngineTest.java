@@ -674,7 +674,7 @@ public class WorkoutSessionEngineTest {
         time.advance(15_000 + 30_000);
 
         assertEquals(Phase.FINISHED, state().phase);
-        assertEquals(20, state().summary.restSeconds);
+        assertEquals(Integer.valueOf(20), state().summary.restSeconds);
         assertEquals(90, state().summary.activeSeconds);
         assertEquals(Integer.valueOf(20), history.restSeconds);
         assertEquals("rests are not exercise sessions",
@@ -688,16 +688,30 @@ public class WorkoutSessionEngineTest {
         engine.next();
         time.advance(30_000);
 
-        assertEquals(7, state().summary.restSeconds);
+        assertEquals(Integer.valueOf(7), state().summary.restSeconds);
         assertEquals(0, state().summary.skippedExercises());
         assertEquals(2, state().summary.totalExercises);
     }
 
     @Test
-    public void theTransitionIsNoRestTime() {
+    public void theTransitionIsNoRestTimeAndWithoutARestThereIsNone() {
         time.advance(3000 + 60_000 + 3000 + 30_000);
 
-        assertEquals(0, state().summary.restSeconds);
+        assertEquals(Phase.FINISHED, state().phase);
+        assertNull(state().summary.restSeconds);
+        assertEquals(1, history.finishes);
+        assertNull(history.restSeconds);
+    }
+
+    @Test
+    public void restsEndedAtOnceRestedNoTimeButStillCount() {
+        startWithRest();
+        time.advance(3000 + 60_000);
+        engine.next();
+        time.advance(30_000);
+
+        assertEquals(Phase.FINISHED, state().phase);
+        assertEquals(Integer.valueOf(0), state().summary.restSeconds);
         assertEquals(Integer.valueOf(0), history.restSeconds);
     }
 
@@ -828,7 +842,7 @@ public class WorkoutSessionEngineTest {
         }
 
         @Override
-        public void finishSession(boolean completed, int restSeconds) {
+        public void finishSession(boolean completed, Integer restSeconds) {
             finishes++;
             this.completed = completed;
             this.restSeconds = restSeconds;

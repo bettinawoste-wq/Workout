@@ -65,6 +65,8 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
     private int activeSeconds;
     /** The rests' time so far, pauses left out. */
     private long restMillis;
+    /** Whether a rest has run, if only for a moment: without one there is no rest time. */
+    private boolean rested;
 
     public WorkoutSessionEngine(SessionTime time, SessionHistory history, Listener listener) {
         this.time = time;
@@ -193,6 +195,7 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
                     index++;
                     if (restMillis > 0) {
                         // The rest takes the transition's place.
+                        rested = true;
                         startTiming();
                         enter(SessionState.Phase.REST, restMillis);
                     } else if (transitionMillis > 0) {
@@ -226,8 +229,10 @@ public class WorkoutSessionEngine implements SessionTime.Listener {
         restMillis += timedMillis(time.now());
     }
 
-    private int restSeconds() {
-        return (int) (restMillis / 1000);
+    /** The rest time in seconds, 0 when every rest was ended at once; null when no rest
+     *  ran. */
+    private Integer restSeconds() {
+        return rested ? (int) (restMillis / 1000) : null;
     }
 
     /** An exercise session or a rest starts now. */

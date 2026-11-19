@@ -12,11 +12,11 @@ public class PlayerWorkoutSummary {
     public final int activeSeconds;
     public final int doneExercises;
     public final int totalExercises;
-    /** How long the workout session rested, pauses left out. */
-    public final int restSeconds;
+    /** How long the workout session rested, pauses left out; null when no rest ran. */
+    public final Integer restSeconds;
 
     public PlayerWorkoutSummary(int activeSeconds, int doneExercises, int totalExercises,
-                                int restSeconds) {
+                                Integer restSeconds) {
         this.activeSeconds = activeSeconds;
         this.doneExercises = doneExercises;
         this.totalExercises = totalExercises;
@@ -37,15 +37,16 @@ public class PlayerWorkoutSummary {
                 + skippedExercises() + " übersprungen";
     }
 
-    /** E.g. "Pausen: 1:30"; null for a workout session without rest time. */
+    /** E.g. "Pausen: 1:30", or "Pausen: 0:00" when every rest was ended at once; null
+     *  when no rest ran. */
     public String restText() {
         return restText(restSeconds);
     }
 
-    /** E.g. "Pausen: 1:30"; null when nothing was rested, or for a workout session recorded
-     *  before rests existed (null). */
+    /** E.g. "Pausen: 1:30"; null without rest time: no rest ran, or the workout session was
+     *  recorded before rests existed. */
     public static String restText(Integer restSeconds) {
-        if (restSeconds == null || restSeconds <= 0) return null;
+        if (restSeconds == null) return null;
         return "Pausen: " + MinutesSeconds.text(restSeconds);
     }
 }

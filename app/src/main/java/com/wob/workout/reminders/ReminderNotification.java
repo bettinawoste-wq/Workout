@@ -1,6 +1,7 @@
 package com.wob.workout.reminders;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -30,13 +31,19 @@ public final class ReminderNotification {
         return NotificationManagerCompat.from(context).areNotificationsEnabled();
     }
 
-    static void post(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    /** Whether the notification permission still has to be asked for: from Android 13 on,
+     *  until it is granted. */
+    public static boolean needsPermission(Context context) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && ContextCompat.checkSelfPermission(context,
                         Manifest.permission.POST_NOTIFICATIONS)
-                        != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
+                        != PackageManager.PERMISSION_GRANTED;
+    }
+
+    // Lint can't see that needsPermission() checks the permission.
+    @SuppressLint("MissingPermission")
+    static void post(Context context) {
+        if (needsPermission(context)) return;
         createChannel(context);
         // A fresh task, so the home screen shows whichever screen was open before.
         Intent home = new Intent(context, MainActivity.class)

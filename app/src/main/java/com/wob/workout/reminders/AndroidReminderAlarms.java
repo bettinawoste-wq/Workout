@@ -6,26 +6,26 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.wob.workout.data.entity.Reminder;
+import com.wob.workout.training.Clock;
 import com.wob.workout.training.ReminderSchedule;
 
 import java.util.List;
-import java.util.TimeZone;
 
 /**
- * One inexact alarm for the next due reminder, so the app needs no exact-alarm permission:
- * a window of ten minutes from its time (the shortest the system grants), within which the
- * system may deliver it. A plain inexact alarm would get a window of up to three quarters
- * of the time until it is due, hours for an evening reminder set in the morning. It goes
- * to {@link ReminderReceiver}, which renews it.
+ * One inexact alarm for the next due reminder, so the app needs no exact-alarm permission.
+ * It is allowed to go off while the phone dozes ({@code setAndAllowWhileIdle}), so it comes
+ * at most a few minutes late; a plain inexact alarm or a window alarm would wait for the
+ * next maintenance window, hours on a phone left lying. It goes to {@link ReminderReceiver},
+ * which renews it.
  */
 public class AndroidReminderAlarms implements ReminderAlarms {
 
-    private static final long WINDOW_MILLIS = 10 * 60 * 1000;
-
     private final Context context;
+    private final Clock clock;
 
-    public AndroidReminderAlarms(Context context) {
+    public AndroidReminderAlarms(Context context, Clock clock) {
         this.context = context.getApplicationContext();
+        this.clock = clock;
     }
 
     @Override
@@ -35,12 +35,11 @@ public class AndroidReminderAlarms implements ReminderAlarms {
                 new Intent(context, ReminderReceiver.class)
                         .setAction(ReminderReceiver.ACTION_DUE),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Long dueMillis = ReminderSchedule.nextDue(
-                reminders, System.currentTimeMillis(), TimeZone.getDefault());
+        Long dueMillis = ReminderSchedule.nextDue(reminders, clock);
         if (dueMillis == null) {
             alarmManager.cancel(due);
         } else {
-            alarmManager.setWindow(AlarmManager.RTC_WAKEUP, dueMillis, WINDOW_MILLIS, due);
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dueMillis, due);
         }
     }
 }

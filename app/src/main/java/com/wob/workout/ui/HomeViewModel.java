@@ -7,21 +7,23 @@ import androidx.lifecycle.ViewModel;
 import com.wob.workout.AppContainer;
 import com.wob.workout.data.entity.WeeklyGoalChange;
 import com.wob.workout.data.entity.WorkoutSession;
+import com.wob.workout.training.Clock;
 import com.wob.workout.training.WeeklyProgress;
 import com.wob.workout.ui.workout.WorkoutListItem;
 
 import java.util.List;
-import java.util.TimeZone;
 
 public class HomeViewModel extends ViewModel {
 
     private final LiveData<List<WorkoutListItem>> recentWorkouts;
     private final MediatorLiveData<WeeklyProgress> weeklyProgress = new MediatorLiveData<>();
+    private final Clock clock;
 
     private List<WorkoutSession> sessions;
     private List<WeeklyGoalChange> goalChanges;
 
     public HomeViewModel(AppContainer container) {
+        clock = container.clock;
         recentWorkouts = container.workoutSummaryRepository.observeRecent();
         weeklyProgress.addSource(container.workoutHistoryRepository.observeSessions(), all -> {
             sessions = all;
@@ -46,7 +48,6 @@ public class HomeViewModel extends ViewModel {
 
     private void updateWeeklyProgress() {
         if (sessions == null || goalChanges == null) return;
-        weeklyProgress.setValue(WeeklyProgress.of(sessions, goalChanges,
-                System.currentTimeMillis(), TimeZone.getDefault()));
+        weeklyProgress.setValue(WeeklyProgress.of(sessions, goalChanges, clock));
     }
 }

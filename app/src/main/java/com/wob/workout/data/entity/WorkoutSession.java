@@ -27,7 +27,7 @@ public class WorkoutSession {
 
     public boolean completed;
 
-    /** How long it rested, pauses left out; null for a workout session recorded before
-     *  rests existed. */
+    /** How long it rested, pauses left out, 0 when every rest was ended at once; null when
+     *  no rest ran, and for a workout session recorded before rests existed. */
     public Integer restSeconds;
 }

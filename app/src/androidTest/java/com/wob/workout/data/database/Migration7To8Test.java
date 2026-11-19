@@ -40,15 +40,15 @@ public class Migration7To8Test {
         try (SupportSQLiteDatabase old = helper.createDatabase(DB_NAME, 7)) {
             old.execSQL("INSERT INTO `Exercise` (`id`, `title`) VALUES (1, 'Squat')");
             old.execSQL("INSERT INTO `Exercise` (`id`, `title`) VALUES (2, 'Lunge')");
-            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`) "
-                    + "VALUES (1, 'Leg Day', 1)");
-            old.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`, "
-                    + "`position`, `durationSeconds`) VALUES (10, 1, 2, 1, 30)");
-            old.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`, "
-                    + "`position`, `durationSeconds`) VALUES (11, 1, 1, 0, 45)");
-            old.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`, "
-                    + "`startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`) "
-                    + "VALUES (1, 1, 'Leg Day', 1000, 2000, 75, 1)");
+            old.execSQL("INSERT INTO `Workout` (`id`, `name`, `countdownEnabled`)"
+                    + " VALUES (1, 'Leg Day', 1)");
+            old.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`,"
+                    + " `position`, `durationSeconds`) VALUES (10, 1, 2, 1, 30)");
+            old.execSQL("INSERT INTO `WorkoutExercise` (`id`, `workoutId`, `exerciseId`,"
+                    + " `position`, `durationSeconds`) VALUES (11, 1, 1, 0, 45)");
+            old.execSQL("INSERT INTO `WorkoutSession` (`id`, `workoutId`, `workoutName`,"
+                    + " `startedAt`, `finishedAt`, `activeDurationSeconds`, `completed`)"
+                    + " VALUES (1, 1, 'Leg Day', 1000, 2000, 75, 1)");
         }
         db = helper.runMigrationsAndValidate(DB_NAME, 8, true, AppDatabase.MIGRATION_7_8);
     }
@@ -103,8 +103,8 @@ public class Migration7To8Test {
 
     @Test
     public void existingWorkoutSessionsHaveNoRestTime() {
-        try (Cursor cursor = db.query("SELECT `activeDurationSeconds`, `completed`, "
-                + "`restSeconds` FROM `WorkoutSession` WHERE `id` = 1")) {
+        try (Cursor cursor = db.query("SELECT `activeDurationSeconds`, `completed`,"
+                + " `restSeconds` FROM `WorkoutSession` WHERE `id` = 1")) {
             cursor.moveToFirst();
             assertEquals(75, cursor.getInt(0));
             assertEquals(1, cursor.getInt(1));
@@ -113,13 +113,13 @@ public class Migration7To8Test {
     }
 
     private void insertRest() {
-        db.execSQL("INSERT INTO `WorkoutExercise` (`workoutId`, `exerciseId`, `position`, "
-                + "`durationSeconds`) VALUES (1, NULL, 2, 30)");
+        db.execSQL("INSERT INTO `WorkoutExercise` (`workoutId`, `exerciseId`, `position`,"
+                + " `durationSeconds`) VALUES (1, NULL, 2, 30)");
     }
 
     /** The places of the workout, in order: id, exercise id, duration. */
     private Cursor places() {
-        return db.query("SELECT `id`, `exerciseId`, `durationSeconds` FROM `WorkoutExercise` "
-                + "WHERE `workoutId` = 1 ORDER BY `position`");
+        return db.query("SELECT `id`, `exerciseId`, `durationSeconds` FROM `WorkoutExercise`"
+                + " WHERE `workoutId` = 1 ORDER BY `position`");
     }
 }

@@ -18,12 +18,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.wob.workout.AppContainer;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
+import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
@@ -310,6 +312,9 @@ public class WorkoutEditFragment extends Fragment {
     private void showTransitionDialog() {
         View view = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_transition_input, null, false);
+        TextInputLayout layoutTransition = view.findViewById(R.id.layoutTransition);
+        layoutTransition.setHint(getString(R.string.uebergang_in_sekunden,
+                DefaultTransitionSetting.MIN_SECONDS, DefaultTransitionSetting.MAX_SECONDS));
         TextInputEditText edtTransition = view.findViewById(R.id.edtTransition);
         edtTransition.setText(String.valueOf(viewModel.transitionSecondsToEdit()));
 
@@ -318,8 +323,8 @@ public class WorkoutEditFragment extends Fragment {
                 .setView(view)
                 .setNeutralButton(R.string.standard,
                         (d, which) -> viewModel.followDefaultTransition())
-                .setNegativeButton("Abbrechen", null)
-                .setPositiveButton("OK", null)
+                .setNegativeButton(R.string.abbrechen, null)
+                .setPositiveButton(android.R.string.ok, null)
                 .show();
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
@@ -328,7 +333,9 @@ public class WorkoutEditFragment extends Fragment {
             if (viewModel.changeTransition(typed)
                     == WorkoutDraft.TransitionAnswer.NOT_VALID_SECONDS) {
                 Snackbar.make(binding.getRoot(),
-                        "Bitte 0 bis 30 Sekunden eingeben",
+                        getString(R.string.uebergang_ungueltig,
+                                DefaultTransitionSetting.MIN_SECONDS,
+                                DefaultTransitionSetting.MAX_SECONDS),
                         Snackbar.LENGTH_SHORT).show();
                 return;
             }

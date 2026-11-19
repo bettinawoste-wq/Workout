@@ -143,14 +143,14 @@ public abstract class AppDatabase extends RoomDatabase {
             // the old table leaves the workout exercises that refer to it alone.
             db.execSQL(
                     "CREATE TABLE `Workout_new` ("
-                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-                            + "`name` TEXT, "
-                            + "`transitionSeconds` INTEGER, "
-                            + "`countdownEnabled` INTEGER NOT NULL)");
+                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+                            + " `name` TEXT,"
+                            + " `transitionSeconds` INTEGER,"
+                            + " `countdownEnabled` INTEGER NOT NULL)");
             db.execSQL(
-                    "INSERT INTO `Workout_new` (`id`, `name`, `transitionSeconds`, "
-                            + "`countdownEnabled`) "
-                            + "SELECT `id`, `name`, NULL, `countdownEnabled` FROM `Workout`");
+                    "INSERT INTO `Workout_new` (`id`, `name`, `transitionSeconds`,"
+                            + " `countdownEnabled`)"
+                            + " SELECT `id`, `name`, NULL, `countdownEnabled` FROM `Workout`");
             // Ids of deleted workouts stay used: the history still refers to them.
             long lastId = 0;
             try (Cursor cursor = db.query(
@@ -160,8 +160,8 @@ public abstract class AppDatabase extends RoomDatabase {
             db.execSQL("DROP TABLE `Workout`");
             db.execSQL("ALTER TABLE `Workout_new` RENAME TO `Workout`");
             db.execSQL("DELETE FROM `sqlite_sequence` WHERE `name` = 'Workout'");
-            db.execSQL("INSERT INTO `sqlite_sequence` (`name`, `seq`) VALUES ('Workout', "
-                    + "MAX(" + lastId + ", (SELECT IFNULL(MAX(`id`), 0) FROM `Workout`)))");
+            db.execSQL("INSERT INTO `sqlite_sequence` (`name`, `seq`) VALUES ('Workout',"
+                    + " MAX(" + lastId + ", (SELECT IFNULL(MAX(`id`), 0) FROM `Workout`)))");
         }
     };
 
@@ -173,26 +173,26 @@ public abstract class AppDatabase extends RoomDatabase {
             // table anew. Existing places keep their exercise, id and order.
             db.execSQL(
                     "CREATE TABLE `WorkoutExercise_new` ("
-                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-                            + "`workoutId` INTEGER NOT NULL, "
-                            + "`exerciseId` INTEGER, "
-                            + "`position` INTEGER NOT NULL, "
-                            + "`durationSeconds` INTEGER NOT NULL, "
-                            + "FOREIGN KEY(`workoutId`) REFERENCES `Workout`(`id`) "
-                            + "ON UPDATE NO ACTION ON DELETE CASCADE , "
-                            + "FOREIGN KEY(`exerciseId`) REFERENCES `Exercise`(`id`) "
-                            + "ON UPDATE NO ACTION ON DELETE CASCADE )");
+                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+                            + " `workoutId` INTEGER NOT NULL,"
+                            + " `exerciseId` INTEGER,"
+                            + " `position` INTEGER NOT NULL,"
+                            + " `durationSeconds` INTEGER NOT NULL,"
+                            + " FOREIGN KEY(`workoutId`) REFERENCES `Workout`(`id`)"
+                            + " ON UPDATE NO ACTION ON DELETE CASCADE ,"
+                            + " FOREIGN KEY(`exerciseId`) REFERENCES `Exercise`(`id`)"
+                            + " ON UPDATE NO ACTION ON DELETE CASCADE )");
             db.execSQL(
-                    "INSERT INTO `WorkoutExercise_new` (`id`, `workoutId`, `exerciseId`, "
-                            + "`position`, `durationSeconds`) "
-                            + "SELECT `id`, `workoutId`, `exerciseId`, `position`, "
-                            + "`durationSeconds` FROM `WorkoutExercise`");
+                    "INSERT INTO `WorkoutExercise_new` (`id`, `workoutId`, `exerciseId`,"
+                            + " `position`, `durationSeconds`)"
+                            + " SELECT `id`, `workoutId`, `exerciseId`, `position`,"
+                            + " `durationSeconds` FROM `WorkoutExercise`");
             db.execSQL("DROP TABLE `WorkoutExercise`");
             db.execSQL("ALTER TABLE `WorkoutExercise_new` RENAME TO `WorkoutExercise`");
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkoutExercise_workoutId` "
-                    + "ON `WorkoutExercise` (`workoutId`)");
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkoutExercise_exerciseId` "
-                    + "ON `WorkoutExercise` (`exerciseId`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkoutExercise_workoutId`"
+                    + " ON `WorkoutExercise` (`workoutId`)");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_WorkoutExercise_exerciseId`"
+                    + " ON `WorkoutExercise` (`exerciseId`)");
             // A workout session's rest time; none for those recorded before.
             db.execSQL("ALTER TABLE `WorkoutSession` ADD COLUMN `restSeconds` INTEGER");
         }
@@ -205,9 +205,9 @@ public abstract class AppDatabase extends RoomDatabase {
             // None yet: there is no goal until one is set.
             db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `WeeklyGoalChange` ("
-                            + "`weekStartDay` INTEGER NOT NULL, "
-                            + "`trainingDays` INTEGER, "
-                            + "PRIMARY KEY(`weekStartDay`))");
+                            + "`weekStartDay` INTEGER NOT NULL,"
+                            + " `trainingDays` INTEGER,"
+                            + " PRIMARY KEY(`weekStartDay`))");
         }
     };
 
@@ -217,10 +217,10 @@ public abstract class AppDatabase extends RoomDatabase {
             // Reminders (issue #106). None yet: there are none until the user adds one.
             db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `Reminder` ("
-                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
-                            + "`minuteOfDay` INTEGER NOT NULL, "
-                            + "`weekdays` INTEGER NOT NULL, "
-                            + "`enabled` INTEGER NOT NULL)");
+                            + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,"
+                            + " `minuteOfDay` INTEGER NOT NULL,"
+                            + " `weekdays` INTEGER NOT NULL,"
+                            + " `enabled` INTEGER NOT NULL)");
         }
     };
 

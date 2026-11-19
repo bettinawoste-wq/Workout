@@ -12,12 +12,12 @@ import com.wob.workout.AppContainer;
 import com.wob.workout.backup.Backup;
 import com.wob.workout.backup.BackupPreview;
 import com.wob.workout.backup.BackupRefused;
+import com.wob.workout.backup.ImportMode;
 import com.wob.workout.data.Event;
 
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -68,15 +68,11 @@ public class BackupViewModel extends ViewModel {
     public void exportTo(Uri file) {
         busy.setValue(true);
         ioExecutor.execute(() -> {
-            Outcome result = Outcome.EXPORTED;
-            try (OutputStream out = resolver.openOutputStream(file, "wt")) {
-                if (out == null) throw new FileNotFoundException(file.toString());
+            Boolean done = useFile(file, () -> resolver.openOutputStream(file, "wt"), out -> {
                 backup.export(out);
-            } catch (IOException | RuntimeException e) {
-                Log.e(TAG, "Export failed", e);
-                result = Outcome.EXPORT_FAILED;
-            }
-            finish(result);
+                return true;
+            }, "Export failed");
+            finish(done != null ? Outcome.EXPORTED : Outcome.EXPORT_FAILED);
         });
     }
 
@@ -85,14 +81,9 @@ public class BackupViewModel extends ViewModel {
         chosenFile = null;
         busy.setValue(true);
         ioExecutor.execute(() -> {
-            BackupPreview result;
-            try (InputStream in = resolver.openInputStream(file)) {
-                if (in == null) throw new FileNotFoundException(file.toString());
-                result = backup.preview(in);
-            } catch (IOException | RuntimeException e) {
-                Log.e(TAG, "Reading the backup failed", e);
-                result = BackupPreview.refused(BackupRefused.Reason.UNREADABLE);
-            }
+            BackupPreview result = useFile(file, () -> resolver.openInputStream(file),
+                    backup::preview, "Reading the backup failed");
+            if (result == null) result = BackupPreview.refused(BackupRefused.Reason.UNREADABLE);
             if (result.refusal == null) chosenFile = file;
             busy.postValue(false);
             preview.postValue(new Event<>(result));
@@ -101,12 +92,12 @@ public class BackupViewModel extends ViewModel {
 
     /** Ersetzen: everything on the phone is replaced by the previewed file. */
     public void replace() {
-        importChosen(true);
+        importChosen(ImportMode.REPLACE);
     }
 
     /** Zusammenführen: the previewed file's contents are added alongside, as copies. */
     public void addAlongside() {
-        importChosen(false);
+        importChosen(ImportMode.ADD_ALONGSIDE);
     }
 
     /** Abbrechen: nothing happens. */
@@ -114,30 +105,47 @@ public class BackupViewModel extends ViewModel {
         chosenFile = null;
     }
 
-    private void importChosen(boolean replace) {
+    private void importChosen(ImportMode mode) {
         Uri file = chosenFile;
         chosenFile = null;
         if (file == null) return;
         busy.setValue(true);
         ioExecutor.execute(() -> {
-            Outcome result = Outcome.IMPORTED;
-            try (InputStream in = resolver.openInputStream(file)) {
-                if (in == null) throw new FileNotFoundException(file.toString());
-                if (replace) {
-                    backup.replaceWith(in);
-                } else {
-                    backup.addAlongside(in);
-                }
-            } catch (BackupRefused | IOException | RuntimeException e) {
-                Log.e(TAG, "Import failed", e);
-                result = Outcome.IMPORT_FAILED;
-            }
-            finish(result);
+            Boolean done = useFile(file, () -> resolver.openInputStream(file), in -> {
+                backup.importFrom(in, mode);
+                return true;
+            }, "Import failed");
+            finish(done != null ? Outcome.IMPORTED : Outcome.IMPORT_FAILED);
         });
     }
 
     private void finish(Outcome result) {
         busy.postValue(false);
         outcome.postValue(new Event<>(result));
+    }
+
+    /** Opens a stream on a chosen file. */
+    private interface Opening<S extends Closeable> {
+        /** @return the stream, or null if the provider has none */
+        S open() throws IOException;
+    }
+
+    /** What is done with an opened file's stream. */
+    private interface Use<S, R> {
+        R apply(S stream) throws BackupRefused, IOException;
+    }
+
+    /** Opens the file, uses its stream and closes it again.
+     *  @return what {@code use} gave, or null if opening or using the file failed; the
+     *          failure is logged with {@code failure} */
+    private static <S extends Closeable, R> R useFile(Uri file, Opening<S> opening,
+            Use<S, R> use, String failure) {
+        try (S stream = opening.open()) {
+            if (stream == null) throw new FileNotFoundException(file.toString());
+            return use.apply(stream);
+        } catch (BackupRefused | IOException | RuntimeException e) {
+            Log.e(TAG, failure, e);
+            return null;
+        }
     }
 }
