@@ -1,11 +1,13 @@
 package com.wob.workout.ui.workout;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.wob.workout.R;
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.databinding.ItemWorkoutExerciseBinding;
 import com.wob.workout.media.ExerciseThumbnails;
@@ -14,7 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Shows the workout draft's exercises as it hands them over; the draft owns their order.
+ * Shows the workout draft's exercises and rests as it hands them over; the draft owns their
+ * order.
  * A drag step that the draft has taken over reaches the list as a move, so the drag goes
  * on; any other change redraws the list.
  */
@@ -40,10 +43,18 @@ public class WorkoutExerciseAdapter
         shown.addAll(data);
         if (move != null) {
             notifyItemMoved(move[0], move[1]);
+            // A move can change which rests are skipped; only their look is redrawn, so
+            // the drag goes on.
+            for (int i = 0; i < shown.size(); i++) {
+                if (shown.get(i).isRest()) notifyItemChanged(i, SKIPPED_LOOK);
+            }
         } else {
             notifyDataSetChanged();
         }
     }
+
+    /** A partial redraw: only whether a rest is shown as skipped. */
+    private static final Object SKIPPED_LOOK = new Object();
 
     /** Where one workout exercise went if {@code after} is {@code before} with exactly that
      *  one moved, as a drag step leaves it; null for any other change. */
@@ -88,17 +99,46 @@ public class WorkoutExerciseAdapter
     }
 
     @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position,
+                                 @NonNull List<Object> payloads) {
+        if (payloads.contains(SKIPPED_LOOK)) {
+            showSkipped(holder, position);
+        } else {
+            onBindViewHolder(holder, position);
+        }
+    }
+
+    @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         WorkoutExercise workoutExercise = shown.get(position);
 
-        holder.binding.txtTitle.setText(workoutExercise.exercise.title);
-        thumbnails.show(holder.binding.imgThumbnail, workoutExercise.exercise);
+        if (workoutExercise.isRest()) {
+            holder.binding.txtTitle.setText(R.string.pause);
+            // No picture of its own: a pending one must not land here.
+            holder.binding.imgThumbnail.setTag(null);
+            holder.binding.imgThumbnail.setFraming(null);
+            holder.binding.imgThumbnail.setImageResource(R.drawable.ic_rest);
+        } else {
+            holder.binding.txtTitle.setText(workoutExercise.exercise.title);
+            thumbnails.show(holder.binding.imgThumbnail, workoutExercise.exercise);
+        }
         holder.binding.txtDuration.setText(workoutExercise.durationSeconds + "s");
+        showSkipped(holder, position);
         holder.itemView.setOnClickListener(v -> {
             int clicked = holder.getBindingAdapterPosition();
             if (clicked != RecyclerView.NO_POSITION) listener.onItemClicked(clicked);
         });
     }
+
+    /** A rest that won't run is greyed out, with "wird übersprungen" under it; it stays in
+     *  the workout. */
+    private void showSkipped(ViewHolder holder, int position) {
+        boolean skipped = WorkoutExercise.isSkippedRest(shown, position);
+        holder.binding.txtSkipped.setVisibility(skipped ? View.VISIBLE : View.GONE);
+        holder.itemView.setAlpha(skipped ? SKIPPED_ALPHA : 1f);
+    }
+
+    private static final float SKIPPED_ALPHA = 0.5f;
 
     @Override
     public int getItemCount() {

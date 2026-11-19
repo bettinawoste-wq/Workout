@@ -53,10 +53,10 @@ public class DatabaseSessionHistory implements SessionHistory {
     }
 
     @Override
-    public void finishSession(boolean completed) {
+    public void finishSession(boolean completed, Integer restSeconds) {
         write(() -> {
             if (sessionId < 0) return;
-            historyRepository.finishSession(sessionId, completed);
+            historyRepository.finishSession(sessionId, completed, restSeconds);
         });
     }
 

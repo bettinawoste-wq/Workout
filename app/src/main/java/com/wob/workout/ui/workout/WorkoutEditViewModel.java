@@ -47,6 +47,7 @@ public class WorkoutEditViewModel extends ViewModel {
     private final MutableLiveData<Workout> workout = new MutableLiveData<>();
     private final MutableLiveData<List<WorkoutExercise>> exercises = new MutableLiveData<>();
     private final MutableLiveData<String> summary = new MutableLiveData<>();
+    private final MutableLiveData<String> transition = new MutableLiveData<>();
     private final MutableLiveData<Boolean> unsavedChanges = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> ready = new MutableLiveData<>(false);
 
@@ -63,14 +64,15 @@ public class WorkoutEditViewModel extends ViewModel {
                 if (loaded == null) return;
                 // Before the workout goes out: its observer fills the name field, which
                 // reaches changeName() and needs the draft to compare against.
-                draft = new WorkoutDraft(loaded.workout.name, loaded.workoutExercises);
+                draft = new WorkoutDraft(loaded.workout.name, loaded.workout.transitionSeconds,
+                        loaded.workoutExercises);
                 publish();
                 workout.setValue(loaded.workout);
                 ready.setValue(true);
             });
         } else {
-            // Nothing to load. The transition is what a new workout gets by default.
-            draft = new WorkoutDraft("", new ArrayList<>());
+            // Nothing to load. A new workout follows the default transition.
+            draft = new WorkoutDraft("", null, new ArrayList<>());
             publish();
             ready.setValue(true);
         }
@@ -104,6 +106,35 @@ public class WorkoutEditViewModel extends ViewModel {
         return summary;
     }
 
+    /** The draft's transition choice, e.g. "Standard (3 s)" or "12 s". */
+    public LiveData<String> getTransition() {
+        return transition;
+    }
+
+    /** The workout's own transition length to start the dialog with: its own one, or the
+     *  default transition's while it follows that. */
+    public int transitionSecondsToEdit() {
+        Integer own = draft != null ? draft.transitionSeconds() : null;
+        return container.defaultTransitionSetting.resolve(own);
+    }
+
+    /** Takes the workout's own transition length as typed in the transition dialog; the
+     *  dialog only shows the answer. Before the draft has loaded there is nothing to
+     *  change. */
+    public WorkoutDraft.TransitionAnswer changeTransition(String typed) {
+        if (draft == null) return WorkoutDraft.TransitionAnswer.ACCEPTED;
+        WorkoutDraft.TransitionAnswer answer = draft.changeTransition(typed);
+        if (answer == WorkoutDraft.TransitionAnswer.ACCEPTED) publish();
+        return answer;
+    }
+
+    /** Lets the workout follow the default transition again. */
+    public void followDefaultTransition() {
+        if (draft == null) return;
+        draft.followDefaultTransition();
+        publish();
+    }
+
     /** Whether the draft is ready to edit and save: at once for a new workout, once loaded
      *  for an existing one. */
     public LiveData<Boolean> getReady() {
@@ -130,6 +161,13 @@ public class WorkoutEditViewModel extends ViewModel {
     public void addExercises(List<Exercise> toAdd) {
         if (draft == null || toAdd.isEmpty()) return;
         draft.add(toAdd);
+        publish();
+    }
+
+    /** Appends a rest of {@link WorkoutDraft#NEW_REST_SECONDS}. */
+    public void addRest() {
+        if (draft == null) return;
+        draft.addRest();
         publish();
     }
 
@@ -172,8 +210,9 @@ public class WorkoutEditViewModel extends ViewModel {
         // Exercises added while this runs are not in here, so the draft keeps them.
         Set<Long> exerciseIds = new HashSet<>();
         for (WorkoutExercise workoutExercise : draft.workoutExercises()) {
-            exerciseIds.add(workoutExercise.exerciseId());
+            if (!workoutExercise.isRest()) exerciseIds.add(workoutExercise.exerciseId());
         }
+        if (exerciseIds.isEmpty()) return;
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             Map<Long, Exercise> found = new HashMap<>();
             for (Exercise exercise : container.exerciseRepository.getByIds(exerciseIds)) {
@@ -187,15 +226,16 @@ public class WorkoutEditViewModel extends ViewModel {
         });
     }
 
-    /** Writes the draft: the name (an empty one as {@link WorkoutDraft#DEFAULT_NAME}) and
-     *  the workout exercises; creates a new workout.
+    /** Writes the draft: the name (an empty one as {@link WorkoutDraft#DEFAULT_NAME}), the
+     *  transition choice and the workout exercises; creates a new workout.
      *  @return true once saved, null if not saved: still loading, or saving failed. */
     public LiveData<Boolean> save() {
         return saveDraftThen(name -> true);
     }
 
     /** Saves the draft first, so the copy matches what the editor shows, then copies the
-     *  workout as "<name> (Kopie)" with the same exercises and durations.
+     *  workout as "<name> (Kopie)" with the same transition choice, exercises and
+     *  durations.
      *  @return the copy's id, or null if still loading or saving or copying failed. */
     public LiveData<Long> duplicate() {
         return saveDraftThen(name ->
@@ -230,9 +270,11 @@ public class WorkoutEditViewModel extends ViewModel {
     private <T> LiveData<T> saveDraftThen(Function<String, T> then) {
         if (draft == null) return new MutableLiveData<>(null);
         String name = draft.nameToSave();
+        Integer transitionSeconds = draft.transitionSeconds();
         List<WorkoutExercise> toSave = new ArrayList<>(draft.workoutExercises());
         return LiveDataExecutor.runOnExecutor(container.ioExecutor, () -> {
-            workoutId = container.workoutRepository.saveWithExercises(workoutId, name, toSave);
+            workoutId = container.workoutRepository.saveWithExercises(
+                    workoutId, name, transitionSeconds, toSave);
             return then.apply(name);
         });
     }
@@ -240,6 +282,8 @@ public class WorkoutEditViewModel extends ViewModel {
     private void publish() {
         exercises.setValue(new ArrayList<>(draft.workoutExercises()));
         summary.setValue(draft.summaryText());
+        transition.setValue(
+                draft.transitionText(container.defaultTransitionSetting.getSeconds()));
         unsavedChanges.setValue(draft.hasUnsavedChanges());
     }
 

@@ -10,6 +10,8 @@ import com.wob.workout.ui.exercise.ExerciseEditViewModel;
 import com.wob.workout.ui.exercise.ExerciseListViewModel;
 import com.wob.workout.ui.history.HistoryDetailViewModel;
 import com.wob.workout.ui.history.HistoryListViewModel;
+import com.wob.workout.ui.settings.BackupViewModel;
+import com.wob.workout.ui.settings.SettingsViewModel;
 import com.wob.workout.ui.workout.WorkoutEditViewModel;
 import com.wob.workout.ui.workout.WorkoutListViewModel;
 
@@ -63,6 +65,12 @@ public class WorkoutViewModelFactory implements ViewModelProvider.Factory {
         }
         if (modelClass.isAssignableFrom(HistoryDetailViewModel.class)) {
             return (T) new HistoryDetailViewModel(container, navArgId);
+        }
+        if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
+            return (T) new SettingsViewModel(container);
+        }
+        if (modelClass.isAssignableFrom(BackupViewModel.class)) {
+            return (T) new BackupViewModel(container);
         }
         throw new IllegalArgumentException("Unknown ViewModel class: " + modelClass);
     }

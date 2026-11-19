@@ -16,17 +16,20 @@ import java.util.List;
  * Adapts a {@link WorkoutSessionEngine} to the player screen: loads the workout once, starts
  * the engine on real time and the database history, forwards the screen's taps, and hands
  * over what to show as a {@link PlayerScreen} and each due sound as a one-shot
- * {@link Event}. Survives configuration changes, so a rotation never starts a second workout
+ * {@link Event}, once to play (while sound is on) and once to vibrate (while vibration is
+ * on). Survives configuration changes, so a rotation never starts a second workout
  * session (see wayfinder ticket #4) and never plays a sound again: a recreated screen gets
  * the last event back, already handled.
  */
 public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.Listener {
 
     private final SoundSetting soundSetting;
+    private final VibrationSetting vibrationSetting;
     private final WorkoutSessionEngine engine;
 
     private final MutableLiveData<PlayerScreen> screen = new MutableLiveData<>();
     private final MutableLiveData<Event<PlayerSound>> sound = new MutableLiveData<>();
+    private final MutableLiveData<Event<PlayerSound>> vibration = new MutableLiveData<>();
     private final MutableLiveData<Boolean> soundOn = new MutableLiveData<>();
     private final MutableLiveData<Event<Boolean>> nothingToPlay = new MutableLiveData<>();
 
@@ -34,6 +37,7 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
 
     public PlayerViewModel(AppContainer container, long workoutId) {
         soundSetting = container.soundSetting;
+        vibrationSetting = container.vibrationSetting;
         soundOn.setValue(soundSetting.isOn());
         engine = new WorkoutSessionEngine(
                 new AndroidSessionTime(),
@@ -51,6 +55,12 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
     /** The sounds to play, only while the sound setting is on. */
     public LiveData<Event<PlayerSound>> getSound() {
         return sound;
+    }
+
+    /** The sounds to vibrate for, one pattern each, only while the vibration setting is on;
+     *  independent of the sound setting. */
+    public LiveData<Event<PlayerSound>> getVibration() {
+        return vibration;
     }
 
     /** Once, when the workout turned out to have no exercises: there is no screen to show. */
@@ -89,6 +99,7 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
     @Override
     public void onSound(PlayerSound due) {
         if (soundSetting.isOn()) sound.setValue(new Event<>(due));
+        if (vibrationSetting.isOn()) vibration.setValue(new Event<>(due));
     }
 
     @Override
@@ -106,10 +117,12 @@ public class PlayerViewModel extends ViewModel implements WorkoutSessionEngine.L
     private void load(AppContainer container, long workoutId) {
         LiveDataExecutor.runOnExecutorOnce(container.ioExecutor, () -> {
             Workout workout = container.workoutRepository.getById(workoutId);
+            // The workout's own transition, otherwise the default transition as it is now.
             return new Loaded(
                     container.workoutRepository.getWorkoutExercises(workoutId),
                     workout != null ? workout.name : null,
-                    (workout != null ? workout : new Workout()).transitionSeconds);
+                    container.defaultTransitionSetting.resolve(
+                            workout != null ? workout.transitionSeconds : null));
         }, () -> !cleared, loaded -> {
             if (loaded == null) return;
             engine.start(workoutId, loaded.workoutName, loaded.exercises,

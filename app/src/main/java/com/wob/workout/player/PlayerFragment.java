@@ -21,7 +21,8 @@ import com.wob.workout.databinding.FragmentPlayerBinding;
 import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
 
-/** Shows the {@link PlayerScreen} its view model hands over and plays the sounds it sends. */
+/** Shows the {@link PlayerScreen} its view model hands over, plays the sounds it sends and
+ *  vibrates for the ones it sends to vibrate. */
 public class PlayerFragment extends Fragment {
 
     private static final String ARG_WORKOUT_ID = "workout_id";
@@ -30,6 +31,7 @@ public class PlayerFragment extends Fragment {
     private FragmentPlayerBinding binding;
     private PlayerViewModel viewModel;
     private AudioManager audioManager;
+    private PlayerVibrator vibrator;
     private MediaController mediaController;
     /** The scene whose picture is on screen, so that a tick doesn't load it again. */
     private int shownScene = -1;
@@ -80,6 +82,7 @@ public class PlayerFragment extends Fragment {
                 .get(PlayerViewModel.class);
 
         audioManager = new AudioManager(requireContext());
+        vibrator = new PlayerVibrator(requireContext());
         mediaController = new MediaController(this, binding, appContainer.mediaExecutor);
 
         binding.btnPause.setOnClickListener(v -> viewModel.togglePause());
@@ -107,6 +110,10 @@ public class PlayerFragment extends Fragment {
         viewModel.getSound().observe(getViewLifecycleOwner(), event -> {
             PlayerSound due = event.getContentIfNotHandled();
             if (due != null) audioManager.play(due);
+        });
+        viewModel.getVibration().observe(getViewLifecycleOwner(), event -> {
+            PlayerSound due = event.getContentIfNotHandled();
+            if (due != null) vibrator.vibrate(due);
         });
 
         return binding.getRoot();

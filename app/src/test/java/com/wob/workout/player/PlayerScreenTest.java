@@ -90,7 +90,7 @@ public class PlayerScreenTest {
     public void aFinishedWorkoutShowsItsSummary() {
         PlayerScreen screen = PlayerScreen.of(new SessionState(Phase.FINISHED, 5, 2, 3, null,
                 0, false, false, false, false, 0, 120_000,
-                new PlayerWorkoutSummary(95, 2, 3)));
+                new PlayerWorkoutSummary(95, 2, 3, null)));
 
         assertTrue(screen.finished);
         assertEquals("01:35", screen.timerText);
@@ -102,6 +102,29 @@ public class PlayerScreenTest {
         assertFalse(screen.timerTappable);
         assertFalse(screen.previousEnabled);
         assertFalse(screen.nextEnabled);
+    }
+
+    @Test
+    public void aRestShowsPauseItsTimeLeftAndPreviewsTheNextExercise() {
+        PlayerScreen screen = PlayerScreen.of(state(Phase.REST, 1, 75_400, true));
+
+        assertEquals("Pause", screen.title);
+        assertEquals("01:15", screen.timerText);
+        assertEquals("NÄCHSTE ÜBUNG", screen.mediaLabel);
+        assertEquals("Push-up", screen.mediaTitle);
+        assertSame(PUSH_UP.exercise, screen.exercise);
+        assertEquals("", screen.description);
+        assertTrue(screen.timerTappable);
+    }
+
+    @Test
+    public void aFinishedWorkoutShowsTheRestTimeOnItsOwn() {
+        PlayerScreen screen = PlayerScreen.of(new SessionState(Phase.FINISHED, 5, 2, 3, null,
+                0, false, false, false, false, 0, 120_000,
+                new PlayerWorkoutSummary(120, 3, 3, 90)));
+
+        assertEquals("02:00", screen.timerText);
+        assertEquals("Alle 3 Übungen erledigt\nPausen: 1:30", screen.description);
     }
 
     @Test

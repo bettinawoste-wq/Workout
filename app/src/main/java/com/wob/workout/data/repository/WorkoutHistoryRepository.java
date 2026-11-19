@@ -65,13 +65,16 @@ public class WorkoutHistoryRepository {
         return database.exerciseSessionDao().insert(exerciseSession);
     }
 
-    public void finishSession(long sessionId, boolean completed) {
+    /** @param restSeconds the workout session's rest time, stored on its own: the duration
+     *                     counts exercise time only; null when no rest ran */
+    public void finishSession(long sessionId, boolean completed, Integer restSeconds) {
         WorkoutSession session = database.workoutSessionDao().getById(sessionId);
 
         if (session == null) return;
 
         session.finishedAt = System.currentTimeMillis();
         session.completed = completed;
+        session.restSeconds = restSeconds;
         session.activeDurationSeconds =
                 database.exerciseSessionDao().getTotalActiveSeconds(sessionId);
 
@@ -97,6 +100,16 @@ public class WorkoutHistoryRepository {
         }
 
         return result;
+    }
+
+    /** Every workout session, aborted ones included, kept live. */
+    public LiveData<List<WorkoutSession>> observeSessions() {
+        return database.workoutSessionDao().observeAll();
+    }
+
+    /** Every workout session, aborted ones included, read once; off the main thread. */
+    public List<WorkoutSession> getSessions() {
+        return database.workoutSessionDao().getAll();
     }
 
     public WorkoutSession getSession(long sessionId) {

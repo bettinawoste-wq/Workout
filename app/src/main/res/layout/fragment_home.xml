@@ -1,16 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<androidx.core.widget.NestedScrollView
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+<androidx.core.widget.NestedScrollView
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<!-- The bottom padding keeps the last card clear of the gear button when scrolled down. -->
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:paddingStart="24dp"
+    android:paddingTop="24dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="88dp">
+
+    <!-- Only while a weekly goal is set. -->
+    <TextView
+        android:id="@+id/txtWeeklyProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:visibility="gone"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -139,3 +156,15 @@
 
 </LinearLayout>
 </androidx.core.widget.NestedScrollView>
+
+<!-- Outside the scroll view, so it stays in place while the home screen scrolls. -->
+<com.google.android.material.floatingactionbutton.FloatingActionButton
+    android:id="@+id/fabSettings"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom|end"
+    android:layout_margin="16dp"
+    android:contentDescription="@string/einstellungen"
+    app:srcCompat="@drawable/ic_settings"/>
+
+</FrameLayout>

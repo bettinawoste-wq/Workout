@@ -23,6 +23,29 @@
             android:layout_height="wrap_content"
             android:hint="Name"/>
 
+        <!-- The workout's transition: "Standard (3 s)" or its own length; tap to change. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:labelFor="@id/btnTransition"
+                android:text="@string/uebergang"
+                android:textStyle="bold"/>
+
+            <Button
+                android:id="@+id/btnTransition"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -65,7 +88,8 @@
                 android:visibility="gone"/>
         </FrameLayout>
 
-        <!-- Two buttons of equal width, so adding an exercise is as easy to find as saving. -->
+        <!-- Buttons of equal width, so adding an exercise or a rest is as easy to find as
+             saving. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -77,16 +101,27 @@
                 style="@style/Widget.Material3.Button.TonalButton.Icon"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="@string/uebung"
+                app:icon="@drawable/ic_add"/>
+
+            <Button
+                android:id="@+id/btnAddRest"
+                style="@style/Widget.Material3.Button.TonalButton.Icon"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:text="@string/pause"
                 app:icon="@drawable/ic_add"/>
 
             <Button
                 android:id="@+id/btnSave"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:text="@string/speichern"/>
         </LinearLayout>

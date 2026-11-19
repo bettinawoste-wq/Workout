@@ -61,6 +61,7 @@ public class TestAppContainer {
 
     private final AppDatabase database;
     private final SharedPreferences settings;
+    private final FakeReminderAlarms reminderAlarms = new FakeReminderAlarms();
     private final AppContainer appContainer;
     private boolean closed;
 
@@ -86,7 +87,7 @@ public class TestAppContainer {
             // Must precede the container: WorkoutSummaryRepository/WorkoutHistoryRepository
             // capture DatabaseProvider.get() once, at construction.
             DatabaseProvider.setInstanceForTest(db);
-            appContainer = new AppContainer(context, settings);
+            appContainer = new AppContainer(context, settings, reminderAlarms);
         } catch (RuntimeException | Error e) {
             // No object reaches the caller, so nobody could close() it - undo here.
             if (db != null) {
@@ -105,6 +106,17 @@ public class TestAppContainer {
 
     public AppContainer getAppContainer() {
         return appContainer;
+    }
+
+    /** The test-only preferences file the container's settings live in, for a second
+     *  instance of a setting that stands in for the app starting again. */
+    public SharedPreferences getSettings() {
+        return settings;
+    }
+
+    /** The container's reminder alarms, which record instead of setting a real alarm. */
+    public FakeReminderAlarms getReminderAlarms() {
+        return reminderAlarms;
     }
 
     /** For DAO-level seeding or assertions the repositories don't expose. */
@@ -139,6 +151,15 @@ public class TestAppContainer {
         workoutExercise.position = position;
         workoutExercise.durationSeconds = durationSeconds;
         return appContainer.workoutExerciseRepository.save(workoutExercise);
+    }
+
+    public long insertRest(long workoutId, int position, int durationSeconds) {
+        WorkoutExerciseRow rest = new WorkoutExerciseRow();
+        rest.workoutId = workoutId;
+        rest.exerciseId = null;
+        rest.position = position;
+        rest.durationSeconds = durationSeconds;
+        return appContainer.workoutExerciseRepository.save(rest);
     }
 
     /** Records a workout session that started at {@code startedAt}, as the player would. */

@@ -8,24 +8,31 @@ people who train at home with bodyweight exercises and want a plain, focused too
 a fitness platform. Everything stays on the phone in a Room database: no account, no backend,
 no tracking, and nothing to lose when a service shuts down. The interface is in German.
 
-| Home | Workout editor | Player | History |
-| :---: | :---: | :---: | :---: |
-| <img src="docs/screenshots/home.png" width="190" alt="Home screen"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout"> | <img src="docs/screenshots/player.png" width="190" alt="Player running an exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> |
+| Home | Workout editor | Player | History | History detail | Settings |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/home.png" width="190" alt="Home screen with the week's progress and streak"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout, with a rest before its last exercise"> | <img src="docs/screenshots/player.png" width="190" alt="Player during a rest, previewing the next exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> | <img src="docs/screenshots/history-detail.png" width="190" alt="A completed session with its exercises and rest time"> | <img src="docs/screenshots/settings.png" width="190" alt="Settings with design, sound, vibration, default transition, weekly goal and backup"> |
 
 ## Features
 
 - **Exercises** — title, description and an optional photo or video; a photo is framed by zooming
   with two fingers and moving with one, the file untouched; without a picture, a placeholder image.
-- **Workouts** — a named, ordered list of exercises with a duration each, reordered by drag and
-  drop, kept as a draft until "Speichern" (leaving asks before discarding changes), duplicable,
-  and shown with a thumbnail of every exercise.
-- **Player** — countdowns, a soft start tone, a 3-second transition that beeps 3-2-1, the coming exercise darkened, skip and
-  back; a bar of exercise time left in the workout; a chime and a summary of total time and skipped exercises.
+- **Workouts** — a named, ordered list of exercises with a duration each and rests between them,
+  reordered by drag and drop, kept as a draft until "Speichern" (leaving asks before discarding
+  changes), duplicable, and shown with a thumbnail of every exercise. A rest that would not run
+  (at either end, or right after another rest) is greyed out with "wird übersprungen".
+- **Player** — countdowns, a soft start tone, a transition of 0 to 30 seconds (a default in the settings, or the workout's own) with 3-2-1 beeps before every exercise, the coming exercise darkened, skip and
+  back; rests as their own phase with the next exercise previewed; a bar of exercise time left in the workout; a chime and a summary of total time, skipped exercises and rest time.
 - **History** — every workout session, completed or aborted, with planned vs. actual duration per
-  exercise; browse and delete sessions, which survive deleting the workout they were recorded against.
+  exercise and the rest time on its own; browse and delete sessions, which survive deleting the workout they were recorded against.
 - **Starter set** — a fresh install comes with 10 bodyweight exercises and a full-body workout at one
   minute per exercise; afterwards they are ordinary data you can edit or delete.
-- **Design** — Material 3 with a petrol palette, following the system's light or dark mode.
+- **Settings** — a gear button on the home screen opens them: the design (System, Light or Dark,
+  applied at once), the player's sound switch, and vibration at every sound, one pattern per sound;
+  a weekly goal of training days, shown on the home screen as "2 / 3 diese Woche · Serie: 4 Wochen".
+- **Backup** — the settings export all exercises with their photos and videos, the workouts and
+  the history to one ZIP file anywhere the system's file dialog reaches; importing one shows
+  what it holds, then replaces everything or adds it alongside as copies.
+- **Design** — Material 3 with a petrol palette, light or dark as the system or the settings say.
 
 ## Architecture
 

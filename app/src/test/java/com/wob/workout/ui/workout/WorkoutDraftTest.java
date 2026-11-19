@@ -28,7 +28,7 @@ public class WorkoutDraftTest {
             stored.add(stored(i + 1, "Übung " + i, 60));
         }
 
-        WorkoutDraft draft = new WorkoutDraft("Ganzkörper", stored);
+        WorkoutDraft draft = new WorkoutDraft("Ganzkörper", null, stored);
 
         assertEquals(600, draft.totalSeconds());
         assertEquals("10 Übungen · 10:00", draft.summaryText());
@@ -182,7 +182,7 @@ public class WorkoutDraftTest {
 
     @Test
     public void aNewWorkoutHasUnsavedChangesOnlyOnceSomethingIsEntered() {
-        WorkoutDraft draft = new WorkoutDraft("", new ArrayList<>());
+        WorkoutDraft draft = new WorkoutDraft("", null, new ArrayList<>());
         assertFalse(draft.hasUnsavedChanges());
 
         draft.changeName("   ");
@@ -271,10 +271,176 @@ public class WorkoutDraftTest {
         assertTitles(draft, "Squat", "Lunge");
     }
 
+    // Transition.
+
+    @Test
+    public void aWorkoutWithoutItsOwnTransitionShowsTheDefault() {
+        WorkoutDraft draft = legDay();
+
+        assertNull(draft.transitionSeconds());
+        assertEquals("Standard (3 s)", draft.transitionText(3));
+        assertEquals("Standard (0 s)", draft.transitionText(0));
+    }
+
+    @Test
+    public void aWorkoutsOwnTransitionShowsItsLength() {
+        WorkoutDraft draft = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+
+        assertEquals(Integer.valueOf(12), draft.transitionSeconds());
+        assertEquals("12 s", draft.transitionText(3));
+    }
+
+    @Test
+    public void aTransitionAsTypedIsAcceptedFromZeroToThirtySeconds() {
+        WorkoutDraft draft = legDay();
+
+        assertEquals(WorkoutDraft.TransitionAnswer.ACCEPTED, draft.changeTransition(" 0 "));
+        assertEquals(Integer.valueOf(0), draft.transitionSeconds());
+
+        assertEquals(WorkoutDraft.TransitionAnswer.ACCEPTED, draft.changeTransition("30"));
+        assertEquals(Integer.valueOf(30), draft.transitionSeconds());
+    }
+
+    @Test
+    public void aTransitionOutsideZeroToThirtySecondsIsRejectedAndChangesNothing() {
+        WorkoutDraft draft = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+
+        for (String typed : new String[] {"31", "-1", "", "2.5", "drei"}) {
+            assertEquals(typed, WorkoutDraft.TransitionAnswer.NOT_VALID_SECONDS,
+                    draft.changeTransition(typed));
+        }
+
+        assertEquals(Integer.valueOf(12), draft.transitionSeconds());
+        assertFalse(draft.hasUnsavedChanges());
+    }
+
+    @Test
+    public void aWorkoutCanGoBackToTheDefaultTransition() {
+        WorkoutDraft draft = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+
+        draft.followDefaultTransition();
+
+        assertNull(draft.transitionSeconds());
+        assertEquals("Standard (5 s)", draft.transitionText(5));
+    }
+
+    @Test
+    public void theTransitionChoiceIsAnUnsavedChangeUntilItIsChangedBack() {
+        WorkoutDraft draft = legDay();
+
+        draft.changeTransition("3");
+        assertTrue("own 3 s is not the default, even at the same length",
+                draft.hasUnsavedChanges());
+
+        draft.followDefaultTransition();
+        assertFalse(draft.hasUnsavedChanges());
+
+        WorkoutDraft own = new WorkoutDraft("Stretching", 12, new ArrayList<>());
+        own.followDefaultTransition();
+        assertTrue(own.hasUnsavedChanges());
+        own.changeTransition("12");
+        assertFalse(own.hasUnsavedChanges());
+    }
+
+    // Rests.
+
+    @Test
+    public void anAddedRestGoesAtTheEndWith30Seconds() {
+        WorkoutDraft draft = legDay();
+
+        draft.addRest();
+
+        assertTitles(draft, "Squat", "Lunge", "Pause");
+        WorkoutExercise rest = draft.workoutExercises().get(2);
+        assertTrue(rest.isRest());
+        assertEquals(30, rest.durationSeconds);
+        assertEquals(WorkoutExercise.UNSAVED, rest.rowId);
+        assertTrue(draft.hasUnsavedChanges());
+    }
+
+    @Test
+    public void aRestIsMovedRetimedRemovedAndRestoredLikeAnExercise() {
+        WorkoutDraft draft = legDay();
+        draft.addRest();
+
+        draft.move(2, 1);
+        assertTitles(draft, "Squat", "Pause", "Lunge");
+
+        assertEquals(WorkoutDraft.DurationAnswer.ACCEPTED, draft.changeDuration(1, "45"));
+        assertEquals(45, draft.workoutExercises().get(1).durationSeconds);
+        assertTrue(draft.workoutExercises().get(1).isRest());
+
+        WorkoutExercise removed = draft.remove(1);
+        assertTitles(draft, "Squat", "Lunge");
+        draft.restore(1, removed);
+        assertTitles(draft, "Squat", "Pause", "Lunge");
+        assertEquals(45, draft.workoutExercises().get(1).durationSeconds);
+    }
+
+    @Test
+    public void aStoredRestIsUnchangedUntilItsDurationOrPlaceChanges() {
+        WorkoutDraft draft = new WorkoutDraft("Leg Day", null, Arrays.asList(
+                stored(1, "Squat", 45), storedRest(30), stored(2, "Lunge", 30)));
+        assertFalse(draft.hasUnsavedChanges());
+
+        draft.changeDuration(1, 60);
+        assertTrue(draft.hasUnsavedChanges());
+        draft.changeDuration(1, 30);
+        assertFalse(draft.hasUnsavedChanges());
+    }
+
+    @Test
+    public void restsAtTheStartTheEndOrRightAfterAnotherRestAreSkipped() {
+        WorkoutDraft draft = new WorkoutDraft("Leg Day", null, Arrays.asList(
+                storedRest(30), stored(1, "Squat", 45), storedRest(30), storedRest(30),
+                stored(2, "Lunge", 30), storedRest(30), storedRest(30)));
+
+        List<Boolean> skipped = new ArrayList<>();
+        for (int i = 0; i < draft.workoutExercises().size(); i++) {
+            skipped.add(draft.isSkippedRest(i));
+        }
+
+        assertEquals(Arrays.asList(true, false, false, true, false, true, true), skipped);
+        assertEquals("nothing is removed", 7, draft.workoutExercises().size());
+    }
+
+    @Test
+    public void theSummaryCountsExercisesAndTheirTimeOnly() {
+        WorkoutDraft draft = legDay();
+
+        draft.addRest();
+        draft.move(2, 1);
+
+        assertEquals(45 + 30, draft.totalSeconds());
+        assertEquals("2 Übungen · 1:15", draft.summaryText());
+    }
+
+    @Test
+    public void aDraftOfRestsOnlyHasNoExercises() {
+        WorkoutDraft draft = new WorkoutDraft("", null, new ArrayList<>());
+        draft.addRest();
+        draft.addRest();
+
+        assertEquals("0 Übungen · 0:00", draft.summaryText());
+    }
+
+    @Test
+    public void restsStayWhenTheCatalogIsUpdated() {
+        WorkoutDraft draft = new WorkoutDraft("Leg Day", null, Arrays.asList(
+                stored(1, "Squat", 45), storedRest(20), stored(2, "Lunge", 30)));
+        Map<Long, Exercise> catalog = new HashMap<>();
+        catalog.put(1L, exercise(1, "Squat"));
+
+        draft.updateExercises(Arrays.asList(1L, 2L), catalog);
+
+        assertTitles(draft, "Squat", "Pause");
+        assertFalse(draft.hasUnsavedChanges());
+    }
+
     private static void assertTitles(WorkoutDraft draft, String... expectedTitles) {
         List<String> titles = new ArrayList<>();
         for (WorkoutExercise workoutExercise : draft.workoutExercises()) {
-            titles.add(workoutExercise.exercise.title);
+            titles.add(workoutExercise.isRest() ? "Pause" : workoutExercise.exercise.title);
         }
         assertEquals(Arrays.asList(expectedTitles), titles);
     }
@@ -287,7 +453,7 @@ public class WorkoutDraftTest {
     }
 
     private static WorkoutDraft legDay() {
-        return new WorkoutDraft("Leg Day",
+        return new WorkoutDraft("Leg Day", null,
                 Arrays.asList(stored(1, "Squat", 45), stored(2, "Lunge", 30)));
     }
 
@@ -296,5 +462,10 @@ public class WorkoutDraftTest {
     /** A stored workout exercise, as the editor loads it. */
     private static WorkoutExercise stored(long exerciseId, String title, int seconds) {
         return new WorkoutExercise(nextRowId++, exercise(exerciseId, title), seconds);
+    }
+
+    /** A stored rest, as the editor loads it. */
+    private static WorkoutExercise storedRest(int seconds) {
+        return new WorkoutExercise(nextRowId++, null, seconds);
     }
 }

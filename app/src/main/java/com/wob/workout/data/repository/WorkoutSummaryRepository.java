@@ -56,23 +56,27 @@ public class WorkoutSummaryRepository {
         List<WorkoutListItem> result = new ArrayList<>();
 
         for (WorkoutWithExercises row : rows) {
+            // Exercises and their time only: rests count towards neither.
             int duration = 0;
+            int exerciseCount = 0;
             for (WorkoutExerciseRow exercise : row.exercises) {
+                if (exercise.exerciseId == null) continue;
                 duration += exercise.durationSeconds;
+                exerciseCount++;
             }
             result.add(new WorkoutListItem(
-                    row.workout, row.exercises.size(), duration, exercisesInOrder(row)));
+                    row.workout, exerciseCount, duration, exercisesInOrder(row)));
         }
 
         return result;
     }
 
-    /** The pictures follow the order of the workout exercises; see
+    /** The pictures follow the order of the workout exercises, rests left out; see
      *  {@link WorkoutRepository#getWorkoutExercises}. */
     private static List<Exercise> exercisesInOrder(WorkoutWithExercises row) {
         List<Exercise> inOrder = new ArrayList<>();
         for (WorkoutExercise workoutExercise : WorkoutRepository.workoutExercisesOf(row)) {
-            inOrder.add(workoutExercise.exercise);
+            if (!workoutExercise.isRest()) inOrder.add(workoutExercise.exercise);
         }
         return inOrder;
     }

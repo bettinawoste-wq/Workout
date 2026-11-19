@@ -22,7 +22,12 @@ public class WorkoutSession {
 
     public long finishedAt;
 
+    /** Exercise time only: rests and transitions are not part of it. */
     public int activeDurationSeconds;
 
     public boolean completed;
+
+    /** How long it rested, pauses left out, 0 when every rest was ended at once; null when
+     *  no rest ran, and for a workout session recorded before rests existed. */
+    public Integer restSeconds;
 }

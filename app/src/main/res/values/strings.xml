@@ -36,4 +36,84 @@
     <string name="fertig">Fertig</string>
     <string name="nochmal">Nochmal</string>
     <string name="entfernen">Entfernen</string>
+    <string name="einstellungen">Einstellungen</string>
+    <string name="darstellung">Darstellung</string>
+    <string name="design">Design</string>
+    <string name="design_system">System</string>
+    <string name="design_hell">Hell</string>
+    <string name="design_dunkel">Dunkel</string>
+    <string name="player">Player</string>
+    <string name="ton">Ton</string>
+    <string name="vibration">Vibration</string>
+    <string name="standard_uebergang">Standard-Übergang</string>
+    <string name="uebergang">Übergang</string>
+    <string name="sekunden_kurz">%d s</string>
+    <string name="uebergang_in_sekunden">Übergang in Sekunden (%1$d–%2$d)</string>
+    <string name="uebergang_ungueltig">Bitte %1$d bis %2$d Sekunden eingeben</string>
+    <string name="standard">Standard</string>
+    <string name="pause">Pause</string>
+    <string name="wird_uebersprungen">wird übersprungen</string>
+    <string name="training">Training</string>
+    <string name="wochenziel">Wochenziel</string>
+    <string name="kein_wochenziel">Kein Ziel</string>
+    <plurals name="trainingstage_pro_woche">
+        <item quantity="one">%d Trainingstag pro Woche</item>
+        <item quantity="other">%d Trainingstage pro Woche</item>
+    </plurals>
+    <string name="wochenfortschritt">%1$d / %2$d diese Woche · Serie: %3$s</string>
+    <string name="erinnerungen">Erinnerungen</string>
+    <string name="erinnerung_hinzufuegen">Erinnerung hinzufügen</string>
+    <string name="neue_erinnerung">Neue Erinnerung</string>
+    <string name="erinnerung_bearbeiten">Erinnerung bearbeiten</string>
+    <string name="erinnerung_loeschen">Erinnerung löschen?</string>
+    <string name="erinnerung_loeschen_text">Die Erinnerung um %1$s wird gelöscht.</string>
+    <string name="erinnerung_an">Erinnerung um %1$s</string>
+    <string name="erinnerung_titel">Zeit fürs Training</string>
+    <string name="erinnerung_text">Starte jetzt ein Workout.</string>
+    <string name="taeglich">Täglich</string>
+    <string name="benachrichtigungen_aus">Benachrichtigungen sind nicht erlaubt, deshalb bleiben die Erinnerungen stumm.</string>
+    <string name="benachrichtigungen_erlauben">Erlauben</string>
+    <string-array name="wochentage_kurz">
+        <item>Mo</item>
+        <item>Di</item>
+        <item>Mi</item>
+        <item>Do</item>
+        <item>Fr</item>
+        <item>Sa</item>
+        <item>So</item>
+    </string-array>
+    <plurals name="wochen">
+        <item quantity="one">%d Woche</item>
+        <item quantity="other">%d Wochen</item>
+    </plurals>
+    <string name="backup_umfang">%1$s, %2$s, %3$s</string>
+    <plurals name="backup_uebungen">
+        <item quantity="one">%d Übung</item>
+        <item quantity="other">%d Übungen</item>
+    </plurals>
+    <plurals name="backup_workouts">
+        <item quantity="one">%d Workout</item>
+        <item quantity="other">%d Workouts</item>
+    </plurals>
+    <plurals name="backup_eintraege_im_verlauf">
+        <item quantity="one">%d Eintrag im Verlauf</item>
+        <item quantity="other">%d Einträge im Verlauf</item>
+    </plurals>
+    <string name="daten">Daten</string>
+    <string name="exportieren">Exportieren</string>
+    <string name="importieren">Importieren</string>
+    <string name="daten_erklaerung">Ein Backup enthält alle Übungen mit Fotos und Videos, alle Workouts und den Verlauf. Einstellungen, Erinnerungen und das Wochenziel gehören nicht dazu.</string>
+    <string name="backup_importieren">Backup importieren</string>
+    <string name="backup_inhalt">Diese Datei enthält %1$s.\n\nErsetzen löscht alle Übungen, Workouts und den Verlauf auf diesem Handy und setzt die aus dem Backup ein. Zusammenführen fügt sie zusätzlich hinzu.</string>
+    <string name="ersetzen">Ersetzen</string>
+    <string name="zusammenfuehren">Zusammenführen</string>
+    <string name="abbrechen">Abbrechen</string>
+    <string name="zusammenfuehren_warnung">Was schon auf diesem Handy ist, gibt es danach doppelt: Übungen, Workouts und Einträge im Verlauf aus dem Backup kommen als Kopien hinzu.</string>
+    <string name="backup_neuere_version">Dieses Backup stammt aus einer neueren Version der App. Aktualisiere die App und versuche es dann noch einmal. Es wurde nichts geändert.</string>
+    <string name="backup_unlesbar">Diese Datei ist kein lesbares Backup. Es wurde nichts geändert.</string>
+    <string name="backup_nicht_importierbar">Backup nicht importierbar</string>
+    <string name="backup_exportiert">Backup gespeichert</string>
+    <string name="backup_export_fehlgeschlagen">Backup konnte nicht gespeichert werden</string>
+    <string name="backup_importiert">Backup importiert</string>
+    <string name="backup_import_fehlgeschlagen">Import fehlgeschlagen. Es wurde nichts geändert.</string>
 </resources>

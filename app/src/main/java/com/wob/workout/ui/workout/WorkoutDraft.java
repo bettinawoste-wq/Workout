@@ -2,6 +2,7 @@ package com.wob.workout.ui.workout;
 
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.data.entity.Exercise;
+import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.ui.ExerciseCount;
 import com.wob.workout.ui.MinutesSeconds;
 
@@ -11,10 +12,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * What the workout editor shows and changes before "Speichern" writes it: the name and the
- * workout exercises in their order, with their durations. Knows whether it differs from
+ * What the workout editor shows and changes before "Speichern" writes it: the name, the
+ * transition choice (its own length or the default transition) and the workout exercises
+ * and rests in their order, with their durations. Knows whether it differs from
  * what was loaded, so leaving can ask before throwing changes away.
  *
  * <p>It owns its workout exercises: they are immutable values, so a change replaces one,
@@ -28,17 +31,29 @@ public class WorkoutDraft {
     /** What an added exercise lasts until its duration is changed. */
     public static final int NEW_EXERCISE_SECONDS = 60;
 
+    /** What an added rest lasts until its duration is changed. */
+    public static final int NEW_REST_SECONDS = 30;
+
     private final List<WorkoutExercise> workoutExercises;
     private String name;
-    /** What was loaded, to compare against: the trimmed name and {@link #rows()}. */
+    /** The workout's own transition length, or null to follow the default transition. */
+    private Integer transitionSeconds;
+    /** What was loaded, to compare against: the trimmed name, the transition choice and
+     *  {@link #rows()}. */
     private final String loadedName;
+    private final Integer loadedTransitionSeconds;
     private final List<List<Long>> loadedRows;
 
-    /** @param name the stored name, empty for a new workout */
-    public WorkoutDraft(String name, List<WorkoutExercise> workoutExercises) {
+    /** @param name              the stored name, empty for a new workout
+     *  @param transitionSeconds the workout's own transition length, null if it follows
+     *                           the default transition */
+    public WorkoutDraft(String name, Integer transitionSeconds,
+                        List<WorkoutExercise> workoutExercises) {
         this.name = name;
+        this.transitionSeconds = transitionSeconds;
         this.workoutExercises = new ArrayList<>(workoutExercises);
         this.loadedName = name.trim();
+        this.loadedTransitionSeconds = transitionSeconds;
         this.loadedRows = rows();
     }
 
@@ -51,12 +66,66 @@ public class WorkoutDraft {
         this.name = name;
     }
 
+    /** The workout's own transition length, or null while it follows the default
+     *  transition. */
+    public Integer transitionSeconds() {
+        return transitionSeconds;
+    }
+
+    /** What {@link #changeTransition(String)} makes of a typed transition length. */
+    public enum TransitionAnswer {
+        ACCEPTED,
+        /** Not a whole number of seconds from 0 to 30; nothing changed. */
+        NOT_VALID_SECONDS
+    }
+
+    /** Takes the workout's own transition length as typed, e.g. into the transition dialog.
+     *  @return whether it was taken over */
+    public TransitionAnswer changeTransition(String typed) {
+        int seconds;
+        try {
+            seconds = Integer.parseInt(typed.trim());
+        } catch (NumberFormatException e) {
+            return TransitionAnswer.NOT_VALID_SECONDS;
+        }
+        if (seconds < DefaultTransitionSetting.MIN_SECONDS
+                || seconds > DefaultTransitionSetting.MAX_SECONDS) {
+            return TransitionAnswer.NOT_VALID_SECONDS;
+        }
+        transitionSeconds = seconds;
+        return TransitionAnswer.ACCEPTED;
+    }
+
+    /** Lets the workout follow the default transition again ("Standard"). */
+    public void followDefaultTransition() {
+        transitionSeconds = null;
+    }
+
+    /** E.g. "Standard (3 s)" while following the default transition, otherwise "12 s".
+     *  @param defaultSeconds the default transition's current length */
+    public String transitionText(int defaultSeconds) {
+        return transitionSeconds == null
+                ? "Standard (" + defaultSeconds + " s)"
+                : transitionSeconds + " s";
+    }
+
     /** Appends the exercises after the existing ones, in the given order (the order they
      *  were ticked), each with {@link #NEW_EXERCISE_SECONDS}. */
     public void add(List<Exercise> exercises) {
         for (Exercise exercise : exercises) {
             workoutExercises.add(WorkoutExercise.added(exercise, NEW_EXERCISE_SECONDS));
         }
+    }
+
+    /** Appends a rest after the existing places, with {@link #NEW_REST_SECONDS}. */
+    public void addRest() {
+        workoutExercises.add(WorkoutExercise.addedRest(NEW_REST_SECONDS));
+    }
+
+    /** Whether the place at {@code position} is a rest that won't run: at the start, at the
+     *  end or right after another rest. The editor shows it greyed out and keeps it. */
+    public boolean isSkippedRest(int position) {
+        return isAt(position) && WorkoutExercise.isSkippedRest(workoutExercises, position);
     }
 
     /** @return the removed one, for {@link #restore}; null if there is none at
@@ -116,8 +185,9 @@ public class WorkoutDraft {
     public void updateExercises(Collection<Long> lookedUp, Map<Long, Exercise> found) {
         List<WorkoutExercise> updated = new ArrayList<>();
         for (WorkoutExercise workoutExercise : workoutExercises) {
-            long exerciseId = workoutExercise.exerciseId();
-            if (!lookedUp.contains(exerciseId)) {
+            Long exerciseId = workoutExercise.exerciseId();
+            // A rest has no exercise to look up.
+            if (exerciseId == null || !lookedUp.contains(exerciseId)) {
                 updated.add(workoutExercise);
             } else if (found.containsKey(exerciseId)) {
                 updated.add(workoutExercise.withExercise(found.get(exerciseId)));
@@ -125,7 +195,7 @@ public class WorkoutDraft {
         }
         workoutExercises.clear();
         workoutExercises.addAll(updated);
-        loadedRows.removeIf(row -> lookedUp.contains(row.get(1))
+        loadedRows.removeIf(row -> row.get(1) != null && lookedUp.contains(row.get(1))
                 && !found.containsKey(row.get(1)));
     }
 
@@ -137,23 +207,28 @@ public class WorkoutDraft {
     }
 
     public boolean hasUnsavedChanges() {
-        return !name.trim().equals(loadedName) || !rows().equals(loadedRows);
+        return !name.trim().equals(loadedName)
+                || !Objects.equals(transitionSeconds, loadedTransitionSeconds)
+                || !rows().equals(loadedRows);
     }
 
-    /** The exercises' durations added up, without the transitions, so it matches the
-     *  remaining time the player starts from. */
+    /** The exercises' durations added up, without the rests and transitions, so it matches
+     *  the remaining time the player starts from. */
     public int totalSeconds() {
         int total = 0;
         for (WorkoutExercise workoutExercise : workoutExercises) {
-            total += workoutExercise.durationSeconds;
+            if (!workoutExercise.isRest()) total += workoutExercise.durationSeconds;
         }
         return total;
     }
 
-    /** E.g. "10 Übungen · 10:00". */
+    /** E.g. "10 Übungen · 10:00"; rests count neither as exercises nor towards the time. */
     public String summaryText() {
-        return ExerciseCount.text(workoutExercises.size()) + " · "
-                + MinutesSeconds.text(totalSeconds());
+        int exercises = 0;
+        for (WorkoutExercise workoutExercise : workoutExercises) {
+            if (!workoutExercise.isRest()) exercises++;
+        }
+        return ExerciseCount.text(exercises) + " · " + MinutesSeconds.text(totalSeconds());
     }
 
     private boolean isAt(int position) {
@@ -161,7 +236,8 @@ public class WorkoutDraft {
     }
 
     /** What saving would write of the workout exercises, as comparable values: per workout
-     *  exercise in order its row id (0 while unsaved), exercise and duration. */
+     *  exercise in order its row id (0 while unsaved), exercise (null for a rest) and
+     *  duration. */
     private List<List<Long>> rows() {
         List<List<Long>> rows = new ArrayList<>();
         for (WorkoutExercise workoutExercise : workoutExercises) {

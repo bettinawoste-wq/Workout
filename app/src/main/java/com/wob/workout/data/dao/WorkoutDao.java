@@ -18,8 +18,9 @@ public interface WorkoutDao {
     /** Partial update touching only the name, so a caller that hasn't loaded the rest of
      *  the row can't accidentally overwrite it. Returns the number of rows updated (0 if
      *  {@code id} no longer exists). */
-    @Query("UPDATE Workout SET name = :name WHERE id = :id")
-    int updateName(long id, String name);
+    @Query("UPDATE Workout SET name = :name, transitionSeconds = :transitionSeconds"
+            + " WHERE id = :id")
+    int updateNameAndTransition(long id, String name, Integer transitionSeconds);
 
     @Delete
     void delete(Workout workout);
@@ -46,4 +47,8 @@ public interface WorkoutDao {
             + " ORDER BY lastRun.lastStartedAt IS NULL, lastRun.lastStartedAt DESC,"
             + " Workout.id DESC")
     LiveData<List<WorkoutWithExercises>> getAllWithExercises();
+
+    /** Every workout; their workout exercises go with them (for the backup's replace). */
+    @Query("DELETE FROM Workout")
+    void deleteAll();
 }

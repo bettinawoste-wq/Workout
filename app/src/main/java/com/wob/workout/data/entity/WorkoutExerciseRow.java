@@ -6,8 +6,9 @@ import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 /**
- * The stored row behind a {@link com.wob.workout.data.WorkoutExercise}: one exercise's place
- * in a workout. Keeps the table name {@code WorkoutExercise}, so the schema is unchanged.
+ * The stored row behind a {@link com.wob.workout.data.WorkoutExercise}: one place in a
+ * workout, an exercise's or a rest's (no exercise). Keeps the table name
+ * {@code WorkoutExercise}.
  */
 @Entity(
         tableName = "WorkoutExercise",
@@ -37,7 +38,8 @@ public class WorkoutExerciseRow {
 
     public long workoutId;
 
-    public long exerciseId;
+    /** Null for a rest. */
+    public Long exerciseId;
 
     public int position;
 

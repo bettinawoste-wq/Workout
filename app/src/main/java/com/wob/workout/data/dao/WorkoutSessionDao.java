@@ -25,6 +25,18 @@ public interface WorkoutSessionDao {
     @Query("SELECT * FROM WorkoutSession ORDER BY startedAt DESC")
     LiveData<List<WorkoutSessionWithExercises>> getAllWithExercisesOrderByStartedAtDesc();
 
+    /** Every workout session, reactive: for the weekly progress. */
+    @Query("SELECT * FROM WorkoutSession")
+    LiveData<List<WorkoutSession>> observeAll();
+
     @Query("SELECT * FROM WorkoutSession WHERE id = :id LIMIT 1")
     WorkoutSession getById(long id);
+
+    /** The whole history, oldest first: for the backup and a reminder's silence rule. */
+    @Query("SELECT * FROM WorkoutSession ORDER BY id")
+    List<WorkoutSession> getAll();
+
+    /** The whole history; the exercise sessions go with it (for the backup's replace). */
+    @Query("DELETE FROM WorkoutSession")
+    void deleteAll();
 }

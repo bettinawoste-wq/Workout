@@ -25,9 +25,11 @@ public class WorkoutSessionEngineTest {
     private static final long WORKOUT_ID = 7;
 
     private final FakeSessionTime time = new FakeSessionTime();
-    private final RecordedHistory history = new RecordedHistory();
+    private RecordedHistory history = new RecordedHistory();
     private final List<SessionState> states = new ArrayList<>();
     private final List<PlayerSound> sounds = new ArrayList<>();
+    /** When each beep sounded, on {@link #time}'s clock. */
+    private final List<Long> beepTimes = new ArrayList<>();
     private int nothingToPlay;
     private final WorkoutSessionEngine.Listener listener = new WorkoutSessionEngine.Listener() {
         @Override
@@ -38,6 +40,7 @@ public class WorkoutSessionEngineTest {
         @Override
         public void onSound(PlayerSound sound) {
             sounds.add(sound);
+            if (sound == PlayerSound.BEEP) beepTimes.add(time.now());
         }
 
         @Override
@@ -230,11 +233,55 @@ public class WorkoutSessionEngineTest {
     }
 
     @Test
-    public void anExercisesOwnLastSecondsStayQuiet() {
+    public void aTransitionOfZeroGoesStraightToTheNextExercise() {
+        startOther(0, 10, 10);
+        time.advance(3000 + 10_000);
+
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals(1, state().position);
+        assertEquals(10_000, state().millisLeft);
+        assertEquals(2, count(PlayerSound.START));
+        for (SessionState state : states) assertTrue(state.phase != Phase.TRANSITION);
+    }
+
+    @Test
+    public void theLastThreeSecondsBeforeEveryExerciseBeepWhateverTheTransition() {
+        for (int transitionSeconds : new int[] {0, 1, 2, 3, 5}) {
+            assertEquals("transition " + transitionSeconds,
+                    Arrays.asList(-3000L, -2000L, -1000L),
+                    beepsBeforeTheSecondExercise(transitionSeconds));
+        }
+    }
+
+    @Test
+    public void theCountdownBeforeTheFirstExerciseStaysAsItWas() {
+        startOther(0, 10, 10);
+        long start = time.now();
+
         time.advance(3000);
+
+        assertEquals(Arrays.asList(start, start + 1000, start + 2000), beepTimes);
+    }
+
+    @Test
+    public void anExerciseShorterThanTheBeepsBeepsForWhatItHas() {
+        startOther(0, 10, 2, 10);
+        long secondStarts = time.now() + 3000 + 10_000;
+        time.advance(3000 + 9_999);
+        int before = beepTimes.size();
+
+        time.advance(1 + 2000);
+
+        assertEquals(Arrays.asList(secondStarts, secondStarts + 1000),
+                beepTimes.subList(before, beepTimes.size()));
+    }
+
+    @Test
+    public void theLastExercisesOwnLastSecondsStayQuiet() {
+        time.advance(3000 + 60_000 + 3000);
         int before = beeps();
 
-        time.advance(59_999);
+        time.advance(30_000);
 
         assertEquals(before, beeps());
     }
@@ -485,16 +532,259 @@ public class WorkoutSessionEngineTest {
         assertEquals(0, state().summary.skippedExercises());
     }
 
+    // Rests.
+
+    @Test
+    public void aRestBetweenTwoExercisesRunsAsItsOwnPhaseInsteadOfTheTransition() {
+        startWithRest();
+        time.advance(3000 + 60_000);
+
+        assertEquals(Phase.REST, state().phase);
+        assertEquals(20_000, state().millisLeft);
+        assertEquals("the next exercise is previewed", "Squat",
+                state().workoutExercise.exercise.title);
+        assertEquals(1, state().position);
+        assertEquals(2, state().total);
+
+        time.advance(20_000);
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals("Squat", state().workoutExercise.exercise.title);
+        for (SessionState state : states) assertTrue(state.phase != Phase.TRANSITION);
+    }
+
+    @Test
+    public void restsAtEitherEndOrRightAfterAnotherRestDoNotRun() {
+        startPlaces(0, rest(40), workoutExercise(1, "Push-up", 10), rest(5), rest(50),
+                workoutExercise(2, "Squat", 10), rest(60));
+
+        assertEquals(Phase.READY, state().phase);
+        assertEquals(2, state().total);
+        time.advance(3000 + 10_000);
+        assertEquals(Phase.REST, state().phase);
+        assertEquals("only the first of the two rests runs", 5000, state().millisLeft);
+        time.advance(5000);
+        assertEquals(Phase.ACTIVE, state().phase);
+        time.advance(10_000);
+        assertEquals(Phase.FINISHED, state().phase);
+    }
+
+    @Test
+    public void nextDuringARestEndsItAndStartsTheNextExercise() {
+        startWithRest();
+        time.advance(3000 + 60_000 + 5000);
+        assertTrue(state().canStepForward);
+
+        engine.next();
+
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals("Squat", state().workoutExercise.exercise.title);
+        assertEquals(30_000, state().millisLeft);
+    }
+
+    @Test
+    public void previousDuringARestGoesToTheExerciseBeforeIt() {
+        startWithRest();
+        time.advance(3000 + 60_000 + 5000);
+        assertTrue(state().canStepBack);
+
+        engine.previous();
+
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals("Push-up", state().workoutExercise.exercise.title);
+        assertEquals(60_000, state().millisLeft);
+    }
+
+    @Test
+    public void steppingBetweenExercisesPassesOverRests() {
+        startWithRest();
+        time.advance(3000);
+
+        engine.next();
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals("Squat", state().workoutExercise.exercise.title);
+
+        engine.previous();
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals("Push-up", state().workoutExercise.exercise.title);
+    }
+
+    @Test
+    public void pausingARestHoldsItUntilResumed() {
+        startWithRest();
+        time.advance(3000 + 60_000 + 5000);
+
+        engine.togglePause();
+        assertFalse(state().running);
+        time.advance(60_000);
+        assertEquals(Phase.REST, state().phase);
+        assertEquals(15_000, state().millisLeft);
+
+        engine.togglePause();
+        assertTrue(state().running);
+        time.advance(15_000);
+        assertEquals(Phase.ACTIVE, state().phase);
+    }
+
+    @Test
+    public void theLastThreeSecondsOfARestBeepAndNoTransitionFollowsIt() {
+        startWithRest();
+        long squatStarts = time.now() + 3000 + 60_000 + 20_000;
+        time.advance(3000 + 60_000);
+        int before = beepTimes.size();
+
+        time.advance(20_000);
+
+        assertEquals(Arrays.asList(squatStarts - 3000, squatStarts - 2000, squatStarts - 1000),
+                beepTimes.subList(before, beepTimes.size()));
+        assertEquals(Phase.ACTIVE, state().phase);
+    }
+
+    @Test
+    public void aRestShorterThanTheBeepsReachesBackIntoTheExerciseBeforeIt() {
+        startPlaces(5, workoutExercise(1, "Push-up", 10), rest(1),
+                workoutExercise(2, "Squat", 10));
+        long squatStarts = time.now() + 3000 + 10_000 + 1000;
+        time.advance(3000);
+        int afterCountdown = beepTimes.size();
+
+        time.advance(10_000 + 1000);
+
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals(Arrays.asList(squatStarts - 3000, squatStarts - 2000, squatStarts - 1000),
+                beepTimes.subList(afterCountdown, beepTimes.size()));
+    }
+
+    @Test
+    public void theRemainingTimeCountsExercisesOnly() {
+        startWithRest();
+        assertEquals(90_000, state().workoutTotalMillis);
+
+        time.advance(3000 + 60_000 + 5000);
+
+        assertEquals(30_000, state().workoutRemainingMillis);
+    }
+
+    @Test
+    public void theActualRestTimeLeavesOutPausesAndIsReportedOnItsOwn() {
+        startWithRest();
+        time.advance(3000 + 60_000 + 5000);
+        engine.togglePause();
+        time.advance(40_000);
+        engine.togglePause();
+        time.advance(15_000 + 30_000);
+
+        assertEquals(Phase.FINISHED, state().phase);
+        assertEquals(Integer.valueOf(20), state().summary.restSeconds);
+        assertEquals(90, state().summary.activeSeconds);
+        assertEquals(Integer.valueOf(20), history.restSeconds);
+        assertEquals("rests are not exercise sessions",
+                Arrays.asList("0 Push-up 60/60", "1 Squat 30/30"), history.exercises);
+    }
+
+    @Test
+    public void aRestEndedEarlyCountsOnlyAsLongAsItRanAndSkipsNoExercise() {
+        startWithRest();
+        time.advance(3000 + 60_000 + 7000);
+        engine.next();
+        time.advance(30_000);
+
+        assertEquals(Integer.valueOf(7), state().summary.restSeconds);
+        assertEquals(0, state().summary.skippedExercises());
+        assertEquals(2, state().summary.totalExercises);
+    }
+
+    @Test
+    public void theTransitionIsNoRestTimeAndWithoutARestThereIsNone() {
+        time.advance(3000 + 60_000 + 3000 + 30_000);
+
+        assertEquals(Phase.FINISHED, state().phase);
+        assertNull(state().summary.restSeconds);
+        assertEquals(1, history.finishes);
+        assertNull(history.restSeconds);
+    }
+
+    @Test
+    public void restsEndedAtOnceRestedNoTimeButStillCount() {
+        startWithRest();
+        time.advance(3000 + 60_000);
+        engine.next();
+        time.advance(30_000);
+
+        assertEquals(Phase.FINISHED, state().phase);
+        assertEquals(Integer.valueOf(0), state().summary.restSeconds);
+        assertEquals(Integer.valueOf(0), history.restSeconds);
+    }
+
+    @Test
+    public void anAbortedWorkoutReportsTheRestTimeSoFar() {
+        startWithRest();
+        time.advance(3000 + 60_000 + 12_000);
+
+        engine.close();
+
+        assertEquals(Boolean.FALSE, history.completed);
+        assertEquals(Integer.valueOf(12), history.restSeconds);
+    }
+
+    @Test
+    public void aWorkoutOfRestsOnlyIsEmpty() {
+        startPlaces(3, rest(30), rest(30));
+
+        assertTrue(states.isEmpty());
+        assertEquals(1, nothingToPlay);
+    }
+
+    private void startWithRest() {
+        startPlaces(3, workoutExercise(1, "Push-up", 60), rest(20),
+                workoutExercise(2, "Squat", 30));
+    }
+
+    private void startPlaces(int transitionSeconds, WorkoutExercise... places) {
+        engine.close();
+        states.clear();
+        sounds.clear();
+        beepTimes.clear();
+        history = new RecordedHistory();
+        engine = new WorkoutSessionEngine(time, history, listener);
+        engine.start(WORKOUT_ID, "With rests", Arrays.asList(places), transitionSeconds);
+    }
+
+    private static long nextRestRowId = 500;
+
+    private static WorkoutExercise rest(int seconds) {
+        return new WorkoutExercise(nextRestRowId++, null, seconds);
+    }
+
     private void startOther(int transitionSeconds, int... seconds) {
         engine.close();
         states.clear();
         sounds.clear();
+        beepTimes.clear();
         List<WorkoutExercise> workoutExercises = new ArrayList<>();
         for (int i = 0; i < seconds.length; i++) {
             workoutExercises.add(workoutExercise(10 + i, "Übung " + i, seconds[i]));
         }
         engine = new WorkoutSessionEngine(time, new RecordedHistory(), listener);
         engine.start(WORKOUT_ID, "Other", workoutExercises, transitionSeconds);
+    }
+
+    /** Runs a workout of two 10-second exercises with this transition up to the second
+     *  exercise's start and gives the beeps after the countdown, relative to that start. */
+    private List<Long> beepsBeforeTheSecondExercise(int transitionSeconds) {
+        startOther(transitionSeconds, 10, 10);
+        long secondStarts = time.now() + 3000 + 10_000 + transitionSeconds * 1000L;
+        time.advance(3000);
+        int afterCountdown = beepTimes.size();
+
+        time.advance(10_000 + transitionSeconds * 1000L);
+
+        assertEquals(Phase.ACTIVE, state().phase);
+        assertEquals(1, state().position);
+        List<Long> relative = new ArrayList<>();
+        for (long beepTime : beepTimes.subList(afterCountdown, beepTimes.size())) {
+            relative.add(beepTime - secondStarts);
+        }
+        return relative;
     }
 
     private SessionState state() {
@@ -530,6 +820,7 @@ public class WorkoutSessionEngineTest {
         long firstStartedAt;
         long firstFinishedAt;
         Boolean completed;
+        Integer restSeconds;
         int finishes;
 
         @Override
@@ -551,9 +842,10 @@ public class WorkoutSessionEngineTest {
         }
 
         @Override
-        public void finishSession(boolean completed) {
+        public void finishSession(boolean completed, Integer restSeconds) {
             finishes++;
             this.completed = completed;
+            this.restSeconds = restSeconds;
         }
     }
 }

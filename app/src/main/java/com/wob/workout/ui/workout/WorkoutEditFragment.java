@@ -18,12 +18,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.wob.workout.AppContainer;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
+import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
@@ -143,6 +145,12 @@ public class WorkoutEditFragment extends Fragment {
                     binding.emptyState, workoutExercises.isEmpty(), binding.btnAddExercise);
         });
         viewModel.getSummary().observe(getViewLifecycleOwner(), binding.txtSummary::setText);
+        viewModel.getTransition().observe(getViewLifecycleOwner(), text -> {
+            binding.btnTransition.setText(text);
+            binding.btnTransition.setContentDescription(
+                    getString(R.string.uebergang) + ": " + text);
+        });
+        binding.btnTransition.setOnClickListener(v -> showTransitionDialog());
 
         // Not just the first creation: this Fragment can sit on the back stack while the
         // user edits or deletes an Exercise from the catalog on a different screen, so the
@@ -151,6 +159,7 @@ public class WorkoutEditFragment extends Fragment {
         viewModel.refreshExercises();
 
         binding.btnAddExercise.setOnClickListener(v -> ExercisePickerSheet.show(this));
+        binding.btnAddRest.setOnClickListener(v -> viewModel.addRest());
         binding.btnSave.setOnClickListener(v -> save());
         // Nothing to save or copy until an existing workout has loaded into the draft.
         viewModel.getReady().observe(getViewLifecycleOwner(), ready -> {
@@ -253,8 +262,8 @@ public class WorkoutEditFragment extends Fragment {
                 .show();
     }
 
-    /** What tapping a workout exercise opens: its duration, ready to change, with
-     *  "Entfernen" and "Übung bearbeiten" below it. */
+    /** What tapping a workout exercise or rest opens: its duration, ready to change, with
+     *  "Entfernen" and, for an exercise, "Übung bearbeiten" below it. */
     private void showExerciseDialog(int position) {
         List<WorkoutExercise> shown = viewModel.getExercises().getValue();
         if (shown == null || position >= shown.size()) return;
@@ -265,9 +274,11 @@ public class WorkoutEditFragment extends Fragment {
 
         TextInputEditText edtDuration = view.findViewById(R.id.edtDuration);
         edtDuration.setText(String.valueOf(workoutExercise.durationSeconds));
+        view.findViewById(R.id.btnEditExercise)
+                .setVisibility(workoutExercise.isRest() ? View.GONE : View.VISIBLE);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(workoutExercise.exercise.title)
+                .setTitle(titleOf(workoutExercise))
                 .setView(view)
                 .setNegativeButton("Abbrechen", null)
                 .setPositiveButton("OK", null)
@@ -296,14 +307,57 @@ public class WorkoutEditFragment extends Fragment {
         });
     }
 
+    /** The workout's own transition length, ready to change, or "Standard" to follow the
+     *  default transition again. */
+    private void showTransitionDialog() {
+        View view = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_transition_input, null, false);
+        TextInputLayout layoutTransition = view.findViewById(R.id.layoutTransition);
+        layoutTransition.setHint(getString(R.string.uebergang_in_sekunden,
+                DefaultTransitionSetting.MIN_SECONDS, DefaultTransitionSetting.MAX_SECONDS));
+        TextInputEditText edtTransition = view.findViewById(R.id.edtTransition);
+        edtTransition.setText(String.valueOf(viewModel.transitionSecondsToEdit()));
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.uebergang)
+                .setView(view)
+                .setNeutralButton(R.string.standard,
+                        (d, which) -> viewModel.followDefaultTransition())
+                .setNegativeButton(R.string.abbrechen, null)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String typed =
+                    edtTransition.getText() != null ? edtTransition.getText().toString() : "";
+            if (viewModel.changeTransition(typed)
+                    == WorkoutDraft.TransitionAnswer.NOT_VALID_SECONDS) {
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.uebergang_ungueltig,
+                                DefaultTransitionSetting.MIN_SECONDS,
+                                DefaultTransitionSetting.MAX_SECONDS),
+                        Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            dialog.dismiss();
+        });
+    }
+
     /** No question first: nothing is saved before "Speichern", and the snackbar undoes it. */
     private void removeExercise(int position) {
         WorkoutExercise removed = viewModel.removeExercise(position);
         if (removed == null) return;
         Snackbar.make(binding.getRoot(),
-                        "„" + removed.exercise.title + "“ entfernt", Snackbar.LENGTH_LONG)
+                        "„" + titleOf(removed) + "“ entfernt", Snackbar.LENGTH_LONG)
                 .setAction("Rückgängig", v -> viewModel.restoreExercise(position, removed))
                 .show();
+    }
+
+    /** The exercise's title, or "Pause" for a rest. */
+    private String titleOf(WorkoutExercise workoutExercise) {
+        return workoutExercise.isRest()
+                ? getString(R.string.pause)
+                : workoutExercise.exercise.title;
     }
 
     /** Edits the exercise itself, for every workout; this editor's draft waits on the back

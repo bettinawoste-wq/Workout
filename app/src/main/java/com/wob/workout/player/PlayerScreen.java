@@ -69,13 +69,23 @@ public final class PlayerScreen {
         String remaining = "Noch " + minutesSeconds(state.workoutRemainingMillis);
 
         if (state.phase == SessionState.Phase.FINISHED) {
+            String rest = state.summary.restText();
+            String result = state.summary.resultText() + (rest != null ? "\n" + rest : "");
             return new PlayerScreen(state.scene, null, progress,
                     minutesSeconds(state.summary.activeSeconds * 1000L), false, null, null,
-                    "Gut gemacht 💪", state.summary.resultText(), true, false, false,
+                    "Gut gemacht 💪", result, true, false, false,
                     false, remaining, state.workoutPermilleDone(), true);
         }
 
         Exercise exercise = state.workoutExercise.exercise;
+        if (state.phase == SessionState.Phase.REST) {
+            // The rest's own time, with the coming exercise in the picture.
+            return new PlayerScreen(state.scene, exercise, progress,
+                    minutesSeconds(state.millisLeft), state.canPause, "NÄCHSTE ÜBUNG",
+                    exercise.title, "Pause", "", false, state.canStepBack,
+                    state.canStepForward, state.running, remaining,
+                    state.workoutPermilleDone(), false);
+        }
         boolean active = state.phase == SessionState.Phase.ACTIVE;
         String label = state.phase == SessionState.Phase.READY ? "ERSTE ÜBUNG"
                 : state.phase == SessionState.Phase.TRANSITION ? "NÄCHSTE ÜBUNG"
