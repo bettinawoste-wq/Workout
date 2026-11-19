@@ -27,4 +27,12 @@ public interface WorkoutSessionDao {
 
     @Query("SELECT * FROM WorkoutSession WHERE id = :id LIMIT 1")
     WorkoutSession getById(long id);
+
+    /** The whole history, oldest first, for the backup. */
+    @Query("SELECT * FROM WorkoutSession ORDER BY id")
+    List<WorkoutSession> getAll();
+
+    /** The whole history; the exercise sessions go with it (for the backup's replace). */
+    @Query("DELETE FROM WorkoutSession")
+    void deleteAll();
 }

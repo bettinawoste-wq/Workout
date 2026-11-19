@@ -16,4 +16,8 @@ public interface ExerciseSessionDao {
     @Query("SELECT COALESCE(SUM(actualDurationSeconds), 0) FROM ExerciseSession"
             + " WHERE sessionId = :sessionId")
     int getTotalActiveSeconds(long sessionId);
+
+    /** Every workout session's exercise sessions, for the backup. */
+    @Query("SELECT * FROM ExerciseSession ORDER BY sessionId, position")
+    List<ExerciseSession> getAll();
 }

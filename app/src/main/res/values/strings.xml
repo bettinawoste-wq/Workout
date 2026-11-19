@@ -52,4 +52,21 @@
     <string name="standard">Standard</string>
     <string name="pause">Pause</string>
     <string name="wird_uebersprungen">wird übersprungen</string>
+    <string name="daten">Daten</string>
+    <string name="exportieren">Exportieren</string>
+    <string name="importieren">Importieren</string>
+    <string name="daten_erklaerung">Ein Backup enthält alle Übungen mit Fotos und Videos, alle Workouts und den Verlauf. Einstellungen und Erinnerungen gehören nicht dazu.</string>
+    <string name="backup_importieren">Backup importieren</string>
+    <string name="backup_inhalt">Diese Datei enthält %1$s.\n\nErsetzen löscht alle Übungen, Workouts und den Verlauf auf diesem Handy und setzt die aus dem Backup ein. Zusammenführen fügt sie zusätzlich hinzu.</string>
+    <string name="ersetzen">Ersetzen</string>
+    <string name="zusammenfuehren">Zusammenführen</string>
+    <string name="abbrechen">Abbrechen</string>
+    <string name="zusammenfuehren_warnung">Was schon auf diesem Handy ist, gibt es danach doppelt: Übungen, Workouts und Einträge im Verlauf aus dem Backup kommen als Kopien hinzu.</string>
+    <string name="backup_neuere_version">Dieses Backup stammt aus einer neueren Version der App. Aktualisiere die App und versuche es dann noch einmal. Es wurde nichts geändert.</string>
+    <string name="backup_unlesbar">Diese Datei ist kein lesbares Backup. Es wurde nichts geändert.</string>
+    <string name="backup_nicht_importierbar">Backup nicht importierbar</string>
+    <string name="backup_exportiert">Backup gespeichert</string>
+    <string name="backup_export_fehlgeschlagen">Backup konnte nicht gespeichert werden</string>
+    <string name="backup_importiert">Backup importiert</string>
+    <string name="backup_import_fehlgeschlagen">Import fehlgeschlagen. Es wurde nichts geändert.</string>
 </resources>

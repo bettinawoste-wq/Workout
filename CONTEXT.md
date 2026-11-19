@@ -124,7 +124,8 @@ lives in an on-device Room database.
   resolves it to plain seconds before starting the engine (`DefaultTransitionSetting.resolve`).
   `TestAppContainer` hands the container a test-only file instead (`getSettings()`),
   emptied on open and close. The **settings screen** (`ui.settings.SettingsFragment` with
-  `SettingsViewModel`) is opened from a floating gear button on the home screen through the
+  `SettingsViewModel`; its Data section has `BackupViewModel`, see **Backup**) is opened from
+  a floating gear button on the home screen through the
   navigator. Its sound switch is the same `SoundSetting` as the player toolbar's. The design is
   put in place through the platform's night-mode switch (`Design.apply()`, i.e.
   `AppCompatDelegate.setDefaultNightMode`) once in `WorkoutApplication.onCreate` and again on
@@ -132,6 +133,21 @@ lives in an on-device Room database.
   hands every sound event to the screen a second time, as a vibration `Event`, independent of
   the sound switch; `PlayerVibrator` plays one pattern per `PlayerSound`. The engine knows
   nothing about vibration.
+- **Backup**: `backup.Backup` (`AppContainer.backup`) writes and reads one ZIP file: a data
+  document `data.json` (`BackupDocument`: the stored rows of exercises, workouts with their
+  places and rests, workout sessions and exercise sessions, with a format version) plus the
+  exercises' media under `media/`. Settings, reminders and the weekly goal are not part of
+  it. Reading back first gives a `BackupPreview` (counts, or a `BackupRefused.Reason`: a
+  newer format version or an unreadable file); "Ersetzen" (`replaceWith`) deletes all
+  exercises, workouts and history first, "Zusammenführen" (`addAlongside`) keeps them. Both
+  insert everything with new ids, the file's references remapped, in one transaction; a
+  workout session of a workout deleted since gets an id no workout will have (a placeholder
+  workout inserted and deleted, since workout ids are never reused). Media are copied under
+  new names before the transaction and removed again if it fails; "Ersetzen" removes the
+  replaced exercises' media once it holds. It takes the media folder as an argument, so the
+  instrumented `BackupTest` runs on the in-memory database and a folder of its own. The
+  settings screen's Data section drives it through `ui.settings.BackupViewModel` and the
+  system's file dialogs (`CreateDocument` / `OpenDocument`).
 - **Schema and migration tests** (ADR 0004): Room exports one schema per database version to
   `app/schemas/`, committed and shipped in the test APK. Every `version` bump commits the new
   JSON, adds its `Migration` to `AppDatabase.ALL_MIGRATIONS` (which `DatabaseProvider`

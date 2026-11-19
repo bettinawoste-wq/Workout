@@ -34,4 +34,8 @@ public interface ExerciseDao {
     /** Those of the exercises that still exist, in no particular order. */
     @Query("SELECT * FROM Exercise WHERE id IN (:ids)")
     List<Exercise> getByIds(Collection<Long> ids);
+
+    /** Every exercise; their workout exercises go with them (for the backup's replace). */
+    @Query("DELETE FROM Exercise")
+    void deleteAll();
 }
