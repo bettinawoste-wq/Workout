@@ -21,16 +21,40 @@ The choice, made when editing an exercise, of how large its photo appears in the
 _Avoid_: Crop, zoom
 
 **Workout**:
-A named, ordered sequence of exercises, each with its own duration.
+A named, ordered sequence of exercises, each with its own duration, with rests placed between them.
 _Avoid_: Routine, plan, training
 
 **Workout exercise**:
 One exercise's place inside a workout: its position and how long it lasts there.
 _Avoid_: Step, item, entry
 
+**Rest**:
+A deliberate pause placed in a workout between two exercises, with its own duration and no exercise. It takes the place of the transition on both sides and beeps its last 3 seconds like one. A rest that ends up at the start or end, or right after another rest, is skipped. Time spent resting is shown on its own and does not count towards a workout session's duration. Not to be confused with pausing a running workout session.
+_Avoid_: Pause, break
+
 **Transition**:
-The pause between two exercises of a workout, before the next one starts. It lasts 3 seconds in every workout and counts down into the next exercise with one beep per second.
+The short, automatic gap between two exercises of a workout that follow each other directly, with no rest between them. It lasts as long as the workout says, or the default transition if the workout says nothing; 0 seconds means straight on. The last 3 seconds before every exercise beep once per second, reaching back into the running exercise when the transition is shorter than that.
 _Avoid_: Break, rest
+
+**Default transition**:
+The transition length, chosen in the settings, that every workout uses unless it sets its own. Changing it changes every workout that sets none.
+_Avoid_: Global transition, standard pause
+
+**Reminder**:
+A notification at a set time on chosen weekdays that prompts a workout. Several can exist, each switched on or off on its own; it stays silent on a day that already has a completed workout session, and in a week whose weekly goal is already reached.
+_Avoid_: Alarm, notification, alert
+
+**Weekly goal**:
+The number of training days to reach in a week, Monday to Sunday. A training day is a day with at least one completed workout session; aborted ones don't count, and several on one day count once. There is none until one is set, and it can be removed again.
+_Avoid_: Target, quota
+
+**Streak**:
+The number of weeks in a row, up to the current one, in which the weekly goal was reached, each week measured against the goal that applied then. The current week doesn't break it while it is still running; a week without a weekly goal does, so a goal set again starts it afresh.
+_Avoid_: Run, chain
+
+**Backup**:
+One file holding all exercises with their demonstrations, all workouts and the history, made and read back by hand. Reading it back either replaces everything on the phone or adds its contents alongside, as copies, even of what is already there. Settings and reminders are not part of it.
+_Avoid_: Export, sync
 
 **Workout session**:
 One run through a workout, from start until it is completed or aborted.
