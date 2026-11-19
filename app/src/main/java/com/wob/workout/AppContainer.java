@@ -3,6 +3,7 @@ package com.wob.workout;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.wob.workout.backup.Backup;
 import com.wob.workout.data.repository.ExerciseRepository;
 import com.wob.workout.data.repository.ReminderRepository;
 import com.wob.workout.data.repository.WeeklyGoalRepository;
@@ -11,6 +12,7 @@ import com.wob.workout.data.repository.WorkoutHistoryRepository;
 import com.wob.workout.data.repository.WorkoutRepository;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
 import com.wob.workout.media.ExerciseThumbnails;
+import com.wob.workout.media.MediaStorageManager;
 import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.SoundSetting;
 import com.wob.workout.player.VibrationSetting;
@@ -58,6 +60,9 @@ public class AppContainer {
     public final ReminderRepository reminderRepository;
     public final ReminderAlarms reminderAlarms;
 
+    /** Export and import of the backup, over the database and the exercises' media. */
+    public final Backup backup;
+
     public AppContainer(Context appContext) {
         this(appContext, appContext.getSharedPreferences(SETTINGS_FILE, Context.MODE_PRIVATE),
                 new AndroidReminderAlarms(appContext));
@@ -84,5 +89,6 @@ public class AppContainer {
         workoutHistoryRepository = new WorkoutHistoryRepository(appContext);
         weeklyGoalRepository = new WeeklyGoalRepository(appContext);
         reminderRepository = new ReminderRepository(appContext);
+        backup = new Backup(appContext, MediaStorageManager.getExerciseFolder(appContext));
     }
 }

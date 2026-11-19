@@ -10,7 +10,7 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
 
 | Home | Workout editor | Player | History | History detail | Settings |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| <img src="docs/screenshots/home.png" width="190" alt="Home screen with the week's progress and streak"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout, with a rest before its last exercise"> | <img src="docs/screenshots/player.png" width="190" alt="Player during a rest, previewing the next exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> | <img src="docs/screenshots/history-detail.png" width="190" alt="A completed session with its exercises and rest time"> | <img src="docs/screenshots/settings.png" width="190" alt="Settings with design, sound, vibration, default transition and weekly goal"> |
+| <img src="docs/screenshots/home.png" width="190" alt="Home screen with the week's progress and streak"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout, with a rest before its last exercise"> | <img src="docs/screenshots/player.png" width="190" alt="Player during a rest, previewing the next exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> | <img src="docs/screenshots/history-detail.png" width="190" alt="A completed session with its exercises and rest time"> | <img src="docs/screenshots/settings.png" width="190" alt="Settings with design, sound, vibration, default transition, weekly goal and backup"> |
 
 ## Features
 
@@ -29,6 +29,9 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
 - **Settings** — a gear button on the home screen opens them: the design (System, Light or Dark,
   applied at once), the player's sound switch, and vibration at every sound, one pattern per sound;
   a weekly goal of training days, shown on the home screen as "2 / 3 diese Woche · Serie: 4 Wochen".
+- **Backup** — the settings export all exercises with their photos and videos, the workouts and
+  the history to one ZIP file anywhere the system's file dialog reaches; importing one shows
+  what it holds, then replaces everything or adds it alongside as copies.
 - **Design** — Material 3 with a petrol palette, light or dark as the system or the settings say.
 
 ## Architecture

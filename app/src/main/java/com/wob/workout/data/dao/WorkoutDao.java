@@ -47,4 +47,8 @@ public interface WorkoutDao {
             + " ORDER BY lastRun.lastStartedAt IS NULL, lastRun.lastStartedAt DESC,"
             + " Workout.id DESC")
     LiveData<List<WorkoutWithExercises>> getAllWithExercises();
+
+    /** Every workout; their workout exercises go with them (for the backup's replace). */
+    @Query("DELETE FROM Workout")
+    void deleteAll();
 }

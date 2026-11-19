@@ -22,4 +22,8 @@ public interface WorkoutExerciseDao {
 
     @Query("DELETE FROM WorkoutExercise WHERE workoutId = :workoutId")
     void deleteByWorkout(long workoutId);
+
+    /** Every workout's exercises and rests, for the backup. */
+    @Query("SELECT * FROM WorkoutExercise ORDER BY workoutId, position")
+    List<WorkoutExerciseRow> getAll();
 }
