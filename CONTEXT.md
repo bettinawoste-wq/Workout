@@ -38,6 +38,17 @@ lives in an on-device Room database.
   `WorkoutSessionEngine` as it runs, read by the
   `ui/history` screens. `WorkoutSession.workoutId` is deliberately **not** a cascading foreign
   key — deleting a `Workout` must not delete the history recorded against it.
+- **Weekly goal and streak** — the weekly goal is not a preference but data with a history
+  of changes (`WeeklyGoalChange`: the Monday of the week it applies from, as an epoch day, and
+  the training days, null once removed; one per week, a later change in the same week
+  replaces it), read and set through `WeeklyGoalRepository` from the settings screen's
+  Training section. The pure `training.WeeklyProgress` takes the workout sessions, the goal's
+  changes, the current time and the time zone and answers the current week's training days
+  and goal, the streak, whether the home screen shows its line, and whether a reminder stays
+  silent today. A training day is a local day on which a completed workout session started;
+  weeks run Monday to Sunday. `HomeViewModel` observes the history and the goal's changes
+  and works the progress out again on every change, so deleting a workout session updates
+  the line. `WeeklyProgressTest` (JVM) covers the rules.
 
 ## Architecture
 
@@ -132,7 +143,9 @@ lives in an on-device Room database.
   every change, which recreates the open screens. While vibration is on, `PlayerViewModel`
   hands every sound event to the screen a second time, as a vibration `Event`, independent of
   the sound switch; `PlayerVibrator` plays one pattern per `PlayerSound`. The engine knows
-  nothing about vibration.
+  nothing about vibration. The weekly goal (see **Weekly goal and streak**) is the
+  exception: it lives in the database, and the screen's Training section sets it with a
+  slider from 0 (none) to 7 training days.
 - **Backup**: `backup.Backup` (`AppContainer.backup`) writes and reads one ZIP file: a data
   document `data.json` (`BackupDocument`: the stored rows of exercises, workouts with their
   places and rests, workout sessions and exercise sessions, with a format version) plus the

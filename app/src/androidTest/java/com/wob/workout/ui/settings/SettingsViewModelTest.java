@@ -3,6 +3,7 @@ package com.wob.workout.ui.settings;
 import static com.wob.workout.LiveDataTestUtil.getOrAwaitValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
@@ -17,7 +18,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-/** The settings screen's Appearance and Player sections (issue #102). */
+/** The settings screen's Appearance and Player sections (issue #102) and its Training
+ *  section's weekly goal (issue #105). */
 @RunWith(AndroidJUnit4.class)
 public class SettingsViewModelTest {
 
@@ -80,5 +82,28 @@ public class SettingsViewModelTest {
 
         assertTrue(getOrAwaitValue(viewModel.isVibrationOn()));
         assertTrue(container.vibrationSetting.isOn());
+    }
+
+    @Test
+    public void thereIsNoWeeklyGoalOnAFreshInstall() throws InterruptedException {
+        assertNull(getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
+    }
+
+    @Test
+    public void aWeeklyGoalIsShownKeptAndCanBeRemoved() throws Exception {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+        getOrAwaitValue(viewModel.getWeeklyGoal());
+
+        viewModel.setWeeklyGoal(3);
+
+        assertEquals(Integer.valueOf(3), getOrAwaitValue(viewModel.getWeeklyGoal()));
+        testContainer.drainIoExecutor();
+        assertEquals(Integer.valueOf(3),
+                getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
+
+        viewModel.setWeeklyGoal(null);
+        testContainer.drainIoExecutor();
+
+        assertNull(getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
     }
 }

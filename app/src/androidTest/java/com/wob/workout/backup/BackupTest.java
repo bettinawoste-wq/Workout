@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -81,6 +82,8 @@ public class BackupTest {
         Seed seed = seed();
         byte[] file = export();
         container.soundSetting.setOn(false);
+        long now = System.currentTimeMillis();
+        container.weeklyGoalRepository.setGoal(3, now, TimeZone.getDefault());
         // What happens on the phone after the export goes away with the replace.
         long later = insertExercise("Später", "later.jpg", new byte[]{9});
         testContainer.insertSession(seed.workoutId, 3_000, true);
@@ -127,6 +130,8 @@ public class BackupTest {
                 workout.id, ofDeletedWorkout.workoutId);
 
         assertFalse("settings are not part of the backup", container.soundSetting.isOn());
+        assertEquals("nor is the weekly goal", Integer.valueOf(3),
+                container.weeklyGoalRepository.getGoal(now, TimeZone.getDefault()));
     }
 
     @Test

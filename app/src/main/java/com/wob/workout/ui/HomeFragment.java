@@ -64,6 +64,16 @@ public class HomeFragment extends Fragment implements WorkoutAdapter.Listener {
                     workouts.isEmpty() ? View.INVISIBLE : View.VISIBLE);
         });
 
+        viewModel.getWeeklyProgress().observe(getViewLifecycleOwner(), progress -> {
+            binding.txtWeeklyProgress.setVisibility(
+                    progress.isShown() ? View.VISIBLE : View.GONE);
+            if (!progress.isShown()) return;
+            int streak = progress.getStreakWeeks();
+            binding.txtWeeklyProgress.setText(getString(R.string.wochenfortschritt,
+                    progress.getTrainingDaysThisWeek(), progress.getGoal(),
+                    getResources().getQuantityString(R.plurals.wochen, streak, streak)));
+        });
+
         binding.btnAllWorkouts.setOnClickListener(v -> open(new WorkoutListFragment()));
         binding.btnExercises.setOnClickListener(v -> open(new ExerciseListFragment()));
         binding.btnHistory.setOnClickListener(v -> open(new HistoryListFragment()));

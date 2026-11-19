@@ -1,8 +1,9 @@
 """Renews the README screenshots in docs/screenshots from a release build on the attached phone.
 
-Installs the release build, so the starter set appears as a user sees it, puts a rest before
-the starter workout's last exercise, and runs the workout twice: once aborted, once to the
-end through the rest, so the history shows both and the detail its rest time. Takes about
+Installs the release build, so the starter set appears as a user sees it, sets a weekly goal of
+3 training days, puts a rest before the starter workout's last exercise, and runs the workout
+twice: once aborted, once to the end through the rest, so the history shows both, the detail
+its rest time and the home screen the week's progress. Takes about
 five minutes. The phone must stay unlocked. The release app is uninstalled again at the end, so
 the script refuses to run while a release build is already installed: its data would be lost.
 The status bar is painted over, so no personal notifications end up in the repo.
@@ -16,11 +17,12 @@ from PIL import Image
 
 from android_tools import (REPO, RELEASE_PACKAGE, adb, centre, density, fail, find_all,
                            gradle, install, is_installed, is_locked, key, require_one_device,
-                           screenshot, tap, tap_view, ui_nodes)
+                           screen_size, screenshot, tap, tap_view, ui_nodes)
 
 SHOTS = REPO / "docs" / "screenshots"
 PKG = RELEASE_PACKAGE
 COUNTDOWN_SECONDS = 3
+WEEKLY_GOAL = 3
 STATUS_BAR_DP = 40
 
 
@@ -112,6 +114,28 @@ def add_rest_before_last_exercise():
     time.sleep(1)
 
 
+def set_weekly_goal(days):
+    """In the settings screen: taps the weekly goal's slider (0 to 7) until it shows days.
+    uiautomator does not list sliders, so it is found 24 dp (half its height) below the row
+    that shows the goal, across the screen's width less the 16 dp padding."""
+    _, _, _, row_bottom = map(int, re.findall(
+        r"\d+", find_all(PKG, "txtWeeklyGoal")["txtWeeklyGoal"].get("bounds")))
+    width, _ = screen_size()
+    padding = 16 * density()
+    y = int(row_bottom + 24 * density())
+    step = (width - 2 * padding) / 8
+    x = padding + step / 2 + days * step
+    for _ in range(5):
+        tap(int(x), y)
+        time.sleep(0.8)
+        shown = find_all(PKG, "txtWeeklyGoal")["txtWeeklyGoal"].get("text")
+        value = int(shown.split()[0]) if shown[0].isdigit() else 0
+        if value == days:
+            return
+        x += (days - value) * step / 2
+    fail("the weekly goal did not reach %d" % days)
+
+
 def start_and_pause_first_exercise(probe):
     """Starts the first recent workout and pauses it once the first exercise runs. Returns the
     positions of the transport buttons, which only uiautomator can read while paused."""
@@ -150,10 +174,10 @@ def main():
         adb("shell", "cmd", "statusbar", "collapse")
         adb("shell", "am", "start", "-W", "-n", PKG + "/com.wob.workout.MainActivity")
         time.sleep(2.5)
-        save_shot(SHOTS / "home.png")
 
         tap_view(PKG, "fabSettings")
         time.sleep(2)
+        set_weekly_goal(WEEKLY_GOAL)
         save_shot(SHOTS / "settings.png")
         key("BACK")
         time.sleep(1.5)
@@ -188,6 +212,8 @@ def main():
         wait_for_text("Fertig", 15)
         tap_view(PKG, "btnDone")
         time.sleep(1.5)
+        find_all(PKG, "txtWeeklyProgress")
+        save_shot(SHOTS / "home.png")
 
         tap_view(PKG, "btnHistory")
         time.sleep(2)

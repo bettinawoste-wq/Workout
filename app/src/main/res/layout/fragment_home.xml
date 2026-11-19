@@ -20,6 +20,15 @@
     android:paddingEnd="24dp"
     android:paddingBottom="88dp">
 
+    <!-- Only while a weekly goal is set. -->
+    <TextView
+        android:id="@+id/txtWeeklyProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:visibility="gone"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

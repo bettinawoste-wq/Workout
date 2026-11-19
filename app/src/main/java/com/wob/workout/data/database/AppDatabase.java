@@ -10,11 +10,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import com.wob.workout.data.converter.MediaTypeConverter;
 import com.wob.workout.data.dao.ExerciseDao;
 import com.wob.workout.data.dao.ExerciseSessionDao;
+import com.wob.workout.data.dao.WeeklyGoalDao;
 import com.wob.workout.data.dao.WorkoutDao;
 import com.wob.workout.data.dao.WorkoutExerciseDao;
 import com.wob.workout.data.dao.WorkoutSessionDao;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.data.entity.ExerciseSession;
+import com.wob.workout.data.entity.WeeklyGoalChange;
 import com.wob.workout.data.entity.Workout;
 import com.wob.workout.data.entity.WorkoutExerciseRow;
 import com.wob.workout.data.entity.WorkoutSession;
@@ -25,9 +27,10 @@ import com.wob.workout.data.entity.WorkoutSession;
                 Workout.class,
                 WorkoutExerciseRow.class,
                 WorkoutSession.class,
-                ExerciseSession.class
+                ExerciseSession.class,
+                WeeklyGoalChange.class
         },
-        version = 8,
+        version = 9,
         exportSchema = true
 )
 @TypeConverters(MediaTypeConverter.class)
@@ -37,6 +40,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract WorkoutExerciseDao workoutExerciseDao();
     public abstract WorkoutSessionDao workoutSessionDao();
     public abstract ExerciseSessionDao exerciseSessionDao();
+    public abstract WeeklyGoalDao weeklyGoalDao();
 
     public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
         @Override
@@ -190,6 +194,19 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // The weekly goal's changes, each from the week it was made in (issue #105).
+            // None yet: there is no goal until one is set.
+            db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `WeeklyGoalChange` ("
+                            + "`weekStartDay` INTEGER NOT NULL, "
+                            + "`trainingDays` INTEGER, "
+                            + "PRIMARY KEY(`weekStartDay`))");
+        }
+    };
+
     /** Every migration, in order. {@link DatabaseProvider} registers exactly these, and
      *  {@code AllMigrationsTest} checks they lead from version 4 to the current schema. */
     public static final Migration[] ALL_MIGRATIONS = {
@@ -198,6 +215,7 @@ public abstract class AppDatabase extends RoomDatabase {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
-            MIGRATION_7_8
+            MIGRATION_7_8,
+            MIGRATION_8_9
     };
 }

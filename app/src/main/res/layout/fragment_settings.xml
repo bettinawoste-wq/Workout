@@ -126,6 +126,46 @@
                 android:valueTo="30"/>
 
             <TextView
+                android:id="@+id/txtTrainingHeading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/training"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:labelFor="@id/sliderWeeklyGoal"
+                    android:text="@string/wochenziel"/>
+
+                <TextView
+                    android:id="@+id/txtWeeklyGoal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"/>
+            </LinearLayout>
+
+            <!-- 0 stands for no weekly goal. -->
+            <com.google.android.material.slider.Slider
+                android:id="@+id/sliderWeeklyGoal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/wochenziel"
+                android:stepSize="1"
+                android:valueFrom="0"
+                android:valueTo="7"/>
+
+            <TextView
                 android:id="@+id/txtDataHeading"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
