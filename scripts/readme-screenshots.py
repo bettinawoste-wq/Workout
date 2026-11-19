@@ -107,6 +107,12 @@ def main():
         time.sleep(2.5)
         save_shot(SHOTS / "home.png")
 
+        tap_view(PKG, "fabSettings")
+        time.sleep(2)
+        save_shot(SHOTS / "settings.png")
+        key("BACK")
+        time.sleep(1.5)
+
         tap_view(PKG, "txtName")
         time.sleep(2)
         save_shot(SHOTS / "workout-edit.png")

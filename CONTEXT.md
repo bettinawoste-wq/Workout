@@ -96,9 +96,20 @@ lives in an on-device Room database.
   `DatabaseSessionHistory`'s history writes) or on Room's own query executor behind reactive
   `LiveData`. ViewModel tests built on `TestAppContainer`'s in-memory database fail with
   `IllegalStateException` if code touches it from the main thread, so a regression shows up there.
-- **Settings**: the few app-wide choices that aren't data, so far only the player's sound switch
-  (`SoundSetting`, issue #71), live in a `SharedPreferences` file that `AppContainer` opens.
-  `TestAppContainer` hands the container a test-only file instead, emptied on open and close.
+- **Settings**: the app-wide choices that aren't data live in a `SharedPreferences` file that
+  `AppContainer` opens, one small class per choice: the design (`ui.settings.DesignSetting`,
+  System / Light / Dark, a fresh install follows the system), the player's sound switch
+  (`SoundSetting`, issue #71, on by default) and vibration (`VibrationSetting`, off by
+  default). `TestAppContainer` hands the container a test-only file instead (`getSettings()`),
+  emptied on open and close. The **settings screen** (`ui.settings.SettingsFragment` with
+  `SettingsViewModel`) is opened from a floating gear button on the home screen through the
+  navigator. Its sound switch is the same `SoundSetting` as the player toolbar's. The design is
+  put in place through the platform's night-mode switch (`Design.apply()`, i.e.
+  `AppCompatDelegate.setDefaultNightMode`) once in `WorkoutApplication.onCreate` and again on
+  every change, which recreates the open screens. While vibration is on, `PlayerViewModel`
+  hands every sound event to the screen a second time, as a vibration `Event`, independent of
+  the sound switch; `PlayerVibrator` plays one pattern per `PlayerSound`. The engine knows
+  nothing about vibration.
 - **Schema and migration tests** (ADR 0004): Room exports one schema per database version to
   `app/schemas/`, committed and shipped in the test APK. Every `version` bump commits the new
   JSON, adds its `Migration` to `AppDatabase.ALL_MIGRATIONS` (which `DatabaseProvider`

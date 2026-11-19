@@ -107,6 +107,12 @@ public class TestAppContainer {
         return appContainer;
     }
 
+    /** The test-only preferences file the container's settings live in, for a second
+     *  instance of a setting that stands in for the app starting again. */
+    public SharedPreferences getSettings() {
+        return settings;
+    }
+
     /** For DAO-level seeding or assertions the repositories don't expose. */
     public AppDatabase getDatabase() {
         return database;

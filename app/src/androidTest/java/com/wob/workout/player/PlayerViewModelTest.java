@@ -76,6 +76,8 @@ public class PlayerViewModelTest {
         viewModel = onMain(() -> new PlayerViewModel(container, workoutId));
         BlockingQueue<PlayerScreen> screens = observeValues(viewModel.getScreen());
         BlockingQueue<Event<PlayerSound>> sounds = observeValues(viewModel.getSound());
+        BlockingQueue<Event<PlayerSound>> vibrations =
+                observeValues(viewModel.getVibration());
 
         assertEquals("ERSTE ÜBUNG", next(screens).mediaLabel);
         PlayerScreen finished = awaitFinished(screens);
@@ -85,6 +87,8 @@ public class PlayerViewModelTest {
         for (Event<PlayerSound> event : sounds) played.add(event.getContentIfNotHandled());
         assertEquals(Arrays.asList(PlayerSound.BEEP, PlayerSound.BEEP, PlayerSound.BEEP,
                 PlayerSound.START, PlayerSound.SUCCESS), played);
+        // Vibration is off on a fresh install.
+        assertTrue(vibrations.isEmpty());
 
         // History writes are fire-and-forget on the IO executor (issue #21).
         testContainer.drainIoExecutor();
@@ -132,6 +136,31 @@ public class PlayerViewModelTest {
         awaitFinished(screens);
 
         assertTrue(sounds.isEmpty());
+    }
+
+    @Test
+    public void whileVibrationIsOnItFollowsEverySoundEventEvenWithTheSoundOff()
+            throws Exception {
+        long workoutId = testContainer.insertWorkout("Silent phone");
+        testContainer.insertWorkoutExercise(
+                workoutId, testContainer.insertExercise("Plank"), 0, 1);
+        AppContainer container = testContainer.getAppContainer();
+        container.vibrationSetting.setOn(true);
+        container.soundSetting.setOn(false);
+
+        viewModel = onMain(() -> new PlayerViewModel(container, workoutId));
+        BlockingQueue<PlayerScreen> screens = observeValues(viewModel.getScreen());
+        BlockingQueue<Event<PlayerSound>> sounds = observeValues(viewModel.getSound());
+        BlockingQueue<Event<PlayerSound>> vibrations =
+                observeValues(viewModel.getVibration());
+
+        awaitFinished(screens);
+
+        assertTrue(sounds.isEmpty());
+        List<PlayerSound> felt = new ArrayList<>();
+        for (Event<PlayerSound> event : vibrations) felt.add(event.getContentIfNotHandled());
+        assertEquals(Arrays.asList(PlayerSound.BEEP, PlayerSound.BEEP, PlayerSound.BEEP,
+                PlayerSound.START, PlayerSound.SUCCESS), felt);
     }
 
     @Test

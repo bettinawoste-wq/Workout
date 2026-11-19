@@ -36,4 +36,13 @@
     <string name="fertig">Fertig</string>
     <string name="nochmal">Nochmal</string>
     <string name="entfernen">Entfernen</string>
+    <string name="einstellungen">Einstellungen</string>
+    <string name="darstellung">Darstellung</string>
+    <string name="design">Design</string>
+    <string name="design_system">System</string>
+    <string name="design_hell">Hell</string>
+    <string name="design_dunkel">Dunkel</string>
+    <string name="player">Player</string>
+    <string name="ton">Ton</string>
+    <string name="vibration">Vibration</string>
 </resources>

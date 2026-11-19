@@ -10,6 +10,8 @@ public class WorkoutApplication extends Application {
     public void onCreate() {
         super.onCreate();
         appContainer = new AppContainer(this);
+        // Before the first screen is created, so it never flashes in the other design.
+        appContainer.designSetting.get().apply();
     }
 
     public AppContainer getAppContainer() {

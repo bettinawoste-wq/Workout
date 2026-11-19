@@ -10,6 +10,8 @@ import com.wob.workout.data.repository.WorkoutRepository;
 import com.wob.workout.data.repository.WorkoutSummaryRepository;
 import com.wob.workout.media.ExerciseThumbnails;
 import com.wob.workout.player.SoundSetting;
+import com.wob.workout.player.VibrationSetting;
+import com.wob.workout.ui.settings.DesignSetting;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +45,8 @@ public class AppContainer {
     public final ExerciseThumbnails thumbnails;
 
     public final SoundSetting soundSetting;
+    public final VibrationSetting vibrationSetting;
+    public final DesignSetting designSetting;
 
     public AppContainer(Context appContext) {
         this(appContext, appContext.getSharedPreferences(SETTINGS_FILE, Context.MODE_PRIVATE));
@@ -53,6 +57,8 @@ public class AppContainer {
     public AppContainer(Context appContext, SharedPreferences settings) {
         this.appContext = appContext;
         soundSetting = new SoundSetting(settings);
+        vibrationSetting = new VibrationSetting(settings);
+        designSetting = new DesignSetting(settings);
 
         thumbnails = new ExerciseThumbnails(appContext, mediaExecutor);
 

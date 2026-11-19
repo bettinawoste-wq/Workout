@@ -8,9 +8,9 @@ people who train at home with bodyweight exercises and want a plain, focused too
 a fitness platform. Everything stays on the phone in a Room database: no account, no backend,
 no tracking, and nothing to lose when a service shuts down. The interface is in German.
 
-| Home | Workout editor | Player | History |
-| :---: | :---: | :---: | :---: |
-| <img src="docs/screenshots/home.png" width="190" alt="Home screen"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout"> | <img src="docs/screenshots/player.png" width="190" alt="Player running an exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> |
+| Home | Workout editor | Player | History | Settings |
+| :---: | :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/home.png" width="190" alt="Home screen"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout"> | <img src="docs/screenshots/player.png" width="190" alt="Player running an exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> | <img src="docs/screenshots/settings.png" width="190" alt="Settings with design, sound and vibration"> |
 
 ## Features
 
@@ -25,7 +25,9 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
   exercise; browse and delete sessions, which survive deleting the workout they were recorded against.
 - **Starter set** — a fresh install comes with 10 bodyweight exercises and a full-body workout at one
   minute per exercise; afterwards they are ordinary data you can edit or delete.
-- **Design** — Material 3 with a petrol palette, following the system's light or dark mode.
+- **Settings** — a gear button on the home screen opens them: the design (System, Light or Dark,
+  applied at once), the player's sound switch, and vibration at every sound, one pattern per sound.
+- **Design** — Material 3 with a petrol palette, light or dark as the system or the settings say.
 
 ## Architecture
 
