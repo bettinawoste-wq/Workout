@@ -8,13 +8,14 @@ import com.google.android.material.chip.ChipGroup;
 import com.wob.workout.R;
 
 /**
- * Wires a number-of-seconds field to the − and + beside it ({@code btnLess}, {@code btnMore}
- * in the dialog's layout) and, optionally, to quick-pick chips. What a step makes of the typed
- * value is {@link SecondsStep}'s rule; the field stays the one place the value is read from.
+ * Wires a number field (seconds, training days) to the − and + beside it ({@code btnLess},
+ * {@code btnMore} in the dialog's layout) and, optionally, to quick-pick chips. What a step
+ * makes of the typed value is {@link NumberStep}'s rule; the field stays the one place the
+ * value is read from.
  */
-public final class SecondsInput {
+public final class NumberInput {
 
-    private SecondsInput() {
+    private NumberInput() {
     }
 
     /** @param dialogView the dialog's view holding {@code btnLess} and {@code btnMore} */
@@ -35,7 +36,7 @@ public final class SecondsInput {
 
     private static void move(EditText field, int delta, int min, int max) {
         String typed = field.getText() != null ? field.getText().toString() : "";
-        show(field, SecondsStep.stepped(typed, delta, min, max));
+        show(field, NumberStep.stepped(typed, delta, min, max));
     }
 
     private static void show(EditText field, int seconds) {

@@ -19,7 +19,7 @@ from PIL import Image
 
 from android_tools import (REPO, RELEASE_PACKAGE, adb, adb_text, centre, density, fail, find_all,
                            gradle, install, is_installed, is_locked, key, require_one_device,
-                           screen_size, screenshot, tap, tap_view, ui_nodes)
+                           screenshot, tap, tap_view, ui_nodes)
 
 SHOTS = REPO / "docs" / "screenshots"
 PKG = RELEASE_PACKAGE
@@ -136,25 +136,21 @@ def add_rest_before_last_exercise():
 
 
 def set_weekly_goal(days):
-    """In the settings screen: taps the weekly goal's slider (0 to 7) until it shows days.
-    uiautomator does not list sliders, so it is found 24 dp (half its height) below the row
-    that shows the goal, across the screen's width less the 16 dp padding."""
-    _, _, _, row_bottom = map(int, re.findall(
-        r"\d+", find_all(PKG, "txtWeeklyGoal")["txtWeeklyGoal"].get("bounds")))
-    width, _ = screen_size()
-    padding = 16 * density()
-    y = int(row_bottom + 24 * density())
-    step = (width - 2 * padding) / 8
-    x = padding + step / 2 + days * step
-    for _ in range(5):
-        tap(int(x), y)
-        time.sleep(0.8)
-        shown = find_all(PKG, "txtWeeklyGoal")["txtWeeklyGoal"].get("text")
-        value = int(shown.split()[0]) if shown[0].isdigit() else 0
-        if value == days:
-            return
-        x += (days - value) * step / 2
-    fail("the weekly goal did not reach %d" % days)
+    """In the settings screen: opens the weekly goal's pop-up, types the days and takes them."""
+    tap_view(PKG, "rowWeeklyGoal")
+    time.sleep(1)
+    tap_view(PKG, "edtNumber")
+    adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
+    for _ in range(3):
+        adb("shell", "input", "keyevent", "KEYCODE_DEL")
+    adb("shell", "input", "text", str(days))
+    key("BACK")  # the keyboard
+    time.sleep(0.5)
+    tap_view(PKG, text="OK")
+    time.sleep(1)
+    shown = find_all(PKG, "txtWeeklyGoal")["txtWeeklyGoal"].get("text")
+    if not shown.startswith(str(days)):
+        fail("the weekly goal did not become %d" % days)
 
 
 def add_reminder():

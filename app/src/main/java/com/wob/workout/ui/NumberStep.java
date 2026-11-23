@@ -1,15 +1,15 @@
 package com.wob.workout.ui;
 
 /**
- * What the − and + next to a number of seconds make of it: the typed value moved by one step,
- * kept within its bounds. Input that isn't a number counts as the minimum.
+ * What the − and + next to a number (seconds, training days) make of it: the typed value moved
+ * by one step, kept within its bounds. Input that isn't a number counts as the minimum.
  */
-public final class SecondsStep {
+public final class NumberStep {
 
     /** For a duration with no upper bound. */
     public static final int NO_MAXIMUM = Integer.MAX_VALUE;
 
-    private SecondsStep() {
+    private NumberStep() {
     }
 
     /** @param delta one step, negative for − */

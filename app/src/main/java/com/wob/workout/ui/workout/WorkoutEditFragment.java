@@ -29,9 +29,9 @@ import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.player.PlayerFragment;
 import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.Navigator;
+import com.wob.workout.ui.NumberInput;
+import com.wob.workout.ui.NumberStep;
 import com.wob.workout.ui.ScreenToolbar;
-import com.wob.workout.ui.SecondsInput;
-import com.wob.workout.ui.SecondsStep;
 import com.wob.workout.ui.exercise.ExerciseEditFragment;
 
 import java.util.List;
@@ -321,9 +321,9 @@ public class WorkoutEditFragment extends Fragment {
 
         TextInputEditText edtDuration = view.findViewById(R.id.edtDuration);
         edtDuration.setText(String.valueOf(workoutExercise.durationSeconds));
-        SecondsInput.attach(view, edtDuration, DURATION_STEP_SECONDS,
-                WorkoutDraft.MIN_DURATION_SECONDS, SecondsStep.NO_MAXIMUM);
-        SecondsInput.addQuickPicks(view.findViewById(R.id.chipsDuration), edtDuration,
+        NumberInput.attach(view, edtDuration, DURATION_STEP_SECONDS,
+                WorkoutDraft.MIN_DURATION_SECONDS, NumberStep.NO_MAXIMUM);
+        NumberInput.addQuickPicks(view.findViewById(R.id.chipsDuration), edtDuration,
                 QUICK_PICK_SECONDS);
         view.findViewById(R.id.btnEditExercise)
                 .setVisibility(workoutExercise.isRest() ? View.GONE : View.VISIBLE);
@@ -362,13 +362,13 @@ public class WorkoutEditFragment extends Fragment {
      *  default transition again. */
     private void showTransitionDialog() {
         View view = LayoutInflater.from(requireContext())
-                .inflate(R.layout.dialog_transition_input, null, false);
-        TextInputLayout layoutTransition = view.findViewById(R.id.layoutTransition);
-        layoutTransition.setHint(getString(R.string.uebergang_in_sekunden,
+                .inflate(R.layout.dialog_number_input, null, false);
+        TextInputLayout layoutNumber = view.findViewById(R.id.layoutNumber);
+        layoutNumber.setHint(getString(R.string.uebergang_in_sekunden,
                 DefaultTransitionSetting.MIN_SECONDS, DefaultTransitionSetting.MAX_SECONDS));
-        TextInputEditText edtTransition = view.findViewById(R.id.edtTransition);
-        edtTransition.setText(String.valueOf(viewModel.transitionSecondsToEdit()));
-        SecondsInput.attach(view, edtTransition, 1,
+        TextInputEditText edtNumber = view.findViewById(R.id.edtNumber);
+        edtNumber.setText(String.valueOf(viewModel.transitionSecondsToEdit()));
+        NumberInput.attach(view, edtNumber, 1,
                 DefaultTransitionSetting.MIN_SECONDS, DefaultTransitionSetting.MAX_SECONDS);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
@@ -382,7 +382,7 @@ public class WorkoutEditFragment extends Fragment {
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String typed =
-                    edtTransition.getText() != null ? edtTransition.getText().toString() : "";
+                    edtNumber.getText() != null ? edtNumber.getText().toString() : "";
             if (viewModel.changeTransition(typed)
                     == WorkoutDraft.TransitionAnswer.NOT_VALID_SECONDS) {
                 Snackbar.make(binding.getRoot(),

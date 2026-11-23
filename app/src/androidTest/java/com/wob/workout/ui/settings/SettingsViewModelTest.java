@@ -103,30 +103,55 @@ public class SettingsViewModelTest {
         SettingsViewModel viewModel = new SettingsViewModel(container);
         getOrAwaitValue(viewModel.getWeeklyGoal());
 
-        viewModel.setWeeklyGoal(3);
+        assertTrue(viewModel.changeWeeklyGoal("3"));
 
         assertEquals(Integer.valueOf(3), getOrAwaitValue(viewModel.getWeeklyGoal()));
         testContainer.drainIoExecutor();
         assertEquals(Integer.valueOf(3),
                 getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
 
-        viewModel.setWeeklyGoal(0);
+        viewModel.removeWeeklyGoal();
         testContainer.drainIoExecutor();
 
         assertNull(getOrAwaitValue(new SettingsViewModel(container).getWeeklyGoal()));
     }
 
     @Test
-    public void noTrainingDaysOnTheSliderMeansNoGoal() throws Exception {
+    public void aWeeklyGoalTakesOneToSevenDays() throws Exception {
         SettingsViewModel viewModel = new SettingsViewModel(container);
         getOrAwaitValue(viewModel.getWeeklyGoal());
-        viewModel.setWeeklyGoal(4);
+        assertTrue(viewModel.changeWeeklyGoal(" 5 "));
 
-        viewModel.setWeeklyGoal(0);
+        assertFalse(viewModel.changeWeeklyGoal("0"));
+        assertFalse(viewModel.changeWeeklyGoal("8"));
+        assertFalse(viewModel.changeWeeklyGoal(""));
 
-        assertNull(getOrAwaitValue(viewModel.getWeeklyGoal()));
+        assertEquals(Integer.valueOf(5), getOrAwaitValue(viewModel.getWeeklyGoal()));
         testContainer.drainIoExecutor();
-        assertNull(container.weeklyGoalRepository.getGoal(container.clock));
+        assertEquals(Integer.valueOf(5), container.weeklyGoalRepository.getGoal(container.clock));
+    }
+
+    @Test
+    public void aTypedDefaultTransitionIsTakenWithinItsBounds() throws InterruptedException {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+
+        assertTrue(viewModel.changeDefaultTransition("12"));
+        assertFalse(viewModel.changeDefaultTransition("31"));
+        assertFalse(viewModel.changeDefaultTransition("zwei"));
+
+        assertEquals(Integer.valueOf(12), getOrAwaitValue(viewModel.getDefaultTransitionSeconds()));
+        assertEquals(12, container.defaultTransitionSetting.getSeconds());
+    }
+
+    @Test
+    public void theDefaultTransitionCanBeResetToThreeSeconds() throws InterruptedException {
+        SettingsViewModel viewModel = new SettingsViewModel(container);
+        viewModel.changeDefaultTransition("0");
+
+        viewModel.resetDefaultTransition();
+
+        assertEquals(Integer.valueOf(3), getOrAwaitValue(viewModel.getDefaultTransitionSeconds()));
+        assertEquals(3, container.defaultTransitionSetting.getSeconds());
     }
 
     @Test
