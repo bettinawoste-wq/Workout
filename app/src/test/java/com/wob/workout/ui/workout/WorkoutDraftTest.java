@@ -378,6 +378,18 @@ public class WorkoutDraftTest {
     }
 
     @Test
+    public void aWorkoutWithAnExerciseCanStart() {
+        assertTrue(legDay().canStart());
+    }
+
+    @Test
+    public void anEmptyWorkoutOrOneOfRestsOnlyCannotStart() {
+        assertFalse(new WorkoutDraft("", null, new ArrayList<>()).canStart());
+        assertFalse(new WorkoutDraft("Breather", null,
+                Arrays.asList(storedRest(30), storedRest(20))).canStart());
+    }
+
+    @Test
     public void aStoredRestIsUnchangedUntilItsDurationOrPlaceChanges() {
         WorkoutDraft draft = new WorkoutDraft("Leg Day", null, Arrays.asList(
                 stored(1, "Squat", 45), storedRest(30), stored(2, "Lunge", 30)));

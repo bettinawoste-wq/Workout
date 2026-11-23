@@ -116,7 +116,10 @@ lives in an on-device Room database.
 - **Navigation**: one `ui.Navigator`, a plain class over the activity's `FragmentManager`
   (`Navigator.of(fragment)`), makes every screen change: `open` a screen on top, `close` the
   current one, `replace` the current one so back still leads where it did ("Nochmal" in the
-  player, "Duplizieren" in the workout editor), and `showFirst` for the home screen. Fragments
+  player, "Duplizieren" in the workout editor), and `showFirst` for the home screen. The
+  workout editor's ▶ saves the draft without asking (`WorkoutEditViewModel.saveToStart`, which
+  takes the saved workout as the new draft) and `open`s the player on top, so back and the end of
+  the workout lead back to the editor. Fragments
   never touch the `FragmentManager` themselves. Input rules live in drafts and view models, not
   in fragments: the workout draft takes a duration as typed and answers whether it was a valid
   number of seconds (and likewise a transition length of 0 to 30 seconds), the exercise editor's view model rejects a missing title, and both

@@ -146,6 +146,26 @@ public class WorkoutEditViewModelTest {
     }
 
     @Test
+    public void savingToStartStoresANewWorkoutAndLeavesNothingUnsaved() throws Exception {
+        long squatId = testContainer.insertExercise("Squat");
+        WorkoutEditViewModel viewModel = new WorkoutEditViewModel(container, -1);
+        assertFalse(getOrAwaitValue(viewModel.getCanStart()));
+
+        viewModel.changeName("Core");
+        awaitEmissionAfter(viewModel, () -> viewModel.addExercises(
+                Arrays.asList(container.exerciseRepository.getById(squatId))));
+        assertTrue(getOrAwaitValue(viewModel.getCanStart()));
+        Long workoutId = getOrAwaitValue(viewModel.saveToStart());
+
+        assertNotNull(workoutId);
+        assertEquals("Core", nameInFreshEditor(workoutId));
+        assertTitles(exercisesInFreshEditor(workoutId), "Squat");
+        // Back from the player, the editor has nothing left to ask about.
+        assertFalse(viewModel.hasUnsavedChanges());
+        assertFalse(viewModel.isNew());
+    }
+
+    @Test
     public void nothingIsSavedWhileTheWorkoutIsStillLoading() throws Exception {
         long workoutId = testContainer.insertWorkout("Leg Day");
         // Holds the io executor, so the editor's load can't run yet.

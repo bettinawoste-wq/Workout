@@ -2,6 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!-- Saves first if needed, then starts; off while there is no exercise to play. -->
+    <item
+        android:id="@+id/action_start"
+        android:icon="@drawable/ic_play"
+        android:title="@string/workout_starten"
+        app:showAsAction="always"/>
+
     <item
         android:id="@+id/action_duplicate"
         android:title="@string/duplizieren"

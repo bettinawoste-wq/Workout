@@ -31,6 +31,9 @@ public class WorkoutDraft {
     /** What an added exercise lasts until its duration is changed. */
     public static final int NEW_EXERCISE_SECONDS = 60;
 
+    /** The shortest an exercise or rest may last. */
+    public static final int MIN_DURATION_SECONDS = 1;
+
     /** What an added rest lasts until its duration is changed. */
     public static final int NEW_REST_SECONDS = 30;
 
@@ -158,7 +161,7 @@ public class WorkoutDraft {
         } catch (NumberFormatException e) {
             return DurationAnswer.NOT_VALID_SECONDS;
         }
-        if (seconds <= 0) return DurationAnswer.NOT_VALID_SECONDS;
+        if (seconds < MIN_DURATION_SECONDS) return DurationAnswer.NOT_VALID_SECONDS;
         changeDuration(position, seconds);
         return DurationAnswer.ACCEPTED;
     }
@@ -206,6 +209,11 @@ public class WorkoutDraft {
         return trimmed.isEmpty() ? DEFAULT_NAME : trimmed;
     }
 
+    /** Whether there is anything to play: at least one exercise, rests not counting. */
+    public boolean canStart() {
+        return exerciseCount() > 0;
+    }
+
     public boolean hasUnsavedChanges() {
         return !name.trim().equals(loadedName)
                 || !Objects.equals(transitionSeconds, loadedTransitionSeconds)
@@ -224,11 +232,16 @@ public class WorkoutDraft {
 
     /** E.g. "10 Übungen · 10:00"; rests count neither as exercises nor towards the time. */
     public String summaryText() {
+        return ExerciseCount.text(exerciseCount()) + " · " + MinutesSeconds.text(totalSeconds());
+    }
+
+    /** The exercises in the workout, rests not counting. */
+    private int exerciseCount() {
         int exercises = 0;
         for (WorkoutExercise workoutExercise : workoutExercises) {
             if (!workoutExercise.isRest()) exercises++;
         }
-        return ExerciseCount.text(exercises) + " · " + MinutesSeconds.text(totalSeconds());
+        return exercises;
     }
 
     private boolean isAt(int position) {

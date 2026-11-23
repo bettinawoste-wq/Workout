@@ -26,9 +26,12 @@ import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.WorkoutExercise;
 import com.wob.workout.databinding.FragmentWorkoutEditBinding;
 import com.wob.workout.player.DefaultTransitionSetting;
+import com.wob.workout.player.PlayerFragment;
 import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
+import com.wob.workout.ui.SecondsInput;
+import com.wob.workout.ui.SecondsStep;
 import com.wob.workout.ui.exercise.ExerciseEditFragment;
 
 import java.util.List;
@@ -37,6 +40,13 @@ public class WorkoutEditFragment extends Fragment {
 
     private static final String ARG_WORKOUT_ID = "workout_id";
     private static final String ARG_OPENED_AS_NEW = "opened_as_new";
+    /** One − or + on an exercise's or rest's duration. */
+    private static final int DURATION_STEP_SECONDS = 5;
+    private static final int[] QUICK_PICK_SECONDS = {30, 45, 60, 90};
+    private static final int OPAQUE = 255;
+    /** Material's 38 % for disabled content. */
+    private static final int DISABLED_ICON_ALPHA = 97;
+
     private FragmentWorkoutEditBinding binding;
     private WorkoutEditViewModel viewModel;
     private WorkoutExerciseAdapter adapter;
@@ -166,7 +176,10 @@ public class WorkoutEditFragment extends Fragment {
             boolean enabled = Boolean.TRUE.equals(ready);
             binding.btnSave.setEnabled(enabled);
             binding.toolbar.getMenu().findItem(R.id.action_duplicate).setEnabled(enabled);
+            showStartEnabled();
         });
+        viewModel.getCanStart().observe(getViewLifecycleOwner(),
+                canStart -> showStartEnabled());
 
         return binding.getRoot();
     }
@@ -195,6 +208,36 @@ public class WorkoutEditFragment extends Fragment {
         return fragment;
     }
 
+    /** ▶ is on once the workout has loaded and has an exercise to play. */
+    private void showStartEnabled() {
+        boolean enabled = Boolean.TRUE.equals(viewModel.getReady().getValue())
+                && Boolean.TRUE.equals(viewModel.getCanStart().getValue());
+        MenuItem start = binding.toolbar.getMenu().findItem(R.id.action_start);
+        start.setEnabled(enabled);
+        // A disabled menu icon keeps its colour; fade it like a disabled button.
+        if (start.getIcon() != null) {
+            start.getIcon().mutate().setAlpha(enabled ? OPAQUE : DISABLED_ICON_ALPHA);
+        }
+    }
+
+    /** Saves without asking, then opens the player on top, so back and the end of the
+     *  workout lead back here. */
+    private void start() {
+        MenuItem item = binding.toolbar.getMenu().findItem(R.id.action_start);
+        // Once only: a quick second tap would otherwise start twice.
+        item.setEnabled(false);
+        viewModel.saveToStart().observe(getViewLifecycleOwner(), workoutId -> {
+            showStartEnabled();
+            if (workoutId == null) {
+                Snackbar.make(binding.getRoot(), "Speichern fehlgeschlagen",
+                        Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            Navigator.of(this).open(PlayerFragment.create(workoutId,
+                    viewModel.nameToStart()));
+        });
+    }
+
     /** Saves the draft and closes the editor. */
     private void save() {
         // Once only: a quick second tap would otherwise save again.
@@ -220,6 +263,10 @@ public class WorkoutEditFragment extends Fragment {
     }
 
     private boolean onMenuItemClick(MenuItem item) {
+        if (item.getItemId() == R.id.action_start) {
+            start();
+            return true;
+        }
         if (item.getItemId() == R.id.action_duplicate) {
             duplicate();
             return true;
@@ -274,6 +321,10 @@ public class WorkoutEditFragment extends Fragment {
 
         TextInputEditText edtDuration = view.findViewById(R.id.edtDuration);
         edtDuration.setText(String.valueOf(workoutExercise.durationSeconds));
+        SecondsInput.attach(view, edtDuration, DURATION_STEP_SECONDS,
+                WorkoutDraft.MIN_DURATION_SECONDS, SecondsStep.NO_MAXIMUM);
+        SecondsInput.addQuickPicks(view.findViewById(R.id.chipsDuration), edtDuration,
+                QUICK_PICK_SECONDS);
         view.findViewById(R.id.btnEditExercise)
                 .setVisibility(workoutExercise.isRest() ? View.GONE : View.VISIBLE);
 
@@ -317,6 +368,8 @@ public class WorkoutEditFragment extends Fragment {
                 DefaultTransitionSetting.MIN_SECONDS, DefaultTransitionSetting.MAX_SECONDS));
         TextInputEditText edtTransition = view.findViewById(R.id.edtTransition);
         edtTransition.setText(String.valueOf(viewModel.transitionSecondsToEdit()));
+        SecondsInput.attach(view, edtTransition, 1,
+                DefaultTransitionSetting.MIN_SECONDS, DefaultTransitionSetting.MAX_SECONDS);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.uebergang)
