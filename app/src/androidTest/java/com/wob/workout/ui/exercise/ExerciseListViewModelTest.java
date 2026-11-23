@@ -3,6 +3,7 @@ package com.wob.workout.ui.exercise;
 import static com.wob.workout.LiveDataTestUtil.getOrAwaitValue;
 import static com.wob.workout.LiveDataTestUtil.observeValues;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -73,6 +74,28 @@ public class ExerciseListViewModelTest {
         assertEquals(2, exercises.size());
         assertEquals("Lunge", exercises.get(0).title);
         assertEquals("Squat", exercises.get(1).title);
+    }
+
+    @Test
+    public void aSearchShowsTheMatchingExercisesOrSaysThereAreNone()
+            throws InterruptedException {
+        testContainer.insertExercise("Kniebeugen");
+        testContainer.insertExercise("Plank");
+        getOrAwaitValue(viewModel.getShownExercises());
+
+        viewModel.search("KN");
+
+        List<Exercise> shown = getOrAwaitValue(viewModel.getShownExercises());
+        assertEquals(1, shown.size());
+        assertEquals("Kniebeugen", shown.get(0).title);
+        assertFalse(getOrAwaitValue(viewModel.getNoMatch()));
+
+        viewModel.search("Burpee");
+
+        assertTrue(getOrAwaitValue(viewModel.getShownExercises()).isEmpty());
+        assertTrue(getOrAwaitValue(viewModel.getNoMatch()));
+        // The whole catalog stays as it is, for the empty state.
+        assertEquals(2, getOrAwaitValue(viewModel.getExercises()).size());
     }
 
     @Test

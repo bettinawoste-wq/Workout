@@ -12,6 +12,8 @@ no tracking, and nothing to lose when a service shuts down. The interface is in 
 | :---: | :---: | :---: | :---: | :---: | :---: |
 | <img src="docs/screenshots/home.png" width="190" alt="Home screen with the week's progress and streak"> | <img src="docs/screenshots/workout-edit.png" width="190" alt="Editing the starter workout, with a rest before its last exercise"> | <img src="docs/screenshots/player.png" width="190" alt="Player during a rest, previewing the next exercise"> | <img src="docs/screenshots/history.png" width="190" alt="History with completed and aborted sessions"> | <img src="docs/screenshots/history-detail.png" width="190" alt="A completed session with its exercises and rest time"> | <img src="docs/screenshots/settings.png" width="190" alt="Settings with design, sound, vibration, default transition, weekly goal and backup"> |
 
+<img src="docs/screenshots/player-landscape.png" width="400" alt="The player lying down: the picture on the left, timer and buttons on the right">
+
 ## Features
 
 - **Exercises** — title, description and an optional photo or video; a photo is framed by zooming

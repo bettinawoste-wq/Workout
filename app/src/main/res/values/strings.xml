@@ -33,6 +33,7 @@
     <string name="workout_ohne_uebungen">Noch keine Übungen in diesem Workout</string>
     <string name="ton_ausschalten">Ton ausschalten</string>
     <string name="ton_einschalten">Ton einschalten</string>
+    <string name="pausieren_oder_fortsetzen">Pausieren oder fortsetzen</string>
     <string name="fertig">Fertig</string>
     <string name="nochmal">Nochmal</string>
     <string name="entfernen">Entfernen</string>
@@ -47,8 +48,14 @@
     <string name="vibration">Vibration</string>
     <string name="standard_uebergang">Standard-Übergang</string>
     <string name="uebergang">Übergang</string>
+    <string name="workout_starten">Workout starten</string>
+    <string name="uebung_suchen">Übung suchen</string>
+    <string name="keine_uebung_gefunden">Keine Übung gefunden</string>
+    <string name="weniger">Weniger</string>
+    <string name="mehr">Mehr</string>
+    <string name="dauer_in_sekunden">Dauer in Sekunden</string>
     <string name="sekunden_kurz">%d s</string>
-    <string name="uebergang_in_sekunden">Übergang in Sekunden (%1$d–%2$d)</string>
+    <string name="uebergang_in_sekunden">Sekunden (%1$d–%2$d)</string>
     <string name="uebergang_ungueltig">Bitte %1$d bis %2$d Sekunden eingeben</string>
     <string name="standard">Standard</string>
     <string name="pause">Pause</string>
@@ -56,9 +63,12 @@
     <string name="training">Training</string>
     <string name="wochenziel">Wochenziel</string>
     <string name="kein_wochenziel">Kein Ziel</string>
-    <plurals name="trainingstage_pro_woche">
-        <item quantity="one">%d Trainingstag pro Woche</item>
-        <item quantity="other">%d Trainingstage pro Woche</item>
+    <string name="trainingstage_eingeben">Tage (%1$d–%2$d)</string>
+    <string name="trainingstage_ungueltig">Bitte %1$d bis %2$d Tage eingeben</string>
+    <string name="zuruecksetzen_auf_sekunden">Auf %d s zurücksetzen</string>
+    <plurals name="tage">
+        <item quantity="one">%d Tag</item>
+        <item quantity="other">%d Tage</item>
     </plurals>
     <string name="wochenfortschritt">%1$d / %2$d diese Woche · Serie: %3$s</string>
     <string name="erinnerungen">Erinnerungen</string>

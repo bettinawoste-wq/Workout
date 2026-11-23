@@ -9,6 +9,7 @@ import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -21,6 +22,8 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.wob.workout.AppContainer;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
@@ -31,8 +34,10 @@ import com.wob.workout.data.entity.Reminder;
 import com.wob.workout.databinding.DialogReminderBinding;
 import com.wob.workout.databinding.FragmentSettingsBinding;
 import com.wob.workout.databinding.ItemReminderBinding;
+import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.reminders.ReminderNotification;
 import com.wob.workout.training.Weekdays;
+import com.wob.workout.ui.NumberInput;
 import com.wob.workout.ui.ScreenToolbar;
 
 import java.text.SimpleDateFormat;
@@ -41,6 +46,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 
 /** The settings screen, opened from the gear button on the home screen. */
 public class SettingsFragment extends Fragment {
@@ -103,29 +109,16 @@ public class SettingsFragment extends Fragment {
         binding.switchVibration.setOnCheckedChangeListener(
                 (button, checked) -> viewModel.setVibrationOn(checked));
 
-        viewModel.getDefaultTransitionSeconds().observe(getViewLifecycleOwner(), seconds -> {
-            binding.txtDefaultTransition.setText(getString(R.string.sekunden_kurz, seconds));
-            if (binding.sliderDefaultTransition.getValue() != seconds) {
-                binding.sliderDefaultTransition.setValue(seconds);
-            }
-        });
-        binding.sliderDefaultTransition.addOnChangeListener((slider, value, fromUser) -> {
-            if (fromUser) viewModel.setDefaultTransitionSeconds(Math.round(value));
-        });
+        viewModel.getDefaultTransitionSeconds().observe(getViewLifecycleOwner(), seconds ->
+                binding.txtDefaultTransition.setText(getString(R.string.sekunden_kurz, seconds)));
+        binding.rowDefaultTransition.setOnClickListener(v -> showDefaultTransitionDialog());
 
-        viewModel.getWeeklyGoal().observe(getViewLifecycleOwner(), trainingDays -> {
-            binding.txtWeeklyGoal.setText(trainingDays == null
-                    ? getString(R.string.kein_wochenziel)
-                    : getResources().getQuantityString(
-                            R.plurals.trainingstage_pro_woche, trainingDays, trainingDays));
-            int value = trainingDays == null ? 0 : trainingDays;
-            if (binding.sliderWeeklyGoal.getValue() != value) {
-                binding.sliderWeeklyGoal.setValue(value);
-            }
-        });
-        binding.sliderWeeklyGoal.addOnChangeListener((slider, value, fromUser) -> {
-            if (fromUser) viewModel.setWeeklyGoal(Math.round(value));
-        });
+        viewModel.getWeeklyGoal().observe(getViewLifecycleOwner(), trainingDays ->
+                binding.txtWeeklyGoal.setText(trainingDays == null
+                        ? getString(R.string.kein_wochenziel)
+                        : getResources().getQuantityString(
+                                R.plurals.tage, trainingDays, trainingDays)));
+        binding.rowWeeklyGoal.setOnClickListener(v -> showWeeklyGoalDialog());
 
         viewModel.getReminders().observe(getViewLifecycleOwner(), list -> {
             reminders = list;
@@ -375,6 +368,72 @@ public class SettingsFragment extends Fragment {
         if (buttonId == R.id.btnDesignLight) return Design.LIGHT;
         if (buttonId == R.id.btnDesignDark) return Design.DARK;
         return Design.SYSTEM;
+    }
+
+    /** The default transition with − / + in 1-s steps, and a way back to 3 s. */
+    private void showDefaultTransitionDialog() {
+        Integer current = viewModel.getDefaultTransitionSeconds().getValue();
+        showNumberDialog(R.string.standard_uebergang,
+                getString(R.string.uebergang_in_sekunden, DefaultTransitionSetting.MIN_SECONDS,
+                        DefaultTransitionSetting.MAX_SECONDS),
+                current != null ? current : DefaultTransitionSetting.FRESH_INSTALL_SECONDS,
+                DefaultTransitionSetting.MIN_SECONDS, DefaultTransitionSetting.MAX_SECONDS,
+                getString(R.string.zuruecksetzen_auf_sekunden,
+                        DefaultTransitionSetting.FRESH_INSTALL_SECONDS),
+                viewModel::resetDefaultTransition, viewModel::changeDefaultTransition,
+                getString(R.string.uebergang_ungueltig, DefaultTransitionSetting.MIN_SECONDS,
+                        DefaultTransitionSetting.MAX_SECONDS));
+    }
+
+    /** The weekly goal in training days with − / +, and "Kein Ziel" to remove it. */
+    private void showWeeklyGoalDialog() {
+        Integer current = viewModel.getWeeklyGoal().getValue();
+        int min = SettingsViewModel.MIN_GOAL_DAYS;
+        int max = SettingsViewModel.MAX_GOAL_DAYS;
+        showNumberDialog(R.string.wochenziel,
+                getString(R.string.trainingstage_eingeben, min, max),
+                current != null ? current : min, min, max,
+                getString(R.string.kein_wochenziel), viewModel::removeWeeklyGoal,
+                viewModel::changeWeeklyGoal,
+                getString(R.string.trainingstage_ungueltig, min, max));
+    }
+
+    /** A pop-up around one number: OK takes it if the view model accepts the typed text,
+     *  otherwise it says why and stays open; the button below the number sets it another
+     *  way and closes the pop-up. */
+    private void showNumberDialog(int title, String hint, int current, int min, int max,
+                                  String otherLabel, Runnable other,
+                                  Predicate<String> take, String notValid) {
+        View view = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_number_input, null, false);
+        TextInputLayout layoutNumber = view.findViewById(R.id.layoutNumber);
+        layoutNumber.setHint(hint);
+        TextInputEditText edtNumber = view.findViewById(R.id.edtNumber);
+        edtNumber.setText(String.valueOf(current));
+        NumberInput.attach(view, edtNumber, 1, min, max);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(title)
+                .setView(view)
+                .setNegativeButton(R.string.abbrechen, null)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+
+        Button btnOther = view.findViewById(R.id.btnOther);
+        btnOther.setText(otherLabel);
+        btnOther.setVisibility(View.VISIBLE);
+        btnOther.setOnClickListener(v -> {
+            other.run();
+            dialog.dismiss();
+        });
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String typed = edtNumber.getText() != null ? edtNumber.getText().toString() : "";
+            if (!take.test(typed)) {
+                layoutNumber.setError(notValid);
+                return;
+            }
+            dialog.dismiss();
+        });
     }
 
     @Override

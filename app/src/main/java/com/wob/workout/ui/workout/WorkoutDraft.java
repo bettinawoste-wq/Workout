@@ -5,6 +5,7 @@ import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.player.DefaultTransitionSetting;
 import com.wob.workout.ui.ExerciseCount;
 import com.wob.workout.ui.MinutesSeconds;
+import com.wob.workout.ui.WholeNumber;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +31,9 @@ public class WorkoutDraft {
 
     /** What an added exercise lasts until its duration is changed. */
     public static final int NEW_EXERCISE_SECONDS = 60;
+
+    /** The shortest an exercise or rest may last. */
+    public static final int MIN_DURATION_SECONDS = 1;
 
     /** What an added rest lasts until its duration is changed. */
     public static final int NEW_REST_SECONDS = 30;
@@ -82,16 +86,9 @@ public class WorkoutDraft {
     /** Takes the workout's own transition length as typed, e.g. into the transition dialog.
      *  @return whether it was taken over */
     public TransitionAnswer changeTransition(String typed) {
-        int seconds;
-        try {
-            seconds = Integer.parseInt(typed.trim());
-        } catch (NumberFormatException e) {
-            return TransitionAnswer.NOT_VALID_SECONDS;
-        }
-        if (seconds < DefaultTransitionSetting.MIN_SECONDS
-                || seconds > DefaultTransitionSetting.MAX_SECONDS) {
-            return TransitionAnswer.NOT_VALID_SECONDS;
-        }
+        Integer seconds = WholeNumber.within(typed, DefaultTransitionSetting.MIN_SECONDS,
+                DefaultTransitionSetting.MAX_SECONDS);
+        if (seconds == null) return TransitionAnswer.NOT_VALID_SECONDS;
         transitionSeconds = seconds;
         return TransitionAnswer.ACCEPTED;
     }
@@ -152,13 +149,8 @@ public class WorkoutDraft {
     /** Takes a duration as typed, e.g. into the duration dialog.
      *  @return whether it was taken over */
     public DurationAnswer changeDuration(int position, String typed) {
-        int seconds;
-        try {
-            seconds = Integer.parseInt(typed.trim());
-        } catch (NumberFormatException e) {
-            return DurationAnswer.NOT_VALID_SECONDS;
-        }
-        if (seconds <= 0) return DurationAnswer.NOT_VALID_SECONDS;
+        Integer seconds = WholeNumber.within(typed, MIN_DURATION_SECONDS, Integer.MAX_VALUE);
+        if (seconds == null) return DurationAnswer.NOT_VALID_SECONDS;
         changeDuration(position, seconds);
         return DurationAnswer.ACCEPTED;
     }
@@ -206,6 +198,11 @@ public class WorkoutDraft {
         return trimmed.isEmpty() ? DEFAULT_NAME : trimmed;
     }
 
+    /** Whether there is anything to play: at least one exercise, rests not counting. */
+    public boolean canStart() {
+        return exerciseCount() > 0;
+    }
+
     public boolean hasUnsavedChanges() {
         return !name.trim().equals(loadedName)
                 || !Objects.equals(transitionSeconds, loadedTransitionSeconds)
@@ -224,11 +221,16 @@ public class WorkoutDraft {
 
     /** E.g. "10 Übungen · 10:00"; rests count neither as exercises nor towards the time. */
     public String summaryText() {
+        return ExerciseCount.text(exerciseCount()) + " · " + MinutesSeconds.text(totalSeconds());
+    }
+
+    /** The exercises in the workout, rests not counting. */
+    private int exerciseCount() {
         int exercises = 0;
         for (WorkoutExercise workoutExercise : workoutExercises) {
             if (!workoutExercise.isRest()) exercises++;
         }
-        return ExerciseCount.text(exercises) + " · " + MinutesSeconds.text(totalSeconds());
+        return exercises;
     }
 
     private boolean isAt(int position) {

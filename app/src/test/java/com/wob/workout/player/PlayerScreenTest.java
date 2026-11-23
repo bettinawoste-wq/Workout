@@ -73,7 +73,7 @@ public class PlayerScreenTest {
         assertEquals("Pause", running.pauseButtonLabel);
         assertFalse(paused.pauseButtonShowsPause);
         assertEquals("Weiter", paused.pauseButtonLabel);
-        assertTrue(paused.timerTappable);
+        assertTrue(paused.tapPauses);
     }
 
     @Test
@@ -99,7 +99,7 @@ public class PlayerScreenTest {
         assertTrue(screen.descriptionCentered);
         assertNull(screen.exercise);
         assertNull(screen.mediaLabel);
-        assertFalse(screen.timerTappable);
+        assertFalse(screen.tapPauses);
         assertFalse(screen.previousEnabled);
         assertFalse(screen.nextEnabled);
     }
@@ -114,7 +114,7 @@ public class PlayerScreenTest {
         assertEquals("Push-up", screen.mediaTitle);
         assertSame(PUSH_UP.exercise, screen.exercise);
         assertEquals("", screen.description);
-        assertTrue(screen.timerTappable);
+        assertTrue(screen.tapPauses);
     }
 
     @Test
@@ -125,6 +125,14 @@ public class PlayerScreenTest {
 
         assertEquals("02:00", screen.timerText);
         assertEquals("Alle 3 Übungen erledigt\nPausen: 1:30", screen.description);
+    }
+
+    @Test
+    public void aTapPausesInEveryPhaseThatCanPause() {
+        for (Phase phase : new Phase[] {Phase.READY, Phase.ACTIVE, Phase.TRANSITION,
+                Phase.REST}) {
+            assertTrue(phase.name(), PlayerScreen.of(state(phase, 1, 2000, true)).tapPauses);
+        }
     }
 
     @Test

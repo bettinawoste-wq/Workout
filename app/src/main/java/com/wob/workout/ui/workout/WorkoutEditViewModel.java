@@ -1,6 +1,7 @@
 package com.wob.workout.ui.workout;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
@@ -49,6 +50,7 @@ public class WorkoutEditViewModel extends ViewModel {
     private final MutableLiveData<String> summary = new MutableLiveData<>();
     private final MutableLiveData<String> transition = new MutableLiveData<>();
     private final MutableLiveData<Boolean> unsavedChanges = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> canStart = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> ready = new MutableLiveData<>(false);
 
     /** A new workout has no stored name to show; an existing one shows it only once. */
@@ -233,6 +235,35 @@ public class WorkoutEditViewModel extends ViewModel {
         return saveDraftThen(name -> true);
     }
 
+    /** Whether the workout as edited has anything to play, so the editor's start is on. */
+    public LiveData<Boolean> getCanStart() {
+        return canStart;
+    }
+
+    /** Saves the draft, without asking, so the player plays what the editor shows, and
+     *  takes the saved workout as the new draft: back from the player, nothing is left
+     *  unsaved.
+     *  @return the saved workout's id, or null if still loading or saving failed. */
+    public LiveData<Long> saveToStart() {
+        MediatorLiveData<Long> started = new MediatorLiveData<>();
+        started.addSource(saveDraftThen(name -> load()), loaded -> {
+            if (loaded == null) {
+                started.setValue(null);
+                return;
+            }
+            draft = new WorkoutDraft(loaded.workout.name, loaded.workout.transitionSeconds,
+                    loaded.workoutExercises);
+            publish();
+            started.setValue(loaded.workout.id);
+        });
+        return started;
+    }
+
+    /** The name the player shows for the workout just saved to start. */
+    public String nameToStart() {
+        return draft != null ? draft.nameToSave() : WorkoutDraft.DEFAULT_NAME;
+    }
+
     /** Saves the draft first, so the copy matches what the editor shows, then copies the
      *  workout as "<name> (Kopie)" with the same transition choice, exercises and
      *  durations.
@@ -285,6 +316,7 @@ public class WorkoutEditViewModel extends ViewModel {
         transition.setValue(
                 draft.transitionText(container.defaultTransitionSetting.getSeconds()));
         unsavedChanges.setValue(draft.hasUnsavedChanges());
+        canStart.setValue(draft.canStart());
     }
 
     /** Runs on the io executor. */

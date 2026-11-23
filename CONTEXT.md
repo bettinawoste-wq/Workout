@@ -116,7 +116,10 @@ lives in an on-device Room database.
 - **Navigation**: one `ui.Navigator`, a plain class over the activity's `FragmentManager`
   (`Navigator.of(fragment)`), makes every screen change: `open` a screen on top, `close` the
   current one, `replace` the current one so back still leads where it did ("Nochmal" in the
-  player, "Duplizieren" in the workout editor), and `showFirst` for the home screen. Fragments
+  player, "Duplizieren" in the workout editor), and `showFirst` for the home screen. The
+  workout editor's ▶ saves the draft without asking (`WorkoutEditViewModel.saveToStart`, which
+  takes the saved workout as the new draft) and `open`s the player on top, so back and the end of
+  the workout lead back to the editor. Fragments
   never touch the `FragmentManager` themselves. Input rules live in drafts and view models, not
   in fragments: the workout draft takes a duration as typed and answers whether it was a valid
   number of seconds (and likewise a transition length of 0 to 30 seconds), the exercise editor's view model rejects a missing title, and both
@@ -144,6 +147,11 @@ lives in an on-device Room database.
   `PlayerFragment` only puts them in place. Sounds (`PlayerSound`: beep, start, success) come
   from the engine as events; `PlayerViewModel` drops them while the sound setting is off and
   hands the rest to the screen as one-shot `Event`s, so a rotation never plays one again.
+- **Exercise search**: the exercise list and the workout editor's exercise picker have a search
+  field above them; `ui.exercise.ExerciseSearch` is the one rule (title contains the text,
+  ignoring case). `ExerciseListViewModel` exposes the catalog (for the empty state) beside what
+  the search shows; the picker's `ExercisePicks` keeps its ticks, in tick order, while a search
+  hides their exercises.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
   `fallbackToDestructiveMigration()`. Room runs without `allowMainThreadQueries()` (removed in
   #22, the last step of the MVVM migration): every database access happens off the main thread,
@@ -170,8 +178,11 @@ lives in an on-device Room database.
   hands every sound event to the screen a second time, as a vibration `Event`, independent of
   the sound switch; `PlayerVibrator` plays one pattern per `PlayerSound`. The engine knows
   nothing about vibration. The weekly goal (see **Weekly goal and streak**) is the
-  exception: it lives in the database, and the screen's Training section sets it with a
-  slider from 0 (none) to 7 training days.
+  exception: it lives in the database. The default transition and the weekly goal are each
+  one row that opens a pop-up around a number with − / + (`ui.NumberInput`, stepping by
+  `NumberStep`'s rule): 0 to 30 s with "Auf 3 s zurücksetzen", or 1 to 7 training days with
+  "Kein Ziel". `SettingsViewModel` judges the typed text (`changeDefaultTransition`,
+  `changeWeeklyGoal`); the pop-up only shows its answer.
 - **Backup**: `backup.Backup` (`AppContainer.backup`) writes and reads one ZIP file: a data
   document `data.json` (`BackupDocument`: the stored rows of exercises, workouts with their
   places and rests, workout sessions and exercise sessions, with a format version) plus the

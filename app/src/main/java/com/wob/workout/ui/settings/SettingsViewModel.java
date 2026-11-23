@@ -15,6 +15,7 @@ import com.wob.workout.player.VibrationSetting;
 import com.wob.workout.reminders.ReminderAlarms;
 import com.wob.workout.training.Clock;
 import com.wob.workout.training.Weekdays;
+import com.wob.workout.ui.WholeNumber;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -30,6 +31,10 @@ import java.util.concurrent.ExecutorService;
  * and that a reminder needs at least one weekday.
  */
 public class SettingsViewModel extends ViewModel {
+
+    /** The weekly goal's bounds in training days; no goal at all is "Kein Ziel". */
+    public static final int MIN_GOAL_DAYS = 1;
+    public static final int MAX_GOAL_DAYS = 7;
 
     /** A new reminder's time and weekdays until changed: 18:00, Monday to Friday. */
     private static final int NEW_REMINDER_MINUTE_OF_DAY = 18 * 60;
@@ -86,8 +91,25 @@ public class SettingsViewModel extends ViewModel {
         return defaultTransitionSeconds;
     }
 
-    /** Stores the default transition; every workout without its own length follows it. */
-    public void setDefaultTransitionSeconds(int seconds) {
+    /** Takes the default transition as typed into its pop-up; every workout without its own
+     *  length follows it.
+     *  @return false, changing nothing, unless it is a whole number of seconds within
+     *  {@link DefaultTransitionSetting#MIN_SECONDS} to
+     *  {@link DefaultTransitionSetting#MAX_SECONDS} */
+    public boolean changeDefaultTransition(String typed) {
+        Integer seconds = WholeNumber.within(typed, DefaultTransitionSetting.MIN_SECONDS,
+                DefaultTransitionSetting.MAX_SECONDS);
+        if (seconds == null) return false;
+        setDefaultTransitionSeconds(seconds);
+        return true;
+    }
+
+    /** "Auf 3 s zurücksetzen": back to what a fresh install starts with. */
+    public void resetDefaultTransition() {
+        setDefaultTransitionSeconds(DefaultTransitionSetting.FRESH_INSTALL_SECONDS);
+    }
+
+    private void setDefaultTransitionSeconds(int seconds) {
         defaultTransitionSetting.setSeconds(seconds);
         defaultTransitionSeconds.setValue(defaultTransitionSetting.getSeconds());
     }
@@ -113,9 +135,22 @@ public class SettingsViewModel extends ViewModel {
         return weeklyGoal;
     }
 
-    /** Sets the weekly goal from the current week on; 0 training days removes it. */
-    public void setWeeklyGoal(int trainingDays) {
-        Integer goal = trainingDays == 0 ? null : trainingDays;
+    /** Takes the weekly goal as typed into its pop-up, from the current week on.
+     *  @return false, changing nothing, unless it is {@link #MIN_GOAL_DAYS} to
+     *  {@link #MAX_GOAL_DAYS} training days */
+    public boolean changeWeeklyGoal(String typed) {
+        Integer trainingDays = WholeNumber.within(typed, MIN_GOAL_DAYS, MAX_GOAL_DAYS);
+        if (trainingDays == null) return false;
+        setWeeklyGoal(trainingDays);
+        return true;
+    }
+
+    /** "Kein Ziel": removes the weekly goal from the current week on. */
+    public void removeWeeklyGoal() {
+        setWeeklyGoal(null);
+    }
+
+    private void setWeeklyGoal(Integer goal) {
         weeklyGoal.setValue(goal);
         LiveDataExecutor.runOnExecutorOnce(ioExecutor, () -> {
             weeklyGoalRepository.setGoal(goal, clock);

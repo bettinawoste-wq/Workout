@@ -19,8 +19,8 @@ public final class PlayerScreen {
     public final String progressText;
     /** E.g. "Start in 3", "00:48", or the active time once finished. */
     public final String timerText;
-    /** Whether tapping the timer pauses or resumes. */
-    public final boolean timerTappable;
+    /** Whether tapping the timer or the picture pauses or resumes. */
+    public final boolean tapPauses;
     /** Over the picture while it only previews the coming exercise; null otherwise. */
     public final String mediaLabel;
     public final String mediaTitle;
@@ -40,7 +40,7 @@ public final class PlayerScreen {
     public final boolean finished;
 
     private PlayerScreen(int scene, Exercise exercise, String progressText, String timerText,
-                         boolean timerTappable, String mediaLabel, String mediaTitle,
+                         boolean tapPauses, String mediaLabel, String mediaTitle,
                          String title, String description, boolean descriptionCentered,
                          boolean previousEnabled, boolean nextEnabled,
                          boolean pauseButtonShowsPause, String workoutRemainingText,
@@ -49,7 +49,7 @@ public final class PlayerScreen {
         this.exercise = exercise;
         this.progressText = progressText;
         this.timerText = timerText;
-        this.timerTappable = timerTappable;
+        this.tapPauses = tapPauses;
         this.mediaLabel = mediaLabel;
         this.mediaTitle = mediaTitle;
         this.title = title;
