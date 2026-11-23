@@ -27,6 +27,8 @@ public class PlayerFragment extends Fragment {
 
     private static final String ARG_WORKOUT_ID = "workout_id";
     private static final String ARG_WORKOUT_NAME = "workout_name";
+    private static final long TAP_FEEDBACK_SHOWN_MILLIS = 300;
+    private static final long TAP_FEEDBACK_FADE_MILLIS = 400;
 
     private FragmentPlayerBinding binding;
     private PlayerViewModel viewModel;
@@ -35,6 +37,8 @@ public class PlayerFragment extends Fragment {
     private MediaController mediaController;
     /** The scene whose picture is on screen, so that a tick doesn't load it again. */
     private int shownScene = -1;
+    /** Whether the session runs, as last shown, so a tap on the picture knows what it does. */
+    private boolean running;
 
     /** While a workout runs, leaving it (back arrow or system back) aborts it, so ask first,
      *  just like "Workout abbrechen". Disabled once it's finished: then back just leaves. */
@@ -88,6 +92,11 @@ public class PlayerFragment extends Fragment {
         binding.btnPause.setOnClickListener(v -> viewModel.togglePause());
         // A larger target than the pause button, for a tap in the middle of an exercise.
         binding.txtTimer.setOnClickListener(v -> viewModel.togglePause());
+        // The largest target of all: the picture, with the symbol flashing up as feedback.
+        binding.mediaTapTarget.setOnClickListener(v -> {
+            flashTapFeedback(running);
+            viewModel.togglePause();
+        });
         binding.btnNext.setOnClickListener(v -> viewModel.next());
         binding.btnPrevious.setOnClickListener(v -> viewModel.previous());
         binding.btnCancel.setOnClickListener(v -> confirmCancelWorkout());
@@ -138,7 +147,9 @@ public class PlayerFragment extends Fragment {
     private void show(PlayerScreen screen) {
         binding.txtProgress.setText(screen.progressText);
         binding.txtTimer.setText(screen.timerText);
-        binding.txtTimer.setClickable(screen.timerTappable);
+        binding.txtTimer.setClickable(screen.tapPauses);
+        binding.mediaTapTarget.setClickable(screen.tapPauses);
+        running = screen.pauseButtonShowsPause;
 
         int previewVisibility = screen.mediaLabel != null ? View.VISIBLE : View.GONE;
         binding.mediaScrim.setVisibility(previewVisibility);
@@ -176,6 +187,16 @@ public class PlayerFragment extends Fragment {
                 mediaController.hide();
             }
         }
+    }
+
+    /** Flashes ❚❚ when a tap pauses, ▶ when it resumes.
+     *  @param running whether the session was running before the tap */
+    private void flashTapFeedback(boolean running) {
+        binding.imgTapFeedback.setImageResource(running ? R.drawable.ic_pause : R.drawable.ic_play);
+        binding.imgTapFeedback.animate().cancel();
+        binding.imgTapFeedback.setAlpha(1f);
+        binding.imgTapFeedback.animate().alpha(0f).setStartDelay(TAP_FEEDBACK_SHOWN_MILLIS)
+                .setDuration(TAP_FEEDBACK_FADE_MILLIS).start();
     }
 
     /** The speaker shows the current state; its label says what a tap does. */

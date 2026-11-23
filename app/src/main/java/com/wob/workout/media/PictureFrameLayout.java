@@ -16,7 +16,7 @@ public class PictureFrameLayout extends FrameLayout {
 
     static final int RATIO_WIDTH = 3;
     static final int RATIO_HEIGHT = 2;
-    private static final float MAX_SHARE_OF_SCREEN_HEIGHT = 0.45f;
+    private static final float MAX_SHARE_OF_SCREEN_HEIGHT = 0.55f;
     private static final int CORNER_RADIUS_DP = 8;
 
     public PictureFrameLayout(Context context, AttributeSet attrs) {

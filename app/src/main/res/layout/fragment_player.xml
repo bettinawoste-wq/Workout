@@ -23,9 +23,15 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="16dp">
+
+            <!-- From the top down, so the picture sits right under the toolbar and nothing
+                 below it moves between phases; leftover space collects at the bottom. -->
 
             <com.wob.workout.media.PictureFrameLayout
                 android:id="@+id/mediaFrame"
@@ -91,6 +97,27 @@
                         android:textSize="30sp"
                         android:textStyle="bold"/>
                 </LinearLayout>
+
+                <!-- Over everything in the frame, also over a video: a tap pauses or resumes
+                     like the pause button, and the symbol flashes up as feedback. -->
+                <FrameLayout
+                    android:id="@+id/mediaTapTarget"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/pausieren_oder_fortsetzen"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/imgTapFeedback"
+                        android:layout_width="88dp"
+                        android:layout_height="88dp"
+                        android:layout_gravity="center"
+                        android:alpha="0"
+                        android:background="@drawable/bg_tap_feedback"
+                        android:contentDescription="@null"
+                        android:padding="20dp"
+                        app:tint="#FFFFFFFF"/>
+                </FrameLayout>
             </com.wob.workout.media.PictureFrameLayout>
 
             <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -138,11 +165,14 @@
                 app:autoSizeMinTextSize="32sp"
                 app:autoSizeTextType="uniform"/>
 
+            <!-- Always two lines high, so a long name doesn't push the buttons down. -->
             <TextView
                 android:id="@+id/txtTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
                 android:gravity="center"
+                android:lines="2"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="24sp"
                 android:textStyle="bold"/>

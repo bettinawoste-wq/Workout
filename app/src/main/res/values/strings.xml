@@ -33,6 +33,7 @@
     <string name="workout_ohne_uebungen">Noch keine Übungen in diesem Workout</string>
     <string name="ton_ausschalten">Ton ausschalten</string>
     <string name="ton_einschalten">Ton einschalten</string>
+    <string name="pausieren_oder_fortsetzen">Pausieren oder fortsetzen</string>
     <string name="fertig">Fertig</string>
     <string name="nochmal">Nochmal</string>
     <string name="entfernen">Entfernen</string>
