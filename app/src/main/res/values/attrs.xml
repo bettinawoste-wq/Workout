@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PictureFrameLayout">
+        <!-- Take all the height the frame is given, not just its share of the screen. -->
+        <attr name="fillsHeight" format="boolean"/>
+    </declare-styleable>
+</resources>

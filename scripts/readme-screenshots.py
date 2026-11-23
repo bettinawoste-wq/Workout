@@ -3,7 +3,9 @@
 Installs the release build, so the starter set appears as a user sees it, sets a weekly goal of
 3 training days and adds a reminder (allowing its notifications), puts a rest before the starter workout's last exercise, and runs the workout
 twice: once aborted, once to the end through the rest, so the history shows both, the detail
-its rest time and the home screen the week's progress. Takes about
+its rest time and the home screen the week's progress. During the rest the phone is turned to
+landscape for a moment, so the player is also shot lying down; the phone's own rotation
+settings are put back afterwards. Takes about
 five minutes. The phone must stay unlocked. The release app is uninstalled again at the end, so
 the script refuses to run while a release build is already installed: its data would be lost.
 The status bar is painted over, so no personal notifications end up in the repo.
@@ -15,7 +17,7 @@ import time
 
 from PIL import Image
 
-from android_tools import (REPO, RELEASE_PACKAGE, adb, centre, density, fail, find_all,
+from android_tools import (REPO, RELEASE_PACKAGE, adb, adb_text, centre, density, fail, find_all,
                            gradle, install, is_installed, is_locked, key, require_one_device,
                            screen_size, screenshot, tap, tap_view, ui_nodes)
 
@@ -51,6 +53,25 @@ def pause_button_centre(image_path):
     if best is None:
         fail("pause button not found in " + str(image_path))
     return x, best[0] + best[1] // 2
+
+
+def rotation_settings():
+    """The phone's own rotation settings, to put back after shooting in landscape."""
+    return {name: adb_text("shell", "settings", "get", "system", name).strip()
+            for name in ("accelerometer_rotation", "user_rotation")}
+
+
+def turn(landscape):
+    """Turns the screen without moving the phone: auto-rotation off, rotation fixed."""
+    adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
+    adb("shell", "settings", "put", "system", "user_rotation", "1" if landscape else "0")
+    time.sleep(2.5)
+
+
+def restore_rotation(settings):
+    for name, value in settings.items():
+        if value and value != "null":
+            adb("shell", "settings", "put", "system", name, value)
 
 
 def save_shot(path):
@@ -183,10 +204,13 @@ def main():
         fail("the phone is locked; unlock it and keep it awake while this runs")
     install(REPO / "app" / "build" / "outputs" / "apk" / "release" / "app-release.apk")
     probe = REPO / "app" / "build" / "screenshot-probe.png"
+    rotation = rotation_settings()
 
     try:
         # An open notification shade would end up in the screenshots, notifications and all.
         adb("shell", "cmd", "statusbar", "collapse")
+        # Standing up whatever way the phone lies; its own setting comes back at the end.
+        turn(landscape=False)
         adb("shell", "am", "start", "-W", "-n", PKG + "/com.wob.workout.MainActivity")
         time.sleep(2.5)
 
@@ -223,7 +247,10 @@ def main():
         run_out_current(buttons, "the exercise before the rest")
         time.sleep(2.5)
         save_shot(SHOTS / "player.png")
-        time.sleep(30)
+        turn(landscape=True)
+        save_shot(SHOTS / "player-landscape.png")
+        turn(landscape=False)
+        time.sleep(22)
         run_out_current(buttons, "the last exercise")
         wait_for_text("Fertig", 15)
         tap_view(PKG, "btnDone")
@@ -238,6 +265,7 @@ def main():
         time.sleep(2)
         save_shot(SHOTS / "history-detail.png")
     finally:
+        restore_rotation(rotation)
         adb("uninstall", PKG, check=False)
         probe.unlink(missing_ok=True)
 
