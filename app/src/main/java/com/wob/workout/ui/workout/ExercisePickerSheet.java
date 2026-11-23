@@ -17,11 +17,13 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.wob.workout.R;
 import com.wob.workout.WorkoutApplication;
 import com.wob.workout.databinding.SheetExercisePickerBinding;
+import com.wob.workout.ui.AfterTextChanged;
 
 /**
  * Picks several exercises at once for the workout editor it is shown from, which must be
  * its parent fragment ({@link #show(WorkoutEditFragment)}): it shares the editor's
- * {@link WorkoutEditViewModel}. The ticks survive rotation.
+ * {@link WorkoutEditViewModel}. A search narrows the list without touching the ticks; the
+ * ticks survive rotation.
  */
 public class ExercisePickerSheet extends BottomSheetDialogFragment {
 
@@ -68,8 +70,11 @@ public class ExercisePickerSheet extends BottomSheetDialogFragment {
         adapter.setPickedIds(restored != null ? restored : new long[0]);
 
         viewModel.loadAllExercises().observe(getViewLifecycleOwner(), exercises -> {
-            if (exercises != null) adapter.setData(exercises);
+            if (exercises != null) showNoMatch(adapter.setData(exercises));
         });
+
+        binding.search.edtSearch.addTextChangedListener(
+                new AfterTextChanged(typed -> showNoMatch(adapter.search(typed))));
 
         binding.btnAdd.setOnClickListener(v -> {
             // Once only: a quick second tap would otherwise land before the dismissal.
@@ -79,6 +84,10 @@ public class ExercisePickerSheet extends BottomSheetDialogFragment {
         });
 
         return binding.getRoot();
+    }
+
+    private void showNoMatch(boolean noMatch) {
+        binding.txtNoMatch.setVisibility(noMatch ? View.VISIBLE : View.GONE);
     }
 
     private void showPickedCount(int count) {

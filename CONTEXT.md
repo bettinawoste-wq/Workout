@@ -147,6 +147,11 @@ lives in an on-device Room database.
   `PlayerFragment` only puts them in place. Sounds (`PlayerSound`: beep, start, success) come
   from the engine as events; `PlayerViewModel` drops them while the sound setting is off and
   hands the rest to the screen as one-shot `Event`s, so a rotation never plays one again.
+- **Exercise search**: the exercise list and the workout editor's exercise picker have a search
+  field above them; `ui.exercise.ExerciseSearch` is the one rule (title contains the text,
+  ignoring case). `ExerciseListViewModel` exposes the catalog (for the empty state) beside what
+  the search shows; the picker's `ExercisePicks` keeps its ticks, in tick order, while a search
+  hides their exercises.
 - **Persistence**: Room, with explicit versioned `Migration`s in `AppDatabase` — never
   `fallbackToDestructiveMigration()`. Room runs without `allowMainThreadQueries()` (removed in
   #22, the last step of the MVVM migration): every database access happens off the main thread,

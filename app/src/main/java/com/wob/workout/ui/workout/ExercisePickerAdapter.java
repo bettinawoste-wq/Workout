@@ -16,22 +16,19 @@ import com.wob.workout.databinding.ItemExercisePickBinding;
 import com.wob.workout.media.ExerciseThumbnails;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 
-/** The exercise catalog with a checkbox per row. Remembers the ticks in the order they
- *  were made, which is the order they get added to the workout in. */
+/** The exercises the search shows, with a checkbox per row; what is ticked, and in which
+ *  order, is {@link ExercisePicks}'. */
 class ExercisePickerAdapter extends RecyclerView.Adapter<ExercisePickerAdapter.ViewHolder> {
 
     interface PickedCountListener {
         void onPickedCountChanged(int count);
     }
 
-    private final List<Exercise> exercises = new ArrayList<>();
-    /** Exercise ids in tick order; unticking removes one, ticking again appends it. */
-    private final LinkedHashSet<Long> pickedIds = new LinkedHashSet<>();
+    private final ExercisePicks picks = new ExercisePicks();
+    /** What the search shows, in the list's order. */
+    private List<Exercise> shown = new ArrayList<>();
     private final ExerciseThumbnails thumbnails;
     private final PickedCountListener listener;
 
@@ -40,34 +37,39 @@ class ExercisePickerAdapter extends RecyclerView.Adapter<ExercisePickerAdapter.V
         this.listener = listener;
     }
 
-    void setData(List<Exercise> data) {
-        exercises.clear();
-        exercises.addAll(data);
-        notifyDataSetChanged();
+    /** @return whether the search under way finds nothing in the new catalog */
+    boolean setData(List<Exercise> data) {
+        picks.setCatalog(data);
+        showSearch();
+        return picks.noMatch();
+    }
+
+    /** Shows the exercises whose title contains {@code typed}; ticks stay as they are.
+     *  @return whether the search found nothing */
+    boolean search(String typed) {
+        picks.search(typed);
+        showSearch();
+        return picks.noMatch();
     }
 
     long[] getPickedIds() {
-        return pickedIds.stream().mapToLong(Long::longValue).toArray();
+        return picks.pickedIds();
     }
 
     void setPickedIds(long[] ids) {
-        pickedIds.clear();
-        for (long id : ids) pickedIds.add(id);
+        picks.restore(ids);
         notifyDataSetChanged();
-        listener.onPickedCountChanged(pickedIds.size());
+        listener.onPickedCountChanged(picks.count());
     }
 
-    /** The ticked exercises in tick order; ticks for exercises not in the list are skipped. */
+    /** The ticked exercises in tick order, also those the search hides. */
     List<Exercise> getPicked() {
-        Map<Long, Exercise> byId = new HashMap<>();
-        for (Exercise exercise : exercises) byId.put(exercise.id, exercise);
+        return picks.picked();
+    }
 
-        List<Exercise> picked = new ArrayList<>();
-        for (long id : pickedIds) {
-            Exercise exercise = byId.get(id);
-            if (exercise != null) picked.add(exercise);
-        }
-        return picked;
+    private void showSearch() {
+        shown = picks.shown();
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -79,18 +81,18 @@ class ExercisePickerAdapter extends RecyclerView.Adapter<ExercisePickerAdapter.V
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Exercise exercise = exercises.get(position);
+        Exercise exercise = shown.get(position);
         holder.binding.txtTitle.setText(exercise.title);
         thumbnails.show(holder.binding.imgThumbnail, exercise);
 
-        boolean picked = pickedIds.contains(exercise.id);
+        boolean picked = picks.isPicked(exercise.id);
         holder.binding.checkPicked.setChecked(picked);
         holder.itemView.setOnClickListener(v -> {
             int adapterPosition = holder.getBindingAdapterPosition();
             if (adapterPosition == RecyclerView.NO_POSITION) return;
-            if (!pickedIds.remove(exercise.id)) pickedIds.add(exercise.id);
+            picks.toggle(exercise.id);
             notifyItemChanged(adapterPosition);
-            listener.onPickedCountChanged(pickedIds.size());
+            listener.onPickedCountChanged(picks.count());
         });
         // The checkbox itself is hidden from TalkBack, so the row announces the tick.
         ViewCompat.setAccessibilityDelegate(holder.itemView, new AccessibilityDelegateCompat() {
@@ -109,7 +111,7 @@ class ExercisePickerAdapter extends RecyclerView.Adapter<ExercisePickerAdapter.V
 
     @Override
     public int getItemCount() {
-        return exercises.size();
+        return shown.size();
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {

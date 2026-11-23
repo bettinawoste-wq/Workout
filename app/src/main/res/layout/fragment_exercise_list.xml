@@ -21,11 +21,24 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <include
+                android:id="@+id/search"
+                layout="@layout/view_exercise_search"/>
+
+            <TextView
+                android:id="@+id/txtNoMatch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:padding="24dp"
+                android:text="@string/keine_uebung_gefunden"
+                android:visibility="gone"/>
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerExercises"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
                 android:layout_weight="1"/>
 
         </LinearLayout>

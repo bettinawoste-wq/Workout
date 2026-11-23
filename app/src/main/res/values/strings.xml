@@ -49,6 +49,8 @@
     <string name="standard_uebergang">Standard-Übergang</string>
     <string name="uebergang">Übergang</string>
     <string name="workout_starten">Workout starten</string>
+    <string name="uebung_suchen">Übung suchen</string>
+    <string name="keine_uebung_gefunden">Keine Übung gefunden</string>
     <string name="weniger">Weniger</string>
     <string name="mehr">Mehr</string>
     <string name="dauer_in_sekunden">Dauer in Sekunden</string>

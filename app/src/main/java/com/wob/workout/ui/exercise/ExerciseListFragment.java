@@ -17,6 +17,7 @@ import com.wob.workout.WorkoutApplication;
 import com.wob.workout.WorkoutViewModelFactory;
 import com.wob.workout.data.entity.Exercise;
 import com.wob.workout.databinding.FragmentExerciseListBinding;
+import com.wob.workout.ui.AfterTextChanged;
 import com.wob.workout.ui.EmptyState;
 import com.wob.workout.ui.Navigator;
 import com.wob.workout.ui.ScreenToolbar;
@@ -52,10 +53,13 @@ public class ExerciseListFragment extends Fragment {
         EmptyState.setUp(binding.emptyState, R.drawable.ic_list, R.string.noch_keine_uebungen,
                 R.string.uebung_anlegen, v -> openNewExercise());
 
-        viewModel.getExercises().observe(getViewLifecycleOwner(), exercises -> {
-            adapter.setData(exercises);
-            EmptyState.show(binding.emptyState, exercises.isEmpty(), binding.fabAddExercise);
-        });
+        // The empty state is about the whole catalog; the list shows what the search finds.
+        viewModel.getExercises().observe(getViewLifecycleOwner(), exercises ->
+                EmptyState.show(binding.emptyState, exercises.isEmpty(), binding.fabAddExercise));
+        viewModel.getShownExercises().observe(getViewLifecycleOwner(), adapter::setData);
+        viewModel.getNoMatch().observe(getViewLifecycleOwner(), noMatch ->
+                binding.txtNoMatch.setVisibility(noMatch ? View.VISIBLE : View.GONE));
+        binding.search.edtSearch.addTextChangedListener(new AfterTextChanged(viewModel::search));
 
         return binding.getRoot();
     }
